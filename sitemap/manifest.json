@@ -1,0 +1,173 @@
+[
+  {
+    "file": "index.html",
+    "number": 1,
+    "redirect": null,
+    "title": "Mt Cottages | Furnished Mid-Term & Long-Term Stays",
+    "image": "shots/01-index.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/index.html"
+  },
+  {
+    "file": "about.html",
+    "number": 2,
+    "redirect": null,
+    "title": "About Us | Mt Cottages",
+    "image": "shots/02-about.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/about.html"
+  },
+  {
+    "file": "rooms.html",
+    "number": 3,
+    "redirect": null,
+    "title": "Rooms | Mt Cottages",
+    "image": "shots/03-rooms.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/rooms.html"
+  },
+  {
+    "file": "rooms-details.html",
+    "number": 4,
+    "redirect": null,
+    "title": "Room Details | Mt Cottages",
+    "image": "shots/04-rooms-details.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/rooms-details.html"
+  },
+  {
+    "file": "booking.html",
+    "number": 5,
+    "redirect": null,
+    "title": "Book a Stay | Mt Cottages",
+    "image": "shots/05-booking.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/booking.html"
+  },
+  {
+    "file": "restaurant.html",
+    "number": 6,
+    "redirect": null,
+    "title": "Restaurant | Mt Cottages",
+    "image": "shots/06-restaurant.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/restaurant.html"
+  },
+  {
+    "file": "dine.html",
+    "number": 7,
+    "redirect": null,
+    "title": "Dining | Mt Cottages",
+    "image": "shots/07-dine.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/dine.html"
+  },
+  {
+    "file": "cafy.html",
+    "number": 8,
+    "redirect": null,
+    "title": "Café | Mt Cottages",
+    "image": "shots/08-cafy.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/cafy.html"
+  },
+  {
+    "file": "service.html",
+    "number": 9,
+    "redirect": null,
+    "title": "Services | Mt Cottages",
+    "image": "shots/09-service.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/service.html"
+  },
+  {
+    "file": "service-details.html",
+    "number": 10,
+    "redirect": null,
+    "title": "Service Details | Mt Cottages",
+    "image": "shots/10-service-details.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/service-details.html"
+  },
+  {
+    "file": "galary.html",
+    "number": 11,
+    "redirect": null,
+    "title": "Gallery | Mt Cottages",
+    "image": "shots/11-galary.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/galary.html"
+  },
+  {
+    "file": "offer.html",
+    "number": 12,
+    "redirect": null,
+    "title": "Offers | Mt Cottages",
+    "image": "shots/12-offer.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/offer.html"
+  },
+  {
+    "file": "pricing.html",
+    "number": 13,
+    "redirect": null,
+    "title": "Pricing | Mt Cottages",
+    "image": "shots/13-pricing.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/pricing.html"
+  },
+  {
+    "file": "faq.html",
+    "number": 14,
+    "redirect": null,
+    "title": "FAQ | Mt Cottages",
+    "image": "shots/14-faq.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/faq.html"
+  },
+  {
+    "file": "team.html",
+    "number": 15,
+    "redirect": null,
+    "title": "Our Team | Mt Cottages",
+    "image": "shots/15-team.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/team.html"
+  },
+  {
+    "file": "testimonial.html",
+    "number": 16,
+    "redirect": null,
+    "title": "Testimonials | Mt Cottages",
+    "image": "shots/16-testimonial.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/testimonial.html"
+  },
+  {
+    "file": "blog-grid.html",
+    "number": 17,
+    "redirect": null,
+    "title": "Blog | Mt Cottages",
+    "image": "shots/17-blog-grid.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/blog-grid.html"
+  },
+  {
+    "file": "contact.html",
+    "number": 18,
+    "redirect": null,
+    "title": "Contact Us | Mt Cottages",
+    "image": "shots/18-contact.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/contact.html"
+  },
+  {
+    "file": "apply.html",
+    "number": 19,
+    "redirect": null,
+    "title": "Apply to Stay | Mt Cottages",
+    "image": "shots/19-apply.jpg",
+    "ok": true,
+    "url": "https://mtcottages.com/apply.html"
+  }
+]
