@@ -10,7 +10,7 @@ const { cottage } = Astro.props as { cottage: Cottage };
   <div class="details-grid">
     <div class="detail"><span class="detail-icon" aria-hidden="true">⌂</span><span class="detail-label">Location</span><span class="detail-value">{cottage.town}</span></div>
     <div class="detail"><span class="detail-icon" aria-hidden="true">▦</span><span class="detail-label">Space</span><span class="detail-value">{cottage.bedrooms}</span></div>
-    <div class="detail"><span class="detail-icon" aria-hidden="true">◌</span><span class="detail-label">Home type</span><span class="detail-value">Furnished</span></div>
+    <div class="detail"><span class="detail-icon" aria-hidden="true">◌</span><span class="detail-label">Home type</span><span class="detail-value">{cottage.homeType ?? "Furnished"}</span></div>
     <div class="detail"><span class="detail-icon" aria-hidden="true">↗</span><span class="detail-label">Stay shape</span><span class="detail-value">30 days or longer</span></div>
   </div>
   <div class="price-block">

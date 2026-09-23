@@ -13,10 +13,16 @@ const { cottage } = Astro.props as { cottage: Cottage };
       {cottage.gallery.map((item, index) => (
         <figure class={`gallery-item gallery-item--${index + 1}`}>
           <ResponsivePhoto {...item} widths={index === 0 ? [480, 768, 1080] : [360, 640, 900]} loading="lazy" sizes={index === 0 ? "(max-width: 900px) 100vw, 66vw" : "(max-width: 560px) 100vw, (max-width: 900px) 50vw, 33vw"} />
-          <figcaption><span>{String(index + 1).padStart(2, "0")}</span>{item.caption || item.alt}</figcaption>
+          {item.caption ? (
+            <figcaption><span>{String(index + 1).padStart(2, "0")}</span>{item.caption}</figcaption>
+          ) : (
+            <figcaption class="sr-only">{item.alt}</figcaption>
+          )}
         </figure>
       ))}
     </div>
-    <div class="coverage mt-3" aria-label="Photo coverage"><span>Photo coverage</span>{cottage.coverage.map((item) => <span>{item}</span>)}</div>
+    {cottage.coverage.length > 0 && (
+      <div class="coverage mt-3" aria-label="Photo coverage"><span>Photo coverage</span>{cottage.coverage.map((item) => <span>{item}</span>)}</div>
+    )}
   </div>
 </section>

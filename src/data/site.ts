@@ -54,6 +54,15 @@ import henriettaBedroom from "../../assets/images/cottages/ravenswood-03/photo-4
 import henriettaBath from "../../assets/images/cottages/ravenswood-03/photo-04.avif";
 import henriettaYard from "../../assets/images/cottages/ravenswood-03/photo-36.avif";
 
+import sandExterior from "../../assets/images/cottages/ravenswood-04/sand-exterior.webp";
+import gallatinExterior from "../../assets/images/cottages/ravenswood-05/gallatin-exterior.jpg";
+import gallatinLiving from "../../assets/images/cottages/ravenswood-05/gallatin-living.jpg";
+import gallatinRoom01 from "../../assets/images/cottages/ravenswood-05/gallatin-room-01.jpg";
+import gallatinRoom02 from "../../assets/images/cottages/ravenswood-05/gallatin-room-02.jpg";
+import gallatinRoom03 from "../../assets/images/cottages/ravenswood-05/gallatin-room-03.jpg";
+import gallatinRoom04 from "../../assets/images/cottages/ravenswood-05/gallatin-room-04.jpg";
+import courtExterior from "../../assets/images/cottages/grantsville-01/court-hero.jpg";
+
 export type Photo = {
   src: ImageMetadata;
   alt: string;
@@ -75,6 +84,7 @@ export type Cottage = {
   gallery: Photo[];
   amenities: string[];
   coverage: string[];
+  homeType?: string;
 };
 
 const photo = (src: ImageMetadata, alt: string, caption?: string, focal?: string): Photo => ({
@@ -251,6 +261,69 @@ export const cottages: Cottage[] = [
     amenities: ["Furnished rooms", "Full kitchen", "Dining room", "Private bedrooms", "Outdoor space", "Guest support"],
     coverage: ["Dining / living", "Kitchen", "Bedroom", "Bathroom", "Outdoor space"],
   },
+  {
+    id: "court",
+    name: "Court Cottage",
+    town: "Grantsville, WV",
+    locationPath: "grantsville/index.html",
+    path: "grantsville/court-cottage.html",
+    bedrooms: "2 Bedrooms",
+    price: "Inquire for availability",
+    shortTerm: "Flexible furnished-stay options",
+    summary: "A practical two-bedroom furnished home in Grantsville with room for everyday living and a quieter small-town base.",
+    hero: photo(courtExterior, "Court Cottage brick exterior with covered entry viewed from the street", "Front-of-house view for orientation.", "center 45%"),
+    gallery: [
+      photo(oakKitchen, "Representative kitchen with full-size appliances", "Representative interior — final photography pending review."),
+      photo(oakBedroom, "Representative bedroom with bed and storage", "Representative interior — final photography pending review."),
+      photo(oakBathroom, "Representative bathroom with vanity", "Representative interior — final photography pending review."),
+      photo(oakPorch, "Representative covered outdoor seating area", "Representative exterior — final photography pending review."),
+    ],
+    amenities: ["Furnished rooms", "Full kitchen", "Dining space", "Private bedrooms", "Laundry access", "Guest support"],
+    coverage: ["Exterior / arrival", "Dining room", "Kitchen", "Bedrooms", "Bathroom", "Final interior photography pending"],
+  },
+  {
+    id: "sand",
+    name: "Sand Cottage",
+    town: "Ravenswood, WV",
+    locationPath: "ravenswood/index.html",
+    path: "ravenswood/sand-cottage.html",
+    bedrooms: "2 Bedrooms",
+    price: "Inquire for availability",
+    shortTerm: "Flexible furnished-stay options",
+    summary: "A two-bedroom furnished home in Ravenswood with comfortable living spaces and a workable layout for longer stays.",
+    hero: photo(sandExterior, "Sand Cottage exterior with white siding, windows, and side yard", "A direct exterior view makes the home easy to recognize."),
+    gallery: [
+      photo(broadLiving, "Representative living room with seating", "Representative interior — final Sand Cottage photography pending review."),
+      photo(broadLivingAlt, "Representative living room with television and seating", "Representative interior — final photography pending review."),
+      photo(broadBedroom, "Representative bedroom with bed and windows", "Representative interior — final photography pending review."),
+      photo(broadBedroomAlt, "Representative bedroom with doorway to adjoining space", "Representative interior — final photography pending review."),
+      photo(broadBathroom, "Representative bathroom with tub and mirror", "Representative interior — final photography pending review."),
+    ],
+    amenities: ["Furnished rooms", "Full kitchen", "Living room", "Private bedrooms", "Laundry access", "Guest support"],
+    coverage: ["Exterior / arrival", "Living room", "Bedrooms", "Bathroom", "Final interior photography pending"],
+  },
+  {
+    id: "gallatin",
+    name: "Gallatin Cottage",
+    town: "Ravenswood, WV",
+    locationPath: "ravenswood/index.html",
+    path: "ravenswood/gallatin-cottage.html",
+    bedrooms: "3 Bedrooms",
+    price: "Inquire for availability",
+    shortTerm: "Flexible stay options",
+    summary: "A refreshed three-bedroom home in Ravenswood with updated systems and practical spaces for an extended stay.",
+    hero: photo(gallatinExterior, "Gallatin Cottage white two-story exterior with front porch, siding, and windows", "Front-of-house view for orientation."),
+    gallery: [
+      photo(gallatinLiving, "Gallatin Cottage living room with blue walls, wood floors, and fireplace heater"),
+      photo(gallatinRoom01, "Gallatin Cottage room with paneled walls, wood floors, and doorway to adjoining space"),
+      photo(gallatinRoom03, "Gallatin Cottage room with yellow walls, windows, and ceiling fan"),
+      photo(gallatinRoom02, "Gallatin Cottage room with green accent wall, window, fireplace, and ceiling fan"),
+      photo(gallatinRoom04, "Gallatin Cottage room with blue walls, carpet, fireplace surround, and ceiling fan"),
+    ],
+    amenities: ["Spacious rooms", "Full kitchen", "Living space", "Private bedrooms", "Laundry access", "Guest support"],
+    coverage: [],
+    homeType: "Flexible stay",
+  },
 ];
 
 export const cottageByPath = new Map(cottages.map((cottage) => [cottage.path, cottage]));
@@ -398,7 +471,7 @@ export const locationData: Record<string, Guide & { town: string; cottages?: Cot
     description: "Ravenswood offers a quieter alternative to the region’s larger commercial centers, with local services, schools, parks, and river access.",
     intro: "Plan the practical side of a longer stay, then compare the public cottage choices by scale and what each photo story makes visible.",
     photo: photo(henriettaYard, "Henrietta Cottage yard with trees and a fenced outdoor space"),
-    cottages: cottages.filter((cottage) => ["white", "virginia", "henrietta"].includes(cottage.id)),
+    cottages: cottages.filter((cottage) => ["white", "virginia", "henrietta", "sand", "gallatin"].includes(cottage.id)),
     sections: [
       { title: "Work and routes", body: "Ravenswood can suit guests who prefer a smaller town while keeping regional work and errands within reach." },
       { title: "Everyday services", body: "Plan groceries, healthcare, transportation, and time outside before choosing the home and length of stay." },
@@ -429,13 +502,15 @@ export const locationData: Record<string, Guide & { town: string; cottages?: Cot
     eyebrow: "Calhoun County base",
     description: "Grantsville is a service center for surrounding rural communities, where a comfortable extended stay depends on planning routes, care, errands, and timing.",
     intro: "Tell us what brings you to the area and how flexible your location and dates are. We will confirm current public options rather than promise an unavailable home.",
+    photo: photo(courtExterior, "Court Cottage brick exterior with covered entry in Grantsville"),
+    cottages: cottages.filter((cottage) => cottage.id === "court"),
     sections: [
       { title: "Healthcare and care routes", body: "Plan the distance to care and the transportation pattern before choosing a rural base." },
       { title: "Work and commuting", body: "A furnished arrangement can work when the home and the work route are considered together." },
       { title: "Availability changes", body: "We keep this guide useful by separating location planning from current home availability. Start a conversation for the latest answer." },
     ],
-    cta: "Ask about Grantsville planning",
-    actionHref: "/apply.html?location=Grantsville",
+    cta: "See Court Cottage",
+    actionHref: "/grantsville/court-cottage.html",
   },
 };
 
@@ -449,5 +524,5 @@ export const navGroups = [
 
 export const routePaths = [
   "about.html", "available.html", "contact.html", "cottages.html", "cozy-places.html", "emergency-maintenance.html", "family-stays.html", "faq.html", "fully-furnished-homes.html", "guest-services.html", "health-professionals.html", "home-amenities.html", "housekeeping.html", "insurance-housing.html", "living.html", "locations.html", "maintenance.html", "meal-preparation.html", "partnerships.html", "pay-rent.html", "privacy.html", "property-care.html", "resident-portal.html", "residents.html", "room-to-settle.html", "services.html", "work-relocation.html",
-  "marietta/frederick-cottage.html", "parkersburg/broad-cottage.html", "parkersburg/buck-apartment-1.html", "parkersburg/oak-cottage.html", "parkersburg/yellow-cottage.html", "ravenswood/henrietta-cottage.html", "ravenswood/virginia-cottage.html", "ravenswood/white-cottage.html",
+  "marietta/frederick-cottage.html", "parkersburg/broad-cottage.html", "parkersburg/buck-apartment-1.html", "parkersburg/oak-cottage.html", "parkersburg/yellow-cottage.html", "ravenswood/henrietta-cottage.html", "ravenswood/virginia-cottage.html", "ravenswood/white-cottage.html", "grantsville/court-cottage.html", "ravenswood/sand-cottage.html", "ravenswood/gallatin-cottage.html",
 ];
