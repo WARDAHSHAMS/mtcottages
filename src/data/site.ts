@@ -61,6 +61,9 @@ import gallatinRoom01 from "../../assets/images/cottages/ravenswood-05/gallatin-
 import gallatinRoom02 from "../../assets/images/cottages/ravenswood-05/gallatin-room-02.jpg";
 import gallatinRoom03 from "../../assets/images/cottages/ravenswood-05/gallatin-room-03.jpg";
 import gallatinRoom04 from "../../assets/images/cottages/ravenswood-05/gallatin-room-04.jpg";
+import gallatinBathroom from "../../assets/images/cottages/ravenswood-05/gallatin-bathroom.jpg";
+import gallatinKitchen from "../../assets/images/cottages/ravenswood-05/gallatin-kitchen.jpg";
+import gallatinSide from "../../assets/images/cottages/ravenswood-05/gallatin-side.jpg";
 import courtExterior from "../../assets/images/cottages/grantsville-01/court-hero.jpg";
 
 export type Photo = {
@@ -319,8 +322,11 @@ export const cottages: Cottage[] = [
       photo(gallatinRoom03, "Gallatin Cottage room with yellow walls, windows, and ceiling fan"),
       photo(gallatinRoom02, "Gallatin Cottage room with green accent wall, window, fireplace, and ceiling fan"),
       photo(gallatinRoom04, "Gallatin Cottage room with blue walls, carpet, fireplace surround, and ceiling fan"),
+      photo(gallatinBathroom, "Gallatin Cottage bathroom with tub-shower, pedestal sink, and window"),
+      photo(gallatinKitchen, "Gallatin Cottage kitchen with range, refrigerator, sink, and wall cabinets"),
+      photo(gallatinSide, "Gallatin Cottage side and rear exterior with yard, fence, and neighboring homes"),
     ],
-    amenities: ["Spacious rooms", "Full kitchen", "Living space", "Private bedrooms", "Laundry access", "Guest support"],
+    amenities: ["Spacious rooms", "Full kitchen", "Living space", "Private bedrooms", "Guest support"],
     coverage: [],
     homeType: "Flexible stay",
   },
