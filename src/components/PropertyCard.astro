@@ -1,7 +1,8 @@
 ---
 import ResponsivePhoto from "./ResponsivePhoto.astro";
-import type { Cottage } from "../data/site";
+import { cottages, type Cottage } from "../data/site";
 const { cottage } = Astro.props as { cottage: Cottage };
+const cardNumber = String(cottages.findIndex((item) => item.id === cottage.id) + 1).padStart(2, "0");
 ---
 
 <article class="property-card">
@@ -11,7 +12,7 @@ const { cottage } = Astro.props as { cottage: Cottage };
     </figure>
   </a>
   <div class="property-card-body">
-    <p class="property-card-number" aria-hidden="true">{String(cottage.id === "frederick" ? 1 : ["broad", "buck", "yellow", "oak", "white", "virginia", "henrietta"].indexOf(cottage.id) + 1).padStart(2, "0")}</p>
+    <p class="property-card-number" aria-hidden="true">{cardNumber}</p>
     <div>
       <h2><a href={`/${cottage.path}`}>{cottage.name}</a></h2>
       <p class="location">{cottage.town}</p>

@@ -14,7 +14,8 @@ const publicPages = [
   "/parkersburg/broad-cottage.html", "/parkersburg/buck-apartment-1.html",
   "/parkersburg/yellow-cottage.html", "/parkersburg/oak-cottage.html",
   "/ravenswood/white-cottage.html", "/ravenswood/virginia-cottage.html",
-  "/ravenswood/henrietta-cottage.html", "/404.html"
+  "/ravenswood/henrietta-cottage.html", "/ravenswood/sand-cottage.html",
+  "/ravenswood/gallatin-cottage.html", "/grantsville/court-cottage.html", "/404.html"
 ];
 
 test("the homepage exposes the native Astro navigation and responsive image pipeline", async ({ page }) => {
@@ -42,6 +43,8 @@ test("every public route is reachable and privacy-safe", async ({ page, request 
     expect(response.status(), `${path} should return a successful response`).toBe(200);
     const html = await response.text();
     expect(html, `${path} exposed private inventory`).not.toContain("255 Court St");
+    expect(html, `${path} exposed private inventory`).not.toContain("216 Sand St");
+    expect(html, `${path} exposed private inventory`).not.toContain("200 Gallatin");
     await page.goto(path);
     await expect(page.locator('link[rel="stylesheet"]'), `${path} lost native stylesheet`).toHaveCount(1);
     await expect(page.locator("body"), `${path} needs visible content`).not.toBeEmpty();
@@ -100,8 +103,8 @@ test("a property inquiry carries the selected cottage into the form", async ({ p
 
 test("the cottages and locations indexes expose useful decision tools", async ({ page }) => {
   await page.goto("/cottages.html");
-  await expect(page.locator(".property-card")).toHaveCount(8);
-  await expect(page.locator(".comparison-table tbody tr")).toHaveCount(8);
+  await expect(page.locator(".property-card")).toHaveCount(11);
+  await expect(page.locator(".comparison-table tbody tr")).toHaveCount(11);
   await page.goto("/locations.html");
   await expect(page.locator(".location-row")).toHaveCount(5);
   await expect(page.locator(".location-row").nth(3)).toContainText("Planning guide");
