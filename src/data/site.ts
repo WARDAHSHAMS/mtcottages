@@ -16,10 +16,10 @@ import broadVanity from "../../assets/images/cottages/parkersburg-01/photo-12.av
 
 import buckExterior from "../../assets/images/cottages/parkersburg-02/homepage-hero-buck.avif";
 import buckExteriorAlt from "../../assets/images/cottages/parkersburg-02/photo-09.avif";
-import buckLiving from "../../assets/images/cottages/parkersburg-02/photo-49.avif";
-import buckLivingAlt from "../../assets/images/cottages/parkersburg-02/photo-50.avif";
-import buckBedroom from "../../assets/images/cottages/parkersburg-02/photo-38.avif";
-import buckBathroom from "../../assets/images/cottages/parkersburg-02/photo-41.avif";
+import buckKitchen from "../../assets/images/cottages/parkersburg-02/buck-kitchen.jpg";
+import buckBed from "../../assets/images/cottages/parkersburg-02/buck-bedroom.jpg";
+import buckBedAlt from "../../assets/images/cottages/parkersburg-02/buck-bedroom-alt.jpg";
+import buckBath from "../../assets/images/cottages/parkersburg-02/buck-bathroom.jpg";
 
 import yellowExterior from "../../assets/images/cottages/parkersburg-03/photo-145.avif";
 import yellowExteriorAlt from "../../assets/images/cottages/parkersburg-03/photo-07.avif";
@@ -140,13 +140,13 @@ export const cottages: Cottage[] = [
     hero: photo(buckExterior, "Buck Cottage front exterior with porch, centered entry, and mature trees", "A direct exterior view makes the home easy to recognize.", "center 55%"),
     gallery: [
       photo(buckExteriorAlt, "Buck Cottage exterior and surrounding street trees"),
-      photo(buckLiving, "Buck Cottage living room with couch and windows"),
-      photo(buckLivingAlt, "Buck Cottage living room alternate view"),
-      photo(buckBedroom, "Buck Cottage bedroom with bed, desk, and windows"),
-      photo(buckBathroom, "Buck Cottage bathroom with shower, sink, and toilet"),
+      photo(buckBed, "Buck Cottage bedroom with bed, wall-mounted TV, and ensuite doorway"),
+      photo(buckBedAlt, "Buck Cottage bedroom alternate angle with window and nightstand"),
+      photo(buckKitchen, "Buck Cottage kitchen with pale blue cabinets, double sink, and refrigerator"),
+      photo(buckBath, "Buck Cottage bathroom with tub-shower, toilet, and vanity"),
     ],
     amenities: ["Furnished one-bedroom layout", "Full kitchen", "Living room", "Laundry access", "Parking options", "Guest support"],
-    coverage: ["Exterior / arrival", "Living room", "Bedroom", "Bathroom"],
+    coverage: ["Exterior / arrival", "Kitchen", "Bedroom", "Bathroom"],
   },
   {
     id: "yellow",
