@@ -284,6 +284,6 @@ export const frederick: Residence = {
   missing: [
     "Bathroom layout: one full bath serves the home.",
     "Utility and trash specifics: provider names, pickup days, thermostat, laundry, and parking details live inside Utilities.",
-    "Cottage-to-POI mileage: Arrival & map shows a city-level Marietta map — Nearby gives verified names, areas, and map links; confirm drive time in your maps app.",
+    "Cottage-to-POI mileage: the cottage address is listed on Arrival & map — Nearby gives verified names, areas, and map links; confirm drive time in your maps app.",
   ],
 };
