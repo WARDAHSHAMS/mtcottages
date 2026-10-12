@@ -2,6 +2,8 @@
 import ResidenceLayout from "../../../layouts/ResidenceLayout.astro";
 import ResponsivePhoto from "../../../components/ResponsivePhoto.astro";
 import BedroomSchematicViewer from "../../../components/BedroomSchematicViewer.astro";
+import BedroomDollhouseViewer from "../../../components/BedroomDollhouseViewer.astro";
+import bed1DollhousePoster from "../../../../assets/images/cottages/marietta-01/frederick-bed1-dollhouse.png";
 import { frederick, frederickPhotos } from "../../../data/residences/frederick";
 ---
 
@@ -40,6 +42,13 @@ import { frederick, frederickPhotos } from "../../../data/residences/frederick";
         bedLabel="King bed"
         bedSize="king"
         features={["King bed with luggage space", "Dresser with large TV + storage baskets", "Five windows + ceiling fan — coverings by inquiry"]}
+      />
+
+      <BedroomDollhouseViewer
+        roomId="bedroom-1"
+        roomLabel="Bedroom 1 — king"
+        poster={bed1DollhousePoster}
+        posterUrl={bed1DollhousePoster.src}
       />
 
       <div class="editorial mt-4">
