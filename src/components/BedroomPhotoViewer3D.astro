@@ -1,0 +1,422 @@
+---
+/**
+ * BedroomPhotoViewer3D — real-photo Three.js viewer
+ *
+ * Displays two actual bedroom photos on angled 3D planes.
+ * Supports drag-to-orbit, scroll-to-zoom, arrow-key rotation,
+ * +/− zoom, and R to reset — identical to BedroomDollhouseViewer.
+ *
+ * Props
+ *   roomId       – unique DOM identifier for this room
+ *   roomLabel    – human-readable label used in aria and status text
+ *   photo1Url    – URL of the first photo (from import.src)
+ *   photo2Url    – URL of the second photo (from import.src)
+ *   photo1       – ImageMetadata of first photo (for the static poster)
+ *   photo2       – ImageMetadata of second photo (for the static poster)
+ *   photo1Alt    – alt text for photo 1
+ *   photo2Alt    – alt text for photo 2
+ *   viewParam    – ?view= query-string value that auto-opens this viewer
+ */
+import { Image } from "astro:assets";
+
+interface Props {
+  roomId: string;
+  roomLabel: string;
+  photo1Url: string;
+  photo2Url: string;
+  photo1: ImageMetadata;
+  photo2: ImageMetadata;
+  photo1Alt?: string;
+  photo2Alt?: string;
+  viewParam?: string;
+}
+
+const {
+  roomId,
+  roomLabel,
+  photo1Url,
+  photo2Url,
+  photo1,
+  photo2,
+  photo1Alt = `${roomLabel} — view 1`,
+  photo2Alt = `${roomLabel} — view 2`,
+  viewParam = "bed2-3d",
+} = Astro.props;
+---
+
+<div
+  class="photo3d"
+  data-photo3d={roomId}
+  data-photo1-url={photo1Url}
+  data-photo2-url={photo2Url}
+  data-room-label={roomLabel}
+  data-view-param={viewParam}
+>
+  <div class="schematic-controls">
+    <button type="button" class="button" data-open-btn aria-expanded="false" aria-controls={`canvas-photo3d-${roomId}`}>
+      Open 3D photo view
+    </button>
+    <p class="text-muted" data-status role="status">Two bedroom photos · drag to spin, scroll to zoom</p>
+  </div>
+
+  <div class="photo3d-stage" hidden>
+    <!-- Static poster shown until Three.js loads -->
+    <div class="photo3d-poster" data-poster>
+      <div class="photo3d-poster-pair">
+        <figure>
+          <Image src={photo1} alt={photo1Alt} widths={[480, 800]} sizes="(max-width: 900px) 48vw, 38vw" loading="lazy" />
+          <figcaption>{photo1Alt}</figcaption>
+        </figure>
+        <figure>
+          <Image src={photo2} alt={photo2Alt} widths={[480, 800]} sizes="(max-width: 900px) 48vw, 38vw" loading="lazy" />
+          <figcaption>{photo2Alt}</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="photo3d-canvas-wrap">
+      <canvas
+        id={`canvas-photo3d-${roomId}`}
+        role="img"
+        aria-label={`${roomLabel} 3D view with two photos. Drag to orbit, scroll to zoom.`}
+        tabindex="0"
+        hidden
+      ></canvas>
+    </div>
+
+    <div class="dollhouse-tools" role="toolbar" aria-label={`${roomLabel} 3D controls`}>
+      <button type="button" class="button button--small" data-rot-left  aria-label={`Rotate ${roomLabel} left`}>⟲ Rotate</button>
+      <button type="button" class="button button--small" data-rot-right aria-label={`Rotate ${roomLabel} right`}>⟳ Rotate</button>
+      <button type="button" class="button button--small" data-zoom-in   aria-label={`Zoom in ${roomLabel}`}>+ Zoom</button>
+      <button type="button" class="button button--small" data-zoom-out  aria-label={`Zoom out ${roomLabel}`}>− Zoom</button>
+      <button type="button" class="button button--small" data-reset-btn aria-label={`Reset ${roomLabel} view`}>Reset</button>
+    </div>
+    <div class="schematic-hint">Drag to spin · scroll to zoom · arrows rotate · +/− zoom · R resets</div>
+  </div>
+</div>
+
+<script type="module">
+  const roots = document.querySelectorAll("[data-photo3d]");
+  if (!roots.length) throw new Error("no roots");
+
+  const params = new URLSearchParams(window.location.search);
+
+  let modulesPromise = null;
+  const loadModules = () => {
+    if (!modulesPromise) {
+      modulesPromise = Promise.all([
+        import("three"),
+        import("three/addons/controls/OrbitControls.js"),
+      ]).then(([THREE, oc]) => ({ THREE, OrbitControls: oc.OrbitControls }));
+    }
+    return modulesPromise;
+  };
+
+  roots.forEach((root) => {
+    if (root.dataset.photo3dBound === "true") return;
+    root.dataset.photo3dBound = "true";
+
+    const openBtn   = root.querySelector("[data-open-btn]");
+    const status    = root.querySelector("[data-status]");
+    const stage     = root.querySelector(".photo3d-stage");
+    const poster    = root.querySelector("[data-poster]");
+    const canvasWrap = root.querySelector(".photo3d-canvas-wrap");
+    const canvas    = root.querySelector("canvas");
+
+    const url1      = root.dataset.photo1Url;
+    const url2      = root.dataset.photo2Url;
+    const label     = root.dataset.roomLabel || "Bedroom";
+    const viewKey   = root.dataset.viewParam || "bed2-3d";
+    const autoOpen  = params.get("view") === viewKey;
+
+    const HOME = { x: 0, y: 0.3, z: 7.5 };
+
+    let THREE = null, renderer = null, scene = null, camera = null, controls = null;
+    let running = false, ready = false, initing = null;
+
+    /* ── resize ── */
+    const resize = () => {
+      if (!renderer || !camera) return;
+      const w = Math.min(Math.round(canvasWrap.clientWidth || root.clientWidth || 720), 1280);
+      const h = Math.round((w * 2) / 3);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      renderer.setPixelRatio(dpr);
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    };
+
+    const markReady = () => {
+      if (ready) return;
+      ready = true;
+      if (poster) poster.hidden = true;
+      canvas.hidden = false;
+      resize();
+      if (status) status.textContent = "3D loaded. Drag to spin, scroll to zoom, R to reset.";
+      window.__bed2PhotoReady = true;
+    };
+
+    /* ── render loop ── */
+    const tick = () => {
+      if (!running) return;
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    };
+    const startLoop = () => {
+      if (!running && renderer && !stage.hidden && !document.hidden) {
+        running = true; requestAnimationFrame(tick);
+      }
+    };
+    const stopLoop = () => { running = false; };
+
+    /* ── camera helpers ── */
+    const goHome = () => {
+      if (!camera || !controls) return;
+      camera.position.set(HOME.x, HOME.y, HOME.z);
+      controls.target.set(0, 0, 0);
+      controls.update();
+    };
+
+    const orbitBy = (dTheta) => {
+      if (!camera || !controls || !THREE) return;
+      const off = camera.position.clone().sub(controls.target);
+      const s = new THREE.Spherical().setFromVector3(off);
+      s.theta = Math.min(controls.maxAzimuthAngle, Math.max(controls.minAzimuthAngle, s.theta + dTheta));
+      camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s));
+      controls.update();
+      if (renderer && scene) renderer.render(scene, camera);
+    };
+
+    const dollyBy = (dRadius) => {
+      if (!camera || !controls || !THREE) return;
+      const off = camera.position.clone().sub(controls.target);
+      const s = new THREE.Spherical().setFromVector3(off);
+      s.radius = Math.min(controls.maxDistance, Math.max(controls.minDistance, s.radius + dRadius));
+      camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s));
+      controls.update();
+      if (renderer && scene) renderer.render(scene, camera);
+    };
+
+    /* ── init Three.js ── */
+    async function init() {
+      const M = await loadModules();
+      THREE = M.THREE;
+      if (!window.WebGLRenderingContext) throw new Error("WebGL unavailable");
+      if (!url1 || !url2) throw new Error("Photo URLs missing");
+      if (status) status.textContent = `Loading ${label} 3D…`;
+
+      /* Load both textures in parallel */
+      const loader = new THREE.TextureLoader();
+      const [tex1, tex2] = await Promise.all([
+        loader.loadAsync(url1),
+        loader.loadAsync(url2),
+      ]);
+      for (const t of [tex1, tex2]) {
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = 8;
+      }
+
+      /* Renderer */
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.shadowMap.enabled = true;
+
+      /* Scene */
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xedf0ea);
+
+      /* Lights */
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x8f8a80, 0.85));
+      const key = new THREE.DirectionalLight(0xffffff, 1.5);
+      key.position.set(-5, 8, 6);
+      key.castShadow = true;
+      key.shadow.mapSize.set(1024, 1024);
+      scene.add(key);
+
+      /* Ground shadow catcher */
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(30, 30),
+        new THREE.ShadowMaterial({ opacity: 0.15 }),
+      );
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.y = -2.2;
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      /* ── Photo planes ──
+       *
+       * Photo aspect ratio: assume ~4:3.  If photos have different
+       * intrinsic sizes Three.js will still stretch-to-plane, so we
+       * keep both planes the same size for a clean symmetrical look.
+       *
+       * Place photo 1 slightly left + angled inward,
+       * photo 2 slightly right + angled inward — like an open book.
+       */
+      const PW = 4.6, PH = 3.1;  /* plane width / height in scene units */
+      const ANGLE = Math.PI / 10; /* inward lean ~18° */
+      const XOFF  = 2.5;         /* lateral offset from centre */
+
+      const mat1 = new THREE.MeshBasicMaterial({ map: tex1, toneMapped: false, side: THREE.FrontSide });
+      const mat2 = new THREE.MeshBasicMaterial({ map: tex2, toneMapped: false, side: THREE.FrontSide });
+
+      const geo = new THREE.PlaneGeometry(PW, PH);
+
+      const plane1 = new THREE.Mesh(geo, mat1);
+      plane1.position.set(-XOFF, 0, 0);
+      plane1.rotation.y =  ANGLE;   /* left panel leans right toward camera centre */
+      plane1.castShadow = true;
+      scene.add(plane1);
+
+      const plane2 = new THREE.Mesh(geo, mat2);
+      plane2.position.set( XOFF, 0, 0);
+      plane2.rotation.y = -ANGLE;   /* right panel leans left toward camera centre */
+      plane2.castShadow = true;
+      scene.add(plane2);
+
+      /* Thin edge strips so the planes look like framed prints */
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
+      const frameThick = 0.06;
+
+      const addFrame = (parent, w, h) => {
+        const strips = [
+          [w + frameThick * 2, frameThick, new THREE.Vector3(0, -(h / 2 + frameThick / 2), 0.001)],
+          [w + frameThick * 2, frameThick, new THREE.Vector3(0,  (h / 2 + frameThick / 2), 0.001)],
+          [frameThick, h, new THREE.Vector3(-(w / 2 + frameThick / 2), 0, 0.001)],
+          [frameThick, h, new THREE.Vector3( (w / 2 + frameThick / 2), 0, 0.001)],
+        ];
+        strips.forEach(([sw, sh, pos]) => {
+          const m = new THREE.Mesh(new THREE.PlaneGeometry(sw, sh), frameMat);
+          m.position.copy(pos);
+          parent.add(m);
+        });
+      };
+
+      addFrame(plane1, PW, PH);
+      addFrame(plane2, PW, PH);
+
+      /* Camera & controls */
+      camera = new THREE.PerspectiveCamera(34, 1.5, 0.1, 80);
+      controls = new M.OrbitControls(camera, canvas);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.07;
+      controls.enablePan = false;
+      controls.rotateSpeed = 0.5;
+      controls.zoomSpeed = 0.8;
+      controls.minDistance = 4;
+      controls.maxDistance = 14;
+      controls.minPolarAngle = 0.9;
+      controls.maxPolarAngle = 2.0;
+      controls.minAzimuthAngle = -1.0;
+      controls.maxAzimuthAngle =  1.0;
+      controls.target.set(0, 0, 0);
+      goHome();
+
+      resize();
+      renderer.render(scene, camera);
+      markReady();
+
+      /* Keyboard controls */
+      canvas.addEventListener("keydown", (e) => {
+        const step = 0.12;
+        const off = camera.position.clone().sub(controls.target);
+        const s = new THREE.Spherical().setFromVector3(off);
+        if      (e.key === "ArrowLeft")  s.theta = Math.max(controls.minAzimuthAngle, s.theta + step);
+        else if (e.key === "ArrowRight") s.theta = Math.min(controls.maxAzimuthAngle, s.theta - step);
+        else if (e.key === "ArrowUp")    s.phi   = Math.max(controls.minPolarAngle,   s.phi - step);
+        else if (e.key === "ArrowDown")  s.phi   = Math.min(controls.maxPolarAngle,   s.phi + step);
+        else if (e.key === "+" || e.key === "=") s.radius = Math.max(controls.minDistance, s.radius - 0.9);
+        else if (e.key === "-" || e.key === "_") s.radius = Math.min(controls.maxDistance, s.radius + 0.9);
+        else if (e.key.toLowerCase() === "r")    { goHome(); e.preventDefault(); return; }
+        else return;
+        e.preventDefault();
+        camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s));
+        controls.update();
+      });
+
+      window.addEventListener("resize", resize);
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) stopLoop(); else startLoop();
+      });
+    }
+
+    /* ── button wiring ── */
+    openBtn?.addEventListener("click", async () => {
+      const open = stage.hidden;
+      stage.hidden = !open;
+      openBtn.setAttribute("aria-expanded", String(open));
+      openBtn.textContent = open ? "Close 3D photo view" : "Open 3D photo view";
+
+      if (!open) { stopLoop(); return; }
+
+      if (!renderer && !initing) {
+        initing = (async () => {
+          try {
+            await init();
+            startLoop();
+          } catch (err) {
+            console.warn(`${label} 3D failed:`, err);
+            window.__bed2PhotoReady = false;
+            if (status) status.textContent = "3D unavailable — the photos above still show the room.";
+          }
+        })();
+      }
+      await initing;
+      if (renderer && camera) { resize(); startLoop(); }
+    });
+
+    root.querySelector("[data-rot-left]")?.addEventListener("click",  () => orbitBy( 0.22));
+    root.querySelector("[data-rot-right]")?.addEventListener("click", () => orbitBy(-0.22));
+    root.querySelector("[data-zoom-in]")?.addEventListener("click",   () => dollyBy(-0.9));
+    root.querySelector("[data-zoom-out]")?.addEventListener("click",  () => dollyBy( 0.9));
+    root.querySelector("[data-reset-btn]")?.addEventListener("click", () => {
+      goHome();
+      if (renderer && scene && camera) renderer.render(scene, camera);
+    });
+
+    if (autoOpen) openBtn?.click();
+  });
+</script>
+
+<style>
+  .photo3d { margin-top: 0.4rem; }
+  .schematic-controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin: 0.8rem 0; }
+  .dollhouse-tools { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.6rem 0 0; }
+  .button--small { font-size: 0.8rem; padding: 0.35rem 0.7rem; }
+
+  .photo3d-stage { display: block; }
+  .photo3d-stage[hidden] { display: none; }
+
+  /* Static poster pair */
+  .photo3d-poster { margin-bottom: 0.5rem; }
+  .photo3d-poster-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .photo3d-poster-pair figure { margin: 0; }
+  .photo3d-poster-pair img { display: block; width: 100%; height: auto; border-radius: 0.4rem; }
+  .photo3d-poster-pair figcaption { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
+
+  /* Canvas wrapper */
+  .photo3d-canvas-wrap {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    background: #edf0ea;
+  }
+  .photo3d-canvas-wrap canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 2;
+    touch-action: none;
+  }
+  .photo3d-canvas-wrap canvas[hidden] { display: none; }
+
+  .schematic-hint { color: var(--muted); font-size: 0.75rem; margin-top: 0.4rem; }
+
+  @media (max-width: 500px) {
+    .photo3d-poster-pair { grid-template-columns: 1fr; }
+  }
+</style>
