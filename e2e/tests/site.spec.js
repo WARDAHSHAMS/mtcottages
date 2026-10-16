@@ -253,3 +253,14 @@ test("the Frederick microsite quotes the $2,575 monthly guide and never the stal
   await expect(page.locator("main")).toContainText("$2,575/month");
   await expect(page.locator("body")).not.toContainText("$1,395");
 });
+
+test("Bedroom 1 exposes the interactive 3D concept viewer", async ({ page }) => {
+  await page.goto("/marietta/frederick/rooms.html");
+  const viewer = page.locator('[data-bed1="bedroom-1"]');
+  await viewer.scrollIntoViewIfNeeded();
+  await expect(viewer).toContainText("AI-assisted concept 3D");
+  await viewer.locator("[data-load-bed1]").click();
+  await expect(viewer.locator(".bed1-stage")).toBeVisible();
+  await expect(viewer).toHaveAttribute("data-viewer-ready", "true", { timeout: 30000 });
+  await expect.poll(() => page.evaluate(() => window.__bed1Ready), { timeout: 30000 }).toBe(true);
+});
