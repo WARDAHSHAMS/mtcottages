@@ -504,9 +504,16 @@ def _record_submission(client_key):
 @app.route(route="{*route}", methods=["GET"])
 def application_form(req: func.HttpRequest) -> func.HttpResponse:
     requested_path = urllib.parse.urlparse(req.url).path.rstrip("/")
+    # The Front Door origin probe (infrastructure#510) calls the origin by its
+    # azurewebsites.net host with no X-Forwarded-Host, so liveness must answer
+    # before the canonical-host check. The body is constant and the site is
+    # reachable only through Front Door (x-azure-fdid access restriction); every
+    # other path still requires the canonical hostname.
+    if requested_path == "/api/health":
+        return _response({"status": "ok", "service": "mtcottages-apply-proxy"}, 200, req.headers.get("Origin", ""))
     if not _canonical_host(req):
         return func.HttpResponse("Not found", status_code=404, headers=SECURITY_HEADERS)
-    if requested_path.endswith("/api/health") or requested_path.endswith("/health"):
+    if requested_path.endswith("/health"):
         return _response({"status": "ok", "service": "mtcottages-apply-proxy"}, 200, req.headers.get("Origin", ""))
     form_path = Path(__file__).with_name("index.html")
     try:
