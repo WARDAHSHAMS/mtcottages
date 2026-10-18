@@ -46,6 +46,8 @@ az functionapp deployment source config-zip \
   --build-remote true
 ```
 
+The SCM (Kudu) and FTP publishing surface accepts only Microsoft Entra bearer tokens: basic-auth publishing is disabled by `apply-proxy-scm.bicep` (`az deployment group create -g mtcottages --template-file infra/azure/apply-proxy-scm.bicep`) and FTPS is `Disabled` (`az functionapp config set --ftps-state Disabled`). The `config-zip` command above uses the token automatically; there is no publish profile. SCM is not IP-restricted because deploys run from workstations with no stable egress IP. Kudu API calls send `Authorization: Bearer $(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)` (FocusApiary/infrastructure#509).
+
 Required application-setting names for the proxy (provision the values out of band):
 
 ```text
