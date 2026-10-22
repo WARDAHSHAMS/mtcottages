@@ -2,6 +2,12 @@
 import ResidenceLayout from "../../../layouts/ResidenceLayout.astro";
 import ResponsivePhoto from "../../../components/ResponsivePhoto.astro";
 import BedroomSchematicViewer from "../../../components/BedroomSchematicViewer.astro";
+import BedroomDollhouseViewer from "../../../components/BedroomDollhouseViewer.astro";
+import BedroomPhotoViewer3D from "../../../components/BedroomPhotoViewer3D.astro";
+import bed1DollhousePoster from "../../../../assets/images/cottages/marietta-01/frederick-bed1-dollhouse.png";
+import bed2Photo1 from "../../../../assets/images/cottages/marietta-01/frederick-bed2-photo1.jpeg";
+import bed2Photo2 from "../../../../assets/images/cottages/marietta-01/frederick-bed2-photo2.jpeg";
+import bed3Photo1 from "../../../../assets/images/cottages/marietta-01/frederick-bed3-photo1.jpeg";
 import { frederick, frederickPhotos } from "../../../data/residences/frederick";
 ---
 
@@ -42,6 +48,13 @@ import { frederick, frederickPhotos } from "../../../data/residences/frederick";
         features={["King bed with luggage space", "Dresser with large TV + storage baskets", "Five windows + ceiling fan — coverings by inquiry"]}
       />
 
+      <BedroomDollhouseViewer
+        roomId="bedroom-1"
+        roomLabel="Bedroom 1 — king"
+        poster={bed1DollhousePoster}
+        posterUrl={bed1DollhousePoster.src}
+      />
+
       <div class="editorial mt-4">
         <div class="stack reveal">
           <h3 class="bedroom-title">Bedroom 2</h3>
@@ -64,6 +77,18 @@ import { frederick, frederickPhotos } from "../../../data/residences/frederick";
         bedLabel="Double bed"
         bedSize="double"
         features={["Double bed for one or two sleepers", "Wall-mounted TV + mirror + desk surface", "Windows with AC — daylight work spot"]}
+      />
+
+      <BedroomPhotoViewer3D
+        roomId="bedroom-2"
+        roomLabel="Bedroom 2 — double"
+        photo1={bed2Photo1}
+        photo1Url={bed2Photo1.src}
+        photo1Alt="AI-generated concept of Bedroom 2 — view 1"
+        photo2={bed2Photo2}
+        photo2Url={bed2Photo2.src}
+        photo2Alt="AI-generated concept of Bedroom 2 — view 2"
+        viewParam="bed2"
       />
 
       <div class="editorial mt-4">
@@ -96,6 +121,16 @@ import { frederick, frederickPhotos } from "../../../data/residences/frederick";
         bedLabel="Queen bed"
         bedSize="queen"
         features={["Queen bed + bedside lamps", "Shelving wall + desk corner + chair", "TV corner + windows + garden door"]}
+      />
+
+      <BedroomDollhouseViewer
+        roomId="bedroom-3"
+        roomLabel="Bedroom 3 — queen"
+        poster={bed3Photo1}
+        posterUrl={bed3Photo1.src}
+        posterAlt="AI-generated concept of Bedroom 3: queen bed, shelving wall, and desk corner."
+        statusText="AI-generated concept · Bedroom 3 queen"
+        viewParam="bed3"
       />
     </div>
   </section>

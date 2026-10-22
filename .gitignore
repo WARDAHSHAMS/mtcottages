@@ -13,7 +13,8 @@ __pycache__/
 # Claude Code isolated worktrees
 .claude/worktrees/
 
-# Local browser-test dependencies and reports.
+# Installed dependencies, local browser-test dependencies and reports.
+node_modules/
 e2e/node_modules/
 e2e/playwright-report/
 e2e/test-results/
