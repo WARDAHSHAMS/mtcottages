@@ -102,10 +102,11 @@ jobs:
           # house-number+street pattern, so a leak into _data/*.json,
           # scripts/, or any other file fails the build too. Docs/tests
           # that describe or assert the rule (and legitimately name the
-          # banned strings) are excluded.
+          # banned strings) are excluded. Frederick is not in the list: the
+          # owner approved publishing 125 Frederick St (Oct 2026).
           if git ls-files \
               | grep -vE '^(\.github/|\.claude/|e2e/|CLAUDE\.md$|agents\.md$|claude\.md$)' \
-              | xargs -r grep -InE '255 Court|216 Sand|287 Ridgeway|[0-9]+ (Court|Sand|Broad|45th|32nd|Frederick|Walnut|Virginia|Henrietta|Gallatin|Ridgeway)'; then
+              | xargs -r grep -InE '255 Court|216 Sand|287 Ridgeway|[0-9]+ (Court|Sand|Broad|45th|32nd|Walnut|Virginia|Henrietta|Gallatin|Ridgeway)'; then
             echo "ERROR: banned street address pattern found in a tracked file (see matches above)"
             exit 1
           fi
