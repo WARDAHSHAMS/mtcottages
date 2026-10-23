@@ -253,3 +253,37 @@ test("the Frederick microsite quotes the $2,575 monthly guide and never the stal
   await expect(page.locator("main")).toContainText("$2,575/month");
   await expect(page.locator("body")).not.toContainText("$1,395");
 });
+
+test("Bedroom 1 exposes the interactive 3D concept viewer", async ({ page }) => {
+  await page.goto("/marietta/frederick/rooms.html");
+  const viewer = page.locator('[data-bed1="bedroom-1"]');
+  await viewer.scrollIntoViewIfNeeded();
+  await expect(viewer).toContainText("AI-generated concept image");
+  await viewer.locator("[data-load-bed1]").click();
+  await expect(viewer.locator(".bed1-stage")).toBeVisible();
+  await expect(viewer).toHaveAttribute("data-viewer-ready", "true", { timeout: 30000 });
+  await expect.poll(() => page.evaluate(() => window.__bed1Ready), { timeout: 30000 }).toBe(true);
+});
+
+test("every AI concept view of a Frederick bedroom is labelled as AI-generated", async ({ page }) => {
+  await page.goto("/marietta/frederick/rooms.html");
+  const concepts = page.locator("[data-dollhouse], [data-photo3d]");
+  await expect(concepts).toHaveCount(3);
+  for (const concept of await concepts.all()) {
+    await expect(concept.locator(".ai-badge")).toContainText("AI-generated concept image");
+  }
+  for (const img of await concepts.locator("img").all()) {
+    await expect(img).toHaveAttribute("alt", /AI-generated concept/);
+  }
+});
+
+test("Frederick arrival publishes the cottage address and walking directions start there", async ({ page }) => {
+  await page.goto("/marietta/frederick/arrival.html");
+  await expect(page.locator("main")).toContainText("125 Frederick St, Marietta, OH 45750");
+  await page.goto("/marietta/frederick/area.html");
+  const walking = page.locator('#schools a[href*="travelmode=walking"]');
+  await expect(walking).toHaveCount(6);
+  for (const link of await walking.all()) {
+    await expect(link).toHaveAttribute("href", /origin=125%20Frederick%20St/);
+  }
+});

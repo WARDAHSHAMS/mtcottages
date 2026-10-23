@@ -18,7 +18,7 @@ Do not restore jQuery, Bootstrap, Modernizr, legacy sliders, old theme CSS, Veno
 
 Use exact house directories and visually reviewed portfolio images. Prefer recent/final frames. Property heroes should be clear front-of-house photographs when available; otherwise use the strongest honest interior or outdoor frame and leave the substitution open for Wardah’s direction. Exclude construction, inspection, maintenance, plumbing, tools, duplicates, uncertain images, and frames that reveal addresses.
 
-Never publish exact street addresses, private inventory maps, SharePoint paths, credentials, or sensitive application data. Keep `homes.csv`, house maps, manifests, and staging downloads ignored. Do not add SSN, full DOB, card, or bank fields to the inquiry form. Do not enable Stripe.
+Owner decision (Oct 2026): a cottage's own street address may be published on its microsite (e.g. Frederick Cottage, 125 Frederick St, on Arrival & map and as the walking-directions origin). Never publish the addresses of unlisted homes, private inventory maps, SharePoint paths, credentials, or sensitive application data. Keep `homes.csv`, house maps, manifests, and staging downloads ignored. Do not add SSN, full DOB, card, or bank fields to the inquiry form. Do not enable Stripe.
 
 ## Verification and release
 
@@ -31,3 +31,5 @@ BASE_URL=http://127.0.0.1:4174 npm --prefix e2e test
 ```
 
 Before release, run `git diff --check`, `jq empty infra/azure/*.json`, scan generated HTML for private addresses and legacy runtime markers, verify CNAME/`.nojekyll`, and publish only from `gh-pages` after the browser suite passes. GitHub Actions builds and deploys the verified static artifact, then runs the safe application-edge smoke suite.
+
+AI-generated 3D or inspirational concept images of rooms (top-down and 45-degree cutaways, requested from Wardah) are permitted, but every one must carry a visible "AI-generated concept" label and AI-generated alt text, and must never be presented as a photo.

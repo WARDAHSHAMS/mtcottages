@@ -12,11 +12,11 @@ Mt Cottages is a guest-facing furnished-stay site for the Mid-Ohio Valley. The p
 
 ## Privacy and photo curation
 
-- Never publish street addresses, private inventory details, credentials, or sensitive application data.
+- Never publish private inventory details, credentials, or sensitive application data, or the address of a home that is not listed on the site. Owner decision (Oct 2026): a cottage's own street address may be published on its microsite (e.g. Frederick Cottage, 125 Frederick St, on Arrival & map and as the walking-directions origin).
 - Use opaque house IDs in public paths. Exact property maps and SharePoint staging remain ignored/private.
 - Prefer recent, final, visually reviewed portfolio photos. A property hero should be a clear front-of-house image when one is available; otherwise use the strongest honest room or outdoor image and leave the gap visible for Wardah’s review.
 - Exclude maintenance, construction, plumbing, tools, uncertain, duplicate, and address-revealing frames.
-- Do not invent or generate property photography. Use the real portfolio and ask Wardah to steer substitutions.
+- Do not invent or generate property *photography*: photos must come from the real portfolio; ask Wardah to steer substitutions. AI-generated 3D or inspirational concept images of rooms (top-down and 45-degree cutaways, requested from Wardah) are permitted, but every one must carry a visible "AI-generated concept" label and AI-generated alt text, and must never be presented as a photo.
 
 ## Checks
 

@@ -1,6 +1,6 @@
 # Agent handoff
 
-Maintain the public Mt Cottages furnished-stay site. The site serves guests and residents; SILK Homes is a separate staff-facing program. Keep private inventory maps, exact addresses, SharePoint paths, credentials, and operational details out of public pages.
+Maintain the public Mt Cottages furnished-stay site. The site serves guests and residents; SILK Homes is a separate staff-facing program. Keep private inventory maps, addresses of unlisted homes, SharePoint paths, credentials, and operational details out of public pages.
 
 ## Working rules
 
@@ -23,3 +23,5 @@ BASE_URL=http://127.0.0.1:4174 npm --prefix e2e test
 Scan generated HTML for private addresses and legacy runtime markers, run `git diff --check`, validate Azure JSON, and publish only from `gh-pages` after the browser suite passes.
 
 Wardah is the primary photo decision-maker. After a release, show her the current property pages and ask her to confirm hero choices and provide any better recent/final exterior or room links.
+- Owner decision (Oct 2026): a cottage's own street address may be published on its microsite (e.g. Frederick Cottage, 125 Frederick St, on Arrival & map and as the walking-directions origin).
+- AI-generated 3D or inspirational concept images of rooms (top-down and 45-degree cutaways, requested from Wardah) are permitted, but every one must carry a visible "AI-generated concept" label and AI-generated alt text, and must never be presented as a photo.

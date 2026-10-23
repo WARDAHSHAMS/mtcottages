@@ -1,0 +1,305 @@
+---
+import { Image } from "astro:assets";
+
+interface Props {
+  roomId: string;
+  roomLabel: string;
+  poster: ImageMetadata;
+  posterUrl: string;
+  posterAlt?: string;
+  statusText?: string;
+  viewParam?: string;
+}
+
+const {
+  roomId,
+  roomLabel,
+  poster,
+  posterUrl,
+  posterAlt = "AI-generated concept 3D cutaway of Bedroom 1: teal walls, king bed, armchair, closets, dresser with TV.",
+  statusText = "AI-generated concept · teal king bedroom",
+  viewParam = "bed1",
+} = Astro.props;
+---
+
+<div class="dollhouse" data-bed1={roomId} data-dollhouse={roomId} data-poster-url={posterUrl} data-room-label={roomLabel} data-view-param={viewParam}>
+  <p class="ai-badge">AI-generated concept image — an illustrative 3D view, not an actual photo of the room.</p>
+  <div class="schematic-controls">
+    <button type="button" class="button" data-load-bed1 aria-expanded="false" aria-controls={`canvas-bed1-${roomId}`}>Open 3D concept</button>
+    <p class="text-muted" data-bed1-status role="status">{statusText}</p>
+  </div>
+  <div class="bed1-stage" hidden>
+    <div class="bed1-canvas-wrap">
+      <div class="bed1-poster" data-bed1-poster>
+        <Image src={poster} alt={posterAlt} widths={[640, 960, 1280]} sizes="(max-width: 900px) 100vw, 70vw" loading="lazy" />
+      </div>
+      <canvas id={`canvas-bed1-${roomId}`} role="img" aria-label={`${roomLabel} 3D cutaway. Drag to orbit, scroll to zoom.`} tabindex="0" hidden></canvas>
+    </div>
+    <div class="dollhouse-tools" role="toolbar" aria-label={`${roomLabel} 3D controls`}>
+      <button type="button" class="button button--small" data-rot-left aria-label={`Rotate ${roomLabel} 3D left`}>⟲ Rotate</button>
+      <button type="button" class="button button--small" data-rot-right aria-label={`Rotate ${roomLabel} 3D right`}>⟳ Rotate</button>
+      <button type="button" class="button button--small" data-zoom-in aria-label={`Zoom in ${roomLabel} 3D`}>+ Zoom</button>
+      <button type="button" class="button button--small" data-zoom-out aria-label={`Zoom out ${roomLabel} 3D`}>− Zoom</button>
+      <button type="button" class="button button--small" data-reset-view aria-label={`Reset ${roomLabel} 3D view`}>Reset</button>
+    </div>
+    <div class="schematic-hint">Drag to spin · scroll to zoom · arrows rotate · +/− zoom · R resets.</div>
+  </div>
+</div>
+
+<script type="module">
+  const roots = document.querySelectorAll("[data-bed1]");
+  if (roots.length) {
+    const params = new URLSearchParams(window.location.search);
+    const viewParamDefault = "bed1";
+
+    let modulesPromise = null;
+    const loadModules = () => {
+      if (!modulesPromise) {
+        modulesPromise = Promise.all([
+          import("three"),
+          import("three/addons/controls/OrbitControls.js"),
+        ]).then(([THREE, controls]) => ({ THREE, OrbitControls: controls.OrbitControls }));
+      }
+      return modulesPromise;
+    };
+
+    roots.forEach((root) => {
+      if (root.dataset.bed1Bound === "true") return;
+      root.dataset.bed1Bound = "true";
+      const btn = root.querySelector("[data-load-bed1]");
+      const status = root.querySelector("[data-bed1-status]");
+      const stage = root.querySelector(".bed1-stage");
+      const posterEl = root.querySelector("[data-bed1-poster]");
+      const canvas = root.querySelector("canvas");
+      const photoUrl = root.getAttribute("data-poster-url");
+      const label = root.getAttribute("data-room-label") || "Bedroom";
+      const roomKey = root.getAttribute("data-dollhouse") || root.getAttribute("data-bed1") || "room";
+      const viewKey = root.getAttribute("data-view-param") || viewParamDefault;
+      const autoOpen = params.get("view") === viewKey || params.get("view") === roomKey;
+
+      let THREE = null;
+      let renderer = null, scene = null, camera = null, controls = null;
+      let running = false, ready = false, initing = null;
+      const HOME = { x: 0, y: 0.45, z: 6.8 };
+
+      const resize = () => {
+        if (!renderer || !camera) return;
+        const w = Math.min(Math.round(canvas.clientWidth || root.clientWidth || 640), 1280);
+        const h = Math.round((w * 2) / 3);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        renderer.setPixelRatio(dpr);
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      };
+
+      const markReady = () => {
+        if (ready) return;
+        ready = true;
+        if (posterEl) posterEl.hidden = true;
+        canvas.hidden = false;
+        resize();
+        root.dataset.viewerReady = "true";
+        window.__bed1Ready = true;
+        window.__dollhouseReady = window.__dollhouseReady || {};
+        window.__dollhouseReady[roomKey] = true;
+        if (roomKey === "bedroom-2") window.__bed2Ready = true;
+        if (status) status.textContent = "3D loaded. Drag to spin, scroll to zoom, R to reset.";
+      };
+
+      const tick = () => {
+        if (!running) return;
+        controls.update();
+        renderer.render(scene, camera);
+        requestAnimationFrame(tick);
+      };
+      const startLoop = () => {
+        if (!running && renderer && !stage.hidden && !document.hidden) {
+          running = true;
+          requestAnimationFrame(tick);
+        }
+      };
+      const stopLoop = () => {
+        running = false;
+      };
+      const goHome = () => {
+        if (!camera || !controls) return;
+        camera.position.set(HOME.x, HOME.y, HOME.z);
+        controls.target.set(0, 0, 0);
+        controls.update();
+      };
+      const orbitBy = (dTheta) => {
+        if (!camera || !controls || !THREE) return;
+        const off = camera.position.clone().sub(controls.target);
+        const s = new THREE.Spherical().setFromVector3(off);
+        s.theta = Math.min(controls.maxAzimuthAngle, Math.max(controls.minAzimuthAngle, s.theta + dTheta));
+        camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s));
+        controls.update();
+        if (renderer && scene) renderer.render(scene, camera);
+      };
+      const dollyBy = (dRadius) => {
+        if (!camera || !controls || !THREE) return;
+        const off = camera.position.clone().sub(controls.target);
+        const s = new THREE.Spherical().setFromVector3(off);
+        s.radius = Math.min(controls.maxDistance, Math.max(controls.minDistance, s.radius + dRadius));
+        camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s));
+        controls.update();
+        if (renderer && scene) renderer.render(scene, camera);
+      };
+
+      async function init() {
+        const M = await loadModules();
+        THREE = M.THREE;
+        if (!window.WebGLRenderingContext) throw new Error("WebGL unavailable");
+        if (!photoUrl) throw new Error(`${label} photo missing`);
+        if (status) status.textContent = `Loading ${label} 3D…`;
+
+        const texture = await new THREE.TextureLoader().loadAsync(photoUrl);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.anisotropy = 8;
+
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xedf0ea);
+
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x8f8a80, 0.9));
+        const key = new THREE.DirectionalLight(0xffffff, 1.6);
+        key.position.set(-4, 7, 5);
+        key.castShadow = true;
+        key.shadow.mapSize.set(1024, 1024);
+        key.shadow.camera.left = -6;
+        key.shadow.camera.right = 6;
+        key.shadow.camera.top = 6;
+        key.shadow.camera.bottom = -6;
+        key.shadow.camera.near = 1;
+        key.shadow.camera.far = 25;
+        scene.add(key);
+
+        const ground = new THREE.Mesh(
+          new THREE.PlaneGeometry(30, 30),
+          new THREE.ShadowMaterial({ opacity: 0.18 }),
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -1.85;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        const photo = new THREE.Mesh(
+          new THREE.PlaneGeometry(4.8, 3.2),
+          new THREE.MeshBasicMaterial({ map: texture, toneMapped: false }),
+        );
+        photo.position.z = 0.065;
+        photo.castShadow = true;
+        scene.add(photo);
+
+        camera = new THREE.PerspectiveCamera(32, 1.5, 0.1, 60);
+        controls = new M.OrbitControls(camera, canvas);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.07;
+        controls.enablePan = false;
+        controls.rotateSpeed = 0.5;
+        controls.zoomSpeed = 0.8;
+        controls.minDistance = 4;
+        controls.maxDistance = 12;
+        controls.minPolarAngle = 1.0;
+        controls.maxPolarAngle = 1.9;
+        controls.minAzimuthAngle = -0.6;
+        controls.maxAzimuthAngle = 0.6;
+        controls.target.set(0, 0, 0);
+        goHome();
+
+        resize();
+        renderer.render(scene, camera);
+        markReady();
+
+        canvas.addEventListener("keydown", (e) => {
+          const step = 0.1;
+          const off = camera.position.clone().sub(controls.target);
+          const s = new THREE.Spherical().setFromVector3(off);
+          if (e.key === "ArrowLeft") s.theta = Math.max(controls.minAzimuthAngle, s.theta + step);
+          else if (e.key === "ArrowRight") s.theta = Math.min(controls.maxAzimuthAngle, s.theta - step);
+          else if (e.key === "ArrowUp") s.phi = Math.max(controls.minPolarAngle, s.phi - step);
+          else if (e.key === "ArrowDown") s.phi = Math.min(controls.maxPolarAngle, s.phi + step);
+          else if (e.key === "+" || e.key === "=") s.radius = Math.max(controls.minDistance, s.radius - 0.8);
+          else if (e.key === "-" || e.key === "_") s.radius = Math.min(controls.maxDistance, s.radius + 0.8);
+          else if (e.key.toLowerCase() === "r") { goHome(); e.preventDefault(); return; }
+          else return;
+          e.preventDefault();
+          camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s));
+          controls.update();
+        });
+        window.addEventListener("resize", resize);
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) stopLoop();
+          else startLoop();
+        });
+      }
+
+      btn?.addEventListener("click", async () => {
+        const open = stage.hidden;
+        stage.hidden = !open;
+        btn.setAttribute("aria-expanded", String(open));
+        btn.textContent = open ? "Close 3D concept" : "Open 3D concept";
+        if (!open) {
+          stopLoop();
+          return;
+        }
+        if (!renderer && !initing) {
+          initing = (async () => {
+            try {
+              await init();
+              startLoop();
+            } catch (err) {
+              console.warn(`${label} 3D failed:`, err);
+              window.__bed1Ready = false;
+              if (window.__dollhouseReady) window.__dollhouseReady[roomKey] = false;
+              if (roomKey === "bedroom-2") window.__bed2Ready = false;
+              if (status) status.textContent = "3D unavailable — the concept image above still shows the room.";
+            }
+          })();
+        }
+        await initing;
+        if (renderer && camera) {
+          resize();
+          startLoop();
+        }
+      });
+
+      root.querySelector("[data-rot-left]")?.addEventListener("click", () => orbitBy(0.2));
+      root.querySelector("[data-rot-right]")?.addEventListener("click", () => orbitBy(-0.2));
+      root.querySelector("[data-zoom-in]")?.addEventListener("click", () => dollyBy(-0.8));
+      root.querySelector("[data-zoom-out]")?.addEventListener("click", () => dollyBy(0.8));
+      root.querySelector("[data-reset-view]")?.addEventListener("click", () => {
+        goHome();
+        if (renderer && scene && camera) renderer.render(scene, camera);
+      });
+
+      if (autoOpen) btn?.click();
+    });
+  }
+</script>
+
+<style>
+  .dollhouse { margin-top: 0.4rem; }
+  .ai-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.2rem 0.7rem;
+    margin: 0 0 0.2rem;
+  }
+  .schematic-controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin: 0.8rem 0; }
+  .dollhouse-tools { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.6rem 0 0; }
+  .button--small { font-size: 0.8rem; padding: 0.35rem 0.7rem; }
+  .bed1-stage { display: block; }
+  .bed1-stage[hidden] { display: none; }
+  .bed1-canvas-wrap { position: relative; overflow: hidden; border-radius: 0.5rem; background: #edf0ea; }
+  .bed1-poster img { display: block; width: 100%; height: auto; }
+  .bed1-canvas-wrap canvas { position: relative; z-index: 1; display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; touch-action: none; }
+  .bed1-canvas-wrap canvas[hidden] { display: none; }
+  .schematic-hint { color: var(--muted); font-size: 0.75rem; margin-top: 0.4rem; }
+</style>
