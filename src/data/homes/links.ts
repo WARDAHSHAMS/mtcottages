@@ -17,8 +17,13 @@ export const privateAddressNote = "The street address is shared once you inquire
 
 export const homeBase = (home: HomeMicrosite) => `/${home.town.slug}/${home.slug}/`;
 
+/** The template's own pages. "guide" exists only for homes with a resident guide. */
+export type HomePage = "tour" | "plan" | "amenities" | "location" | "guide";
+export const homePages = (home: HomeMicrosite): HomePage[] =>
+  ["tour", "plan", "amenities", "location", ...(home.guide && home.guide.length > 0 ? (["guide"] as const) : [])];
+
 /** Directory URL for the index page, .html files for the rest (build.format "preserve"). */
-export const homeHref = (home: HomeMicrosite, page: "index" | "tour" | "plan" | "amenities" | "location" = "index") =>
+export const homeHref = (home: HomeMicrosite, page: "index" | HomePage = "index") =>
   page === "index" ? homeBase(home) : `${homeBase(home)}${page}.html`;
 
 export const inquiryUrl = (id: string) => `${stayApplicationUrl}?property=${encodeURIComponent(id)}`;
@@ -28,6 +33,10 @@ export const googleDirectionsTo = (address: string) =>
 
 export const googleDirectionsFrom = (origin: string, address: string) =>
   `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(address)}`;
+
+/** Walking directions from the home to a place; only used for homes with an approved street address. */
+export const googleWalkFrom = (address: string, query: string) =>
+  `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(address)}&destination=${encodeURIComponent(query)}&travelmode=walking`;
 
 export const googleSearch = (query: string) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
@@ -64,13 +73,15 @@ export const nearbyKindLabel: Record<NearbyKind, string> = {
   grocery: "Groceries",
   food: "Food and coffee",
   park: "Parks and outdoors",
+  trail: "Trails",
   school: "Schools",
   transit: "Getting around",
   shopping: "Shopping",
   civic: "Community and services",
+  event: "Events",
 };
 
-export const nearbyKindOrder: NearbyKind[] = ["health", "grocery", "food", "shopping", "park", "school", "transit", "civic"];
+export const nearbyKindOrder: NearbyKind[] = ["health", "grocery", "food", "shopping", "park", "trail", "school", "transit", "civic", "event"];
 
 export const planKindLabel: Record<PlanRoomKind, string> = {
   bedroom: "Bedroom",

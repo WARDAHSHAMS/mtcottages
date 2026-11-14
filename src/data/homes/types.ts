@@ -39,6 +39,23 @@ export type HomeRoom = {
   summary: string;
   photos: HomePhoto[];
   notes: { text: string; status: FactStatus }[];
+  /** Questions guests ask about this room, shown on the tour as native disclosures. */
+  faqs?: HomeFaq[];
+};
+
+/** A question and answer; the status says where the answer comes from. */
+export type HomeFaq = { q: string; a: string; status: FactStatus };
+
+/**
+ * One section of the resident guide page (utilities, handbook, arrival).
+ * `id` becomes the anchor on guide.html, so legacy pages can point at it.
+ */
+export type GuideSection = {
+  id: string;
+  title: string;
+  intro: string;
+  items: { text: string; status: FactStatus }[];
+  links?: { label: string; href: string }[];
 };
 
 export type PlanRoomKind =
@@ -67,7 +84,7 @@ export type PlanFloor = { name: string; rooms: PlanRoom[] };
 /** An AI-generated concept image. Always rendered with an "AI-generated concept" label. */
 export type ConceptImage = { src: ImageMetadata; alt: string; caption: string };
 
-export type NearbyKind = "health" | "grocery" | "food" | "park" | "school" | "transit" | "shopping" | "civic";
+export type NearbyKind = "health" | "grocery" | "food" | "park" | "trail" | "school" | "transit" | "shopping" | "civic" | "event";
 
 export type NearbyPlace = {
   name: string;
@@ -85,6 +102,12 @@ export type HomeMicrosite = {
   slug: string;
   /** Older one-page URLs in the same town (no .html) that also redirect here, beyond `${slug}.html`. */
   legacySlugs?: string[];
+  /**
+   * Older pages inside this home's folder that moved, e.g. { rooms: "tour.html#bedrooms" }.
+   * Each key is emitted as `<base><key>.html`, a redirect to the target (relative to the base).
+   * A key must not be one of the template's own page names.
+   */
+  legacyPages?: Record<string, string>;
   name: string;
   town: { name: string; state: "WV" | "OH"; slug: string };
   tagline: string;
@@ -111,4 +134,6 @@ export type HomeMicrosite = {
   nearby: NearbyPlace[];
   /** Places a resident might drive from; the page links Google Maps directions from each to the home. */
   directionsFrom: { label: string; origin: string }[];
+  /** Optional resident guide (utilities, handbook, arrival). When present, the home gets a guide.html page. */
+  guide?: GuideSection[];
 };

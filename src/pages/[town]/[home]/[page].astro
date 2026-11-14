@@ -8,26 +8,43 @@ import LocationMap from "../../../components/home/LocationMap.astro";
 import { homeShell } from "../../../components/home/shell";
 import { homes } from "../../../data/homes";
 import {
-  addressPhrase, appleMapsTo, fullAddress, googleDirectionsFrom, hasStreetAddress, privateAddressNote, googleDirectionsTo, googleSearch,
-  nearbyKindLabel, nearbyKindOrder, planKindColor, planKindLabel, statusHelp, statusLabel,
+  addressPhrase, appleMapsTo, fullAddress, googleDirectionsFrom, googleDirectionsTo, googleSearch, googleWalkFrom, hasStreetAddress,
+  homeBase, homePages, nearbyKindLabel, nearbyKindOrder, planKindColor, planKindLabel, privateAddressNote, statusHelp, statusLabel,
+  type HomePage,
 } from "../../../data/homes/links";
-import { homeSchema } from "../../../data/homes/schema";
+import { homePageSchema } from "../../../data/homes/schema";
 import type { FactStatus, HomeMicrosite } from "../../../data/homes/types";
 
-type Page = "tour" | "plan" | "amenities" | "location";
+type Props = { home: HomeMicrosite; page: HomePage } | { home: HomeMicrosite; legacyTarget: string };
 
 export function getStaticPaths() {
-  const pages: Page[] = ["tour", "plan", "amenities", "location"];
-  return homes.flatMap((home) => pages.map((page) => ({ params: { town: home.town.slug, home: home.slug, page }, props: { home, page } })));
+  return homes.flatMap((home) => {
+    const pages = homePages(home);
+    const own = pages.map((page) => ({ params: { town: home.town.slug, home: home.slug, page }, props: { home, page } }));
+    const legacy = Object.entries(home.legacyPages ?? {}).map(([page, target]) => {
+      if ((pages as string[]).includes(page) || page === "index") {
+        throw new Error(`${home.id}: legacyPages key "${page}" collides with a template page`);
+      }
+      return { params: { town: home.town.slug, home: home.slug, page }, props: { home, legacyTarget: target } };
+    });
+    return [...own, ...legacy];
+  });
 }
 
-const { home, page } = Astro.props as { home: HomeMicrosite; page: Page };
+const props = Astro.props as Props;
+if ("legacyTarget" in props) {
+  // Static builds emit a small meta-refresh page with a canonical link; the #fragment is kept.
+  return Astro.redirect(`${homeBase(props.home)}${props.legacyTarget}`, 301);
+}
+
+const { home, page } = props;
 const shell = homeShell(home);
 const address = fullAddress(home);
 const street = hasStreetAddress(home);
 const where = `${home.town.name}, ${home.town.state}`;
+const guide = home.guide ?? [];
 
-const copy: Record<Page, { eyebrow: string; heading: string; lede: string; title: string; description: string }> = {
+const copy: Record<HomePage, { eyebrow: string; heading: string; lede: string; title: string; description: string }> = {
   tour: {
     eyebrow: `${home.name} · Tour`,
     heading: "Room by room.",
@@ -58,6 +75,13 @@ const copy: Record<Page, { eyebrow: string; heading: string; lede: string; title
     title: `Location, directions and nearby places for ${home.name}`,
     description: `Directions to ${home.name} ${addressPhrase(home)}, plus nearby health care, groceries, food and parks.`,
   },
+  guide: {
+    eyebrow: `${home.name} · Guide`,
+    heading: "How living here works.",
+    lede: "Utilities, arrival, the house handbook and who to call, each marked with where the detail comes from.",
+    title: `Resident guide for ${home.name}, ${where}`,
+    description: `Utilities, arrival, house rules and maintenance contacts for ${home.name} ${addressPhrase(home)}.`,
+  },
 };
 const c = copy[page];
 const statuses: FactStatus[] = ["confirmed", "listed", "photographed", "confirm"];
@@ -81,7 +105,7 @@ const hasRooms = home.rooms.length > 0;
   lede={c.lede}
   hero={home.hero}
   chip={street ? address : `${address} · street address on inquiry`}
-  schema={homeSchema(home)}
+  schema={homePageSchema(home, page)}
 >
   {page === "tour" && (
     <>
@@ -100,12 +124,23 @@ const hasRooms = home.rooms.length > 0;
               <p>{room.summary}</p>
             </div>
             {room.photos.length > 0
-              ? <div class="hm-shots">{room.photos.map((photo) => <PhotoFigure photo={photo} sizes="(max-width: 900px) 100vw, 45vw" />)}</div>
+              ? <div class="hm-shots">{room.photos.map((photo) => <PhotoFigure photo={photo} sizes="(max-width: 560px) 100vw, (max-width: 1200px) 50vw, 600px" />)}</div>
               : <p class="gap-note">Photos of this room are not published yet. Ask us and we will share what we have.</p>}
             {room.notes.length > 0 && (
               <ul class="hm-notes" aria-label={`Notes on ${room.name}`}>
                 {room.notes.map((note) => <li><StatusBadge status={note.status} /><span>{note.text}</span></li>)}
               </ul>
+            )}
+            {room.faqs && room.faqs.length > 0 && (
+              <div class="hm-faqs">
+                <h3 id={`${room.slug}-faq`}>Questions about the {room.name.toLowerCase()}</h3>
+                {room.faqs.map((faq) => (
+                  <details class="hm-faq">
+                    <summary>{faq.q}</summary>
+                    <div><p>{faq.a}</p><StatusBadge status={faq.status} /></div>
+                  </details>
+                ))}
+              </div>
             )}
           </div>
         </section>
@@ -162,7 +197,7 @@ const hasRooms = home.rooms.length > 0;
               <p>These pictures were generated by AI to suggest the feel of the home. They are not photographs of the home and not to scale.</p>
             </div>
             <div class="hm-shots">
-              {home.concepts.map((concept) => <PhotoFigure ai photo={{ src: concept.src, alt: concept.alt, caption: concept.caption }} sizes="(max-width: 900px) 100vw, 45vw" />)}
+              {home.concepts.map((concept) => <PhotoFigure ai photo={{ src: concept.src, alt: concept.alt, caption: concept.caption }} sizes="(max-width: 560px) 100vw, (max-width: 1200px) 50vw, 600px" />)}
             </div>
           </div>
         </section>
@@ -233,11 +268,13 @@ const hasRooms = home.rooms.length > 0;
         </div>
       </section>
 
-      <section class="section" aria-labelledby="nearby-title">
+      <section class="section" id="nearby" aria-labelledby="nearby-title">
         <div class="site-width">
           <div class="section-heading reveal">
             <div><p class="eyebrow">Nearby</p><h2 id="nearby-title">Places people ask about.</h2></div>
-            <p>Each place opens a Google Maps search. Check hours and distances there before you travel.</p>
+            <p>{street
+              ? "Each place opens a Google Maps search, and “Walk” plans a walking route from the home. Check hours and distances there before you travel."
+              : "Each place opens a Google Maps search. Check hours and distances there before you travel."}</p>
           </div>
           <div class="hm-nearby">
             {nearbyGroups.map((group) => (
@@ -245,7 +282,10 @@ const hasRooms = home.rooms.length > 0;
                 <h3 id={`near-${group.kind}`}>{nearbyKindLabel[group.kind]}</h3>
                 <ul>
                   {group.places.map((place) => (
-                    <li><a href={googleSearch(place.mapsQuery)} rel="noopener" target="_blank"><strong>{place.name}</strong><span>{place.note}</span><span class="sr-only"> (Google Maps, new tab)</span></a></li>
+                    <li>
+                      <a href={googleSearch(place.mapsQuery)} rel="noopener" target="_blank"><strong>{place.name}</strong><span>{place.note}</span><span class="sr-only"> (Google Maps, new tab)</span></a>
+                      {street && <a class="hm-walk" href={googleWalkFrom(address, place.mapsQuery)} rel="noopener" target="_blank">Walk<span class="sr-only"> from {home.name} to {place.name} (Google Maps, new tab)</span> ↗</a>}
+                    </li>
                   ))}
                 </ul>
               </section>
@@ -263,12 +303,41 @@ const hasRooms = home.rooms.length > 0;
             try {
               await navigator.clipboard.writeText(text);
               if (status) status.textContent = "Address copied.";
-            } catch {
+            } catch (error) {
+              console.warn("Clipboard write failed", error);
               if (status) status.textContent = `Copy this address: ${text}`;
             }
           });
         });
       </script>
+    </>
+  )}
+
+  {page === "guide" && (
+    <>
+      <nav class="site-width hm-guide-toc" aria-label="Guide sections">
+        <ul class="cluster">
+          {guide.map((section) => <li><a class="hm-pill" href={`#${section.id}`}>{section.title}</a></li>)}
+        </ul>
+      </nav>
+      {guide.map((section, index) => (
+        <section class={`section${index % 2 === 0 ? "" : " section--paper"}`} id={section.id} aria-labelledby={`${section.id}-title`}>
+          <div class="site-width">
+            <div class="section-heading reveal">
+              <div><p class="eyebrow">Guide</p><h2 id={`${section.id}-title`}>{section.title}</h2></div>
+              <p>{section.intro}</p>
+            </div>
+            <ul class="hm-notes" aria-label={section.title}>
+              {section.items.map((item) => <li><StatusBadge status={item.status} /><span>{item.text}</span></li>)}
+            </ul>
+            {section.links && section.links.length > 0 && (
+              <ul class="hm-guide-links">
+                {section.links.map((link) => <li><a class="hm-pill" href={link.href}>{link.label}</a></li>)}
+              </ul>
+            )}
+          </div>
+        </section>
+      ))}
     </>
   )}
 </HomeLayout>

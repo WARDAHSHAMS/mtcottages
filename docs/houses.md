@@ -17,7 +17,7 @@ Every other home is published at **town level only**. Its microsite shows the to
 
 | House | Photo folder (`assets/images/cottages/`) | Town | Address on site | Bedrooms | Status | Microsite |
 |---|---|---|---|---|---|---|
-| Frederick Cottage | `marietta-01` | Marietta, OH | 125 Frederick St, Marietta OH 45750 | 3 | Listed | [/marietta/frederick/](https://mtcottages.com/marietta/frederick/index.html) (hand-built) |
+| Frederick Cottage | `marietta-01` | Marietta, OH | 125 Frederick St, Marietta OH 45750 | 3 | Listed | [/marietta/frederick/](https://mtcottages.com/marietta/frederick/index.html) (shared template; old page URLs redirect) |
 | Broad Cottage | `parkersburg-01` | Parkersburg, WV | 3113 Broad St, Parkersburg WV 26104 | 1 | Listed | [/parkersburg/broad-cottage/](https://mtcottages.com/parkersburg/broad-cottage/) |
 | Buck Cottage | `parkersburg-02` | Parkersburg, WV | Town only (not approved) | 1 | Listed | [/parkersburg/buck-cottage/](https://mtcottages.com/parkersburg/buck-cottage/) (the old `buck-apartment-1.html` redirects here) |
 | Yellow Cottage | `parkersburg-03` | Parkersburg, WV | Not published | 2 | Listed | None: deferred, not ready to publish (CEO decision 2026-11-14). Keeps its single page [/parkersburg/yellow-cottage.html](https://mtcottages.com/parkersburg/yellow-cottage.html) |

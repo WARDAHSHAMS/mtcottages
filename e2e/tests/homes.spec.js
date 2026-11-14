@@ -5,16 +5,18 @@ const AxeBuilder = require("@axe-core/playwright").default;
 // Homes with an owner-approved street address publish it; the rest are
 // town-level only (`street: null`): no house number, pin, postcode or geo point.
 const homes = [
+  { id: "frederick", name: "Frederick Cottage", base: "/marietta/frederick/", street: "125 Frederick St", address: "125 Frederick St, Marietta, OH 45750", concepts: true, guide: true },
   { id: "henrietta", name: "Henrietta Cottage", base: "/ravenswood/henrietta-cottage/", street: "200 Henrietta St", address: "200 Henrietta St, Ravenswood, WV 26164", concepts: true },
   { id: "oak", name: "Oak Cottage", base: "/parkersburg/oak-cottage/", street: "2712 Broad St", address: "2712 Broad St, Parkersburg, WV 26101", concepts: true },
   { id: "broad", name: "Broad Cottage", base: "/parkersburg/broad-cottage/", street: "3113 Broad St", address: "3113 Broad St, Parkersburg, WV 26104", concepts: true },
   { id: "buck", name: "Buck Cottage", base: "/parkersburg/buck-cottage/", street: null, address: "Parkersburg, WV", concepts: false },
   { id: "virginia", name: "Virginia Cottage", base: "/ravenswood/virginia-cottage/", street: null, address: "Ravenswood, WV", concepts: false },
 ];
-const familySize = homes.length + 1; // plus the hand-built Frederick microsite
+const familySize = homes.length;
 const approvedStreets = ["200 Henrietta St", "2712 Broad St", "3113 Broad St", "125 Frederick St"];
 const pageNames = ["tour", "plan", "amenities", "location"];
-const pagesOf = (home) => [home.base, ...pageNames.map((name) => `${home.base}${name}.html`)];
+// Homes with a resident guide also get guide.html.
+const pagesOf = (home) => [home.base, ...[...pageNames, ...(home.guide ? ["guide"] : [])].map((name) => `${home.base}${name}.html`)];
 const settle = async (page) => {
   await page.evaluate(() => document.querySelectorAll(".reveal").forEach((element) => element.classList.add("is-visible")));
   await page.waitForTimeout(100);
@@ -62,10 +64,22 @@ for (const home of homes) {
         expect(href).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&origin=.+&destination=/);
         expect(href).toContain(`destination=${encodeURIComponent(home.address)}`);
       }
-      const nearby = page.locator(".hm-nearby-group a");
+      const nearby = page.locator(".hm-nearby-group a:not(.hm-walk)");
       expect(await nearby.count()).toBeGreaterThanOrEqual(1);
       for (const link of await nearby.all()) {
         await expect(link).toHaveAttribute("href", /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=/);
+      }
+      // Walking directions start from the house, so only approved street homes have them.
+      const walks = page.locator(".hm-nearby-group a.hm-walk");
+      if (home.street) {
+        await expect(walks).toHaveCount(await nearby.count());
+        for (const link of await walks.all()) {
+          const href = await link.getAttribute("href");
+          expect(href).toContain(`origin=${encodeURIComponent(home.address)}`);
+          expect(href).toContain("travelmode=walking");
+        }
+      } else {
+        await expect(walks).toHaveCount(0);
       }
     });
 
@@ -117,7 +131,7 @@ for (const home of homes) {
       const stay = schemas.find((item) => item["@type"] === "Accommodation");
       if (home.street) {
         expect(stay.address).toMatchObject({ "@type": "PostalAddress", streetAddress: home.street, addressCountry: "US" });
-        expect(stay.address.postalCode).toMatch(/^26\d{3}$/);
+        expect(stay.address.postalCode).toMatch(/^(26|45)\d{3}$/);
         expect(stay.geo.latitude).toBeGreaterThan(38);
         expect(stay.geo.longitude).toBeLessThan(-81);
       } else {
@@ -128,6 +142,14 @@ for (const home of homes) {
         expect(stay.geo).toBeUndefined();
       }
       expect(schemas.find((item) => item["@type"] === "Offer")).toBeUndefined();
+      // Breadcrumbs mirror the visible trail: Home / Town / Home name (/ Page).
+      const crumbs = schemas.find((item) => item["@type"] === "BreadcrumbList");
+      expect(crumbs.itemListElement.map((item) => item.name)).toEqual(["Home", expect.any(String), home.name]);
+      expect(crumbs.itemListElement.at(-1).item).toBe(`https://mtcottages.com${home.base}`);
+      await page.goto(`${home.base}tour.html`);
+      const tourSchemas = JSON.parse(await page.locator('script[type="application/ld+json"]').textContent());
+      const tourCrumbs = tourSchemas.find((item) => item["@type"] === "BreadcrumbList");
+      expect(tourCrumbs.itemListElement.at(-1)).toMatchObject({ position: 4, name: "Tour", item: `https://mtcottages.com${home.base}tour.html` });
     });
 
     test("the plan page has an SVG per floor and the concept labels", async ({ page }) => {
@@ -285,14 +307,82 @@ test("the old summary pages redirect to the new microsites", async ({ page, requ
   }
 });
 
-test("the family switcher on Frederick links to every home microsite", async ({ page }) => {
+test("the family switcher links to every home microsite", async ({ page }) => {
+  // /marietta/frederick/index.html is the template's own index file, so the old hub URL still serves the page.
   await page.goto("/marietta/frederick/index.html");
+  await expect(page.locator("h1")).toHaveText("Frederick Cottage");
   await expect(page.locator(".hm-family-card")).toHaveCount(familySize);
   await expect(page.locator('.hm-family-card[aria-current="page"]')).toContainText("Frederick Cottage");
   for (const home of homes) {
     await expect(page.locator(`.hm-family-card[href="${home.base}"]`)).toContainText(home.name);
   }
-  await page.locator(`.hm-family-card[href="${homes[0].base}"]`).click();
-  await expect(page).toHaveURL(new RegExp(`${homes[0].base}$`));
+  const henrietta = homes.find((home) => home.id === "henrietta");
+  await page.locator(`.hm-family-card[href="${henrietta.base}"]`).click();
+  await expect(page).toHaveURL(new RegExp(`${henrietta.base}$`));
   await expect(page.locator("h1")).toHaveText("Henrietta Cottage");
+});
+
+test("every old Frederick page lands on its new section", async ({ page, request }) => {
+  const moves = [
+    ["rooms", "tour.html#bedrooms"],
+    ["kitchen", "tour.html#kitchen"],
+    ["bathrooms", "tour.html#bathroom"],
+    ["living", "tour.html#living"],
+    ["outdoors", "tour.html#outdoors"],
+    ["gallery", "tour.html"],
+    ["area", "location.html#nearby"],
+    ["arrival", "location.html"],
+    ["utilities", "guide.html#utilities"],
+    ["handbook", "guide.html#handbook"],
+  ];
+  const base = "/marietta/frederick/";
+  for (const [old, target] of moves) {
+    const from = `${base}${old}.html`;
+    const response = await request.get(from);
+    expect(response.status(), from).toBe(200);
+    const html = await response.text();
+    expect(html, from).toContain(`url=${base}${target}`);
+    expect(html, from).toMatch(/name="robots" content="noindex"/);
+    await page.goto(from);
+    const [path, hash] = target.split("#");
+    await page.waitForURL((url) => url.pathname === `${base}${path}` && url.hash === (hash ? `#${hash}` : ""), { timeout: 10_000 });
+    if (hash) await expect(page.locator(`#${hash}`)).toHaveCount(1);
+  }
+});
+
+test("Frederick keeps every question and guide topic from its old pages", async ({ page }) => {
+  await page.goto("/marietta/frederick/tour.html");
+  for (const question of [
+    "Is this a full kitchen or a kitchenette?",
+    "Can six eat together?",
+    "What bed is in each bedroom?",
+    "Can three adults each have a private room?",
+    "Is it a shower or a tub?",
+    "What if something drips or clogs?",
+  ]) {
+    await expect(page.locator(".hm-faq summary", { hasText: question })).toHaveCount(1);
+  }
+  // Native disclosures: closed by default, open on click, no script needed.
+  const first = page.locator(".hm-faq").first();
+  await expect(first).not.toHaveAttribute("open", "");
+  await first.locator("summary").click();
+  await expect(first).toHaveAttribute("open", "");
+  await expect(first.locator(".hm-badge")).toBeVisible();
+
+  await page.goto("/marietta/frederick/guide.html");
+  for (const id of ["arrival", "utilities", "handbook", "policies", "maintenance"]) {
+    await expect(page.locator(`section#${id} h2`)).toHaveCount(1);
+  }
+  await expect(page.locator("main")).toContainText("call 911 first");
+  await expect(page.locator("main")).toContainText("1 Gbps ethernet");
+  for (const href of ["/maintenance.html", "/emergency-maintenance.html", "/resident-portal.html"]) {
+    await expect(page.locator(`main a[href="${href}"]`)).toHaveCount(1);
+  }
+  expect(await page.locator(`nav[aria-label="Frederick Cottage sections"] a[href="/marietta/frederick/guide.html"]`).count()).toBeGreaterThanOrEqual(1);
+});
+
+test("homes without a resident guide have no guide page or nav item", async ({ page, request }) => {
+  expect((await request.get("/ravenswood/henrietta-cottage/guide.html")).status()).toBe(404);
+  await page.goto("/ravenswood/henrietta-cottage/");
+  await expect(page.locator('nav[aria-label="Henrietta Cottage sections"] a[href$="guide.html"]')).toHaveCount(0);
 });

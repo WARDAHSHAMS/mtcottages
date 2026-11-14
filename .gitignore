@@ -30,5 +30,6 @@ test-results/
 
 # Astro build output and generated type declarations.
 .astro/
+.cache/
 dist/
 # Native Astro pages are the sole production route source.
