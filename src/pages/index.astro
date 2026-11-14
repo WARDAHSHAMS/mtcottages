@@ -17,7 +17,7 @@ import homeDetail from "../../assets/images/cottages/marietta-01/photo-27.avif";
         <p class="eyebrow">Mt Cottages · Mid-Ohio Valley</p>
         <h1>A furnished retreat for the season ahead.</h1>
         <p class="lede">Whole-home living with fiber-optic internet, quiet surroundings, and the room to settle in across Marietta, Parkersburg, and Ravenswood.</p>
-        <div class="cluster"><a class="button" href="/cottages.html">Browse 8 cottages <span aria-hidden="true">↗</span></a><a class="text-link" href={stayApplicationUrl}>Ask about your dates <span aria-hidden="true">↗</span></a></div>
+        <div class="cluster"><a class="button" href="/cottages.html">Browse {cottages.length} cottages <span aria-hidden="true">↗</span></a><a class="text-link" href={stayApplicationUrl}>Ask about your dates <span aria-hidden="true">↗</span></a></div>
         <ul class="hero-essentials mt-4" aria-label="What comes with the stay"><li>Furnished</li><li>Fiber-optic internet</li><li>Quiet</li><li>Peaceful</li></ul>
       </div>
       <figure class="hero-media"><a class="hero-media__link" href="/marietta/frederick/index.html" aria-label="Explore Frederick Cottage in Marietta"><ResponsivePhoto src={homeHero} alt="Frederick Cottage exterior framed by mature trees and a covered entry" priority sizes="(max-width: 900px) 100vw, 64vw" /></a><figcaption>Frederick Cottage · a storied home in Marietta. <span aria-hidden="true">↗</span></figcaption></figure>
@@ -34,7 +34,7 @@ import homeDetail from "../../assets/images/cottages/marietta-01/photo-27.avif";
   </section>
 
   <section class="section">
-    <div class="site-width"><div class="section-heading"><div><p class="eyebrow">Homes currently listed</p><h2>Find your place to land.</h2></div><p>Compare the community, bedroom count, monthly guide, and photographs that help you choose a furnished, peaceful home.</p></div><div class="card-grid card-grid--four">{cottages.slice(0, 4).map((cottage) => <PropertyCard cottage={cottage} />)}</div><a class="text-link mt-3" href="/cottages.html">See all listed cottages <span aria-hidden="true">↗</span></a></div>
+    <div class="site-width"><div class="section-heading"><div><p class="eyebrow">Homes currently listed</p><h2>Find your place to land.</h2></div><p>Every listed home has its own site with a photo tour, plan, amenities and map. Compare the community, bedroom count and monthly guide, then open the one that fits.</p></div><div class="card-grid card-grid--four" data-home-listing>{cottages.map((cottage) => <PropertyCard cottage={cottage} />)}</div><div class="cluster mt-3"><a class="button" href={stayApplicationUrl}>Ask about your dates <span aria-hidden="true">↗</span></a><a class="text-link" href="/cottages.html">Compare all cottages <span aria-hidden="true">↗</span></a></div></div>
   </section>
 
   <section class="section section--paper" aria-labelledby="drill-frederick">

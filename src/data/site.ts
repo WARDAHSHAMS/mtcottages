@@ -160,7 +160,7 @@ export const cottages: Cottage[] = [
     name: "Buck Cottage",
     town: "Parkersburg, WV",
     locationPath: "parkersburg/index.html",
-    path: "parkersburg/buck-apartment-1.html",
+    path: "parkersburg/buck-cottage/",
     bedrooms: "1 Bedroom",
     price: publishedLuxuryFurnishedRates["1 Bedroom"],
     shortTerm: "Confirm current availability",
@@ -183,7 +183,7 @@ export const cottages: Cottage[] = [
     name: "Yellow Cottage",
     town: "Parkersburg, WV",
     locationPath: "parkersburg/index.html",
-    path: "parkersburg/yellow-cottage.html",
+    path: "parkersburg/yellow-cottage/",
     bedrooms: "2 Bedrooms",
     price: publishedLuxuryFurnishedRates["2 Bedrooms"],
     shortTerm: "Confirm current availability",
@@ -227,7 +227,7 @@ export const cottages: Cottage[] = [
     name: "Walnut Cottage",
     town: "Ravenswood, WV",
     locationPath: "ravenswood/index.html",
-    path: "ravenswood/walnut-cottage.html",
+    path: "ravenswood/walnut-cottage/",
     bedrooms: "1 Bedroom",
     price: publishedLuxuryFurnishedRates["1 Bedroom"],
     shortTerm: "Confirm current availability",
@@ -249,7 +249,7 @@ export const cottages: Cottage[] = [
     name: "Virginia Cottage",
     town: "Ravenswood, WV",
     locationPath: "ravenswood/index.html",
-    path: "ravenswood/virginia-cottage.html",
+    path: "ravenswood/virginia-cottage/",
     bedrooms: "2 Bedrooms",
     price: publishedLuxuryFurnishedRates["2 Bedrooms"],
     shortTerm: "Confirm current availability",
@@ -487,5 +487,6 @@ export const navGroups = [
 
 export const routePaths = [
   "about.html", "available.html", "contact.html", "cottages.html", "cozy-places.html", "emergency-maintenance.html", "family-stays.html", "faq.html", "fully-furnished-homes.html", "guest-services.html", "health-professionals.html", "home-amenities.html", "housekeeping.html", "insurance-housing.html", "living.html", "locations.html", "maintenance.html", "meal-preparation.html", "partnerships.html", "pay-rent.html", "privacy.html", "property-care.html", "resident-portal.html", "residents.html", "room-to-settle.html", "services.html", "work-relocation.html",
-  "parkersburg/buck-apartment-1.html", "parkersburg/yellow-cottage.html", "ravenswood/virginia-cottage.html", "ravenswood/walnut-cottage.html",
+  // Every listed home now has its own microsite; the old single-page
+  // property URLs redirect there from src/pages/[town]/[home].html.ts.
 ];

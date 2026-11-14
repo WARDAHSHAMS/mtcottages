@@ -3,10 +3,17 @@ import { frederick } from "../residences/frederick";
 import { henriettaHome } from "./henrietta";
 import { oakHome } from "./oak";
 import { broadHome } from "./broad";
+import { buckHome } from "./buck";
+import { yellowHome } from "./yellow";
+import { walnutHome } from "./walnut";
+import { virginiaHome } from "./virginia";
 import type { HomeMicrosite } from "./types";
 
-/** The three data-driven microsites. Frederick keeps its hand-authored pages. */
-export const homes: HomeMicrosite[] = [henriettaHome, oakHome, broadHome];
+/**
+ * Every data-driven microsite, one per listed home except Frederick, which
+ * keeps its hand-authored pages. Order follows the town grouping on the site.
+ */
+export const homes: HomeMicrosite[] = [broadHome, buckHome, yellowHome, oakHome, walnutHome, virginiaHome, henriettaHome];
 
 export type FamilyMember = {
   id: string;

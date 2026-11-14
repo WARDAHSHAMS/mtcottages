@@ -1,12 +1,20 @@
 const { test, expect } = require("@playwright/test");
 const AxeBuilder = require("@axe-core/playwright").default;
 
-// The three data-driven home microsites share one template; every check loops over them.
+// The data-driven home microsites share one template; every check loops over them.
+// Homes with an owner-approved street address publish it; the rest are
+// town-level only (`street: null`): no house number, pin, postcode or geo point.
 const homes = [
-  { id: "henrietta", name: "Henrietta Cottage", base: "/ravenswood/henrietta-cottage/", street: "200 Henrietta St", address: "200 Henrietta St, Ravenswood, WV 26164" },
-  { id: "oak", name: "Oak Cottage", base: "/parkersburg/oak-cottage/", street: "2712 Broad St", address: "2712 Broad St, Parkersburg, WV 26101" },
-  { id: "broad", name: "Broad Cottage", base: "/parkersburg/broad-cottage/", street: "3113 Broad St", address: "3113 Broad St, Parkersburg, WV 26104" },
+  { id: "henrietta", name: "Henrietta Cottage", base: "/ravenswood/henrietta-cottage/", street: "200 Henrietta St", address: "200 Henrietta St, Ravenswood, WV 26164", concepts: true },
+  { id: "oak", name: "Oak Cottage", base: "/parkersburg/oak-cottage/", street: "2712 Broad St", address: "2712 Broad St, Parkersburg, WV 26101", concepts: true },
+  { id: "broad", name: "Broad Cottage", base: "/parkersburg/broad-cottage/", street: "3113 Broad St", address: "3113 Broad St, Parkersburg, WV 26104", concepts: true },
+  { id: "buck", name: "Buck Cottage", base: "/parkersburg/buck-cottage/", street: null, address: "Parkersburg, WV", concepts: false },
+  { id: "yellow", name: "Yellow Cottage", base: "/parkersburg/yellow-cottage/", street: null, address: "Parkersburg, WV", concepts: false },
+  { id: "walnut", name: "Walnut Cottage", base: "/ravenswood/walnut-cottage/", street: null, address: "Ravenswood, WV", concepts: false },
+  { id: "virginia", name: "Virginia Cottage", base: "/ravenswood/virginia-cottage/", street: null, address: "Ravenswood, WV", concepts: false },
 ];
+const familySize = homes.length + 1; // plus the hand-built Frederick microsite
+const approvedStreets = ["200 Henrietta St", "2712 Broad St", "3113 Broad St", "125 Frederick St"];
 const pageNames = ["tour", "plan", "amenities", "location"];
 const pagesOf = (home) => [home.base, ...pageNames.map((name) => `${home.base}${name}.html`)];
 const settle = async (page) => {
@@ -24,23 +32,30 @@ for (const home of homes) {
         await expect(page.locator("h1")).toHaveCount(1);
         await expect(page.locator(`nav[aria-label="${home.name} sections"]`), `${path} sub-navigation`).toHaveCount(1);
         await expect(page.locator(".hm-family"), `${path} family switcher`).toHaveCount(1);
-        await expect(page.locator(".hm-family-card")).toHaveCount(4);
+        await expect(page.locator(".hm-family-card")).toHaveCount(familySize);
         await expect(page.locator(`.hm-family-card[aria-current="page"]`)).toContainText(home.name);
         await expect(page.locator(".hm-inquiry"), `${path} inquiry panel`).toHaveCount(1);
         await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", `https://mtcottages.com${path}`);
       }
     });
 
-    test("the address is visible and the directions link is correct", async ({ page }) => {
+    test("the location is visible and the directions link is correct", async ({ page }) => {
       await page.goto(home.base);
       await expect(page.locator(".hm-chip")).toContainText(home.address);
+      if (!home.street) await expect(page.locator(".hm-chip")).toContainText("street address on inquiry");
       await page.goto(`${home.base}location.html`);
       const card = page.locator("[data-address-card]");
-      await expect(card).toContainText(home.street);
       await expect(card.locator("address")).toBeVisible();
+      await expect(card.locator("address")).toContainText(home.address);
       await expect(card.locator("[data-directions]")).toHaveAttribute("href", `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(home.address)}`);
       await expect(card.locator('a[href^="https://maps.apple.com/"]')).toHaveCount(1);
-      await expect(card.locator("[data-copy-address]")).toBeVisible();
+      if (home.street) {
+        await expect(card).toContainText(home.street);
+        await expect(card.locator("[data-copy-address]")).toBeVisible();
+      } else {
+        await expect(card.locator("[data-private-address]")).toContainText("street address is shared once you inquire");
+        await expect(card.locator("[data-copy-address]")).toHaveCount(0);
+      }
       const from = page.locator(".hm-links a");
       expect(await from.count()).toBeGreaterThanOrEqual(1);
       for (const link of await from.all()) {
@@ -62,9 +77,12 @@ for (const home of homes) {
       const frame = page.locator("iframe.hm-map-frame");
       await expect(frame).toHaveAttribute("src", /^https:\/\/www\.openstreetmap\.org\/export\/embed\.html/);
       await expect(frame).toHaveAttribute("title", /Map of/);
+      // A town-level home's map never drops a pin.
+      if (!home.street) await expect(frame).not.toHaveAttribute("src", /marker=/);
     });
 
     test("the copy-address button reports the result", async ({ page, context }) => {
+      test.skip(!home.street, "town-level homes publish no street address to copy");
       await context.grantPermissions(["clipboard-read", "clipboard-write"]);
       await page.goto(`${home.base}location.html`);
       await page.locator("[data-copy-address]").click();
@@ -94,14 +112,22 @@ for (const home of homes) {
       await expect(page.locator(".room-card")).not.toHaveCount(0);
     });
 
-    test("the structured data has a full address and geo point and no price offer", async ({ page }) => {
+    test("the structured data matches the published address level and has no price offer", async ({ page }) => {
       await page.goto(home.base);
       const schemas = JSON.parse(await page.locator('script[type="application/ld+json"]').textContent());
       const stay = schemas.find((item) => item["@type"] === "Accommodation");
-      expect(stay.address).toMatchObject({ "@type": "PostalAddress", streetAddress: home.street, addressCountry: "US" });
-      expect(stay.address.postalCode).toMatch(/^26\d{3}$/);
-      expect(stay.geo.latitude).toBeGreaterThan(38);
-      expect(stay.geo.longitude).toBeLessThan(-81);
+      if (home.street) {
+        expect(stay.address).toMatchObject({ "@type": "PostalAddress", streetAddress: home.street, addressCountry: "US" });
+        expect(stay.address.postalCode).toMatch(/^26\d{3}$/);
+        expect(stay.geo.latitude).toBeGreaterThan(38);
+        expect(stay.geo.longitude).toBeLessThan(-81);
+      } else {
+        const [locality, region] = home.address.split(", ");
+        expect(stay.address).toMatchObject({ "@type": "PostalAddress", addressLocality: locality, addressRegion: region, addressCountry: "US" });
+        expect(stay.address.streetAddress).toBeUndefined();
+        expect(stay.address.postalCode).toBeUndefined();
+        expect(stay.geo).toBeUndefined();
+      }
       expect(schemas.find((item) => item["@type"] === "Offer")).toBeUndefined();
     });
 
@@ -117,8 +143,10 @@ for (const home of homes) {
       await expect(body).toContainText(/concept illustrations? generated from the room list/i);
       await expect(body).toContainText(/not to scale/i);
       await expect(body).toContainText(/not a measured survey/i);
-      // Every home shows at least two labelled AI concept pictures (a top-down and a 45-degree view).
-      expect(await page.locator(".hm-shot--ai img").count()).toBeGreaterThanOrEqual(2);
+      // Homes with concepts show at least two labelled AI pictures (a top-down and a 45-degree view);
+      // homes without them show none, and every AI picture is labelled.
+      if (home.concepts) expect(await page.locator(".hm-shot--ai img").count()).toBeGreaterThanOrEqual(2);
+      else await expect(page.locator(".hm-shot--ai")).toHaveCount(0);
       for (const label of await page.locator(".hm-ai-label").all()) {
         await expect(label).toHaveText("AI-generated concept");
       }
@@ -224,12 +252,17 @@ for (const home of homes) {
       expect(open.content, "plan page with the 3D model open overflows").toBeLessThanOrEqual(open.viewport);
     });
 
-    test("only the three approved street addresses appear", async ({ request }) => {
+    test("only approved street addresses appear", async ({ request }) => {
       for (const path of pagesOf(home)) {
         const html = await (await request.get(path)).text();
         for (const banned of ["255 Court", "216 Sand", "287 Ridgeway"]) expect(html).not.toContain(banned);
-        const streets = html.match(/\b\d{3,5} (?:Broad|Henrietta|Frederick) St\b/g) || [];
-        for (const street of streets) expect(["200 Henrietta St", "2712 Broad St", "3113 Broad St", "125 Frederick St"]).toContain(street);
+        const streets = html.match(/\b\d{1,5} (?:Broad|Henrietta|Frederick|Court|Sand|45th|32nd|Walnut|Virginia|Gallatin|Ridgeway) St\b/gi) || [];
+        for (const street of streets) expect(approvedStreets, `${path} shows ${street}`).toContain(street);
+        if (!home.street) {
+          // A town-level home must not leak its own house number anywhere on its pages.
+          const own = html.match(/\b\d{1,5} (?:Court|Sand|Broad|45th|32nd|Walnut|Virginia|Gallatin|Ridgeway)\b/gi) || [];
+          expect(own, `${path} house numbers`).toEqual([]);
+        }
       }
     });
   });
@@ -240,6 +273,11 @@ test("the old summary pages redirect to the new microsites", async ({ page, requ
     ["/parkersburg/oak-cottage.html", "/parkersburg/oak-cottage/"],
     ["/ravenswood/henrietta-cottage.html", "/ravenswood/henrietta-cottage/"],
     ["/parkersburg/broad-cottage.html", "/parkersburg/broad-cottage/"],
+    ["/parkersburg/buck-apartment-1.html", "/parkersburg/buck-cottage/"],
+    ["/parkersburg/buck-cottage.html", "/parkersburg/buck-cottage/"],
+    ["/parkersburg/yellow-cottage.html", "/parkersburg/yellow-cottage/"],
+    ["/ravenswood/walnut-cottage.html", "/ravenswood/walnut-cottage/"],
+    ["/ravenswood/virginia-cottage.html", "/ravenswood/virginia-cottage/"],
   ];
   for (const [from, to] of moves) {
     const html = await (await request.get(from)).text();
@@ -250,9 +288,9 @@ test("the old summary pages redirect to the new microsites", async ({ page, requ
   }
 });
 
-test("the family switcher on Frederick links to all three new homes", async ({ page }) => {
+test("the family switcher on Frederick links to every home microsite", async ({ page }) => {
   await page.goto("/marietta/frederick/index.html");
-  await expect(page.locator(".hm-family-card")).toHaveCount(4);
+  await expect(page.locator(".hm-family-card")).toHaveCount(familySize);
   await expect(page.locator('.hm-family-card[aria-current="page"]')).toContainText("Frederick Cottage");
   for (const home of homes) {
     await expect(page.locator(`.hm-family-card[href="${home.base}"]`)).toContainText(home.name);

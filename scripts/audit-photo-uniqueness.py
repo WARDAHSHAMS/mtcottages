@@ -120,6 +120,7 @@ PROPERTY_CONTEXT_MARKERS = (
     ("buck cottage", "parkersburg-02"),
     ("45th street house", "parkersburg-02"),
     ("parkersburg/buck-apartment-1", "parkersburg-02"),
+    ("parkersburg/buck-cottage", "parkersburg-02"),
     ("parkersburg-02.html", "parkersburg-02"),
     ("yellow cottage", "parkersburg-03"),
     ("32nd street cottage", "parkersburg-03"),
