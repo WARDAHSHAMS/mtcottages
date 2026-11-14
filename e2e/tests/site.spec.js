@@ -214,30 +214,35 @@ test("the homepage hero links to the cottage it showcases", async ({ page }) => 
   await expect(page).toHaveURL(/\/marietta\/frederick\/index\.html$/);
 });
 
-test("every public page meets WCAG 2.1 AA colour contrast, including open navigation panels", async ({ page }) => {
-  test.setTimeout(300_000);
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  const failures = [];
+// One test per page, so each axe run gets its own timeout. A single loop over every page under one
+// timeout took 3.9 minutes on a quiet runner and timed out twice on a CPU-starved one (MR !19).
+test.describe("every public page meets WCAG 2.1 AA colour contrast, including open navigation panels", () => {
+  test.describe.configure({ mode: "parallel" });
   for (const path of publicPages) {
-    await page.goto(path);
-    await page.evaluate(() => {
-      document.querySelectorAll(".reveal").forEach((element) => element.classList.add("is-visible"));
-      document.querySelectorAll(".primary-nav details").forEach((element) => element.setAttribute("open", ""));
+    test(path, async ({ page }) => {
+      test.setTimeout(90_000);
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto(path);
+      await page.evaluate(() => {
+        document.querySelectorAll(".reveal").forEach((element) => element.classList.add("is-visible"));
+        document.querySelectorAll(".primary-nav details").forEach((element) => element.setAttribute("open", ""));
+      });
+      await page.waitForTimeout(150);
+      const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+      const failures = results.violations.map((item) => `${path} ${item.id}: ${item.nodes.slice(0, 3).map((node) => node.target.join(" ")).join(" | ")}`);
+      expect(failures).toEqual([]);
     });
-    await page.waitForTimeout(150);
-    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
-    for (const item of results.violations) {
-      failures.push(`${path} ${item.id}: ${item.nodes.slice(0, 3).map((node) => node.target.join(" ")).join(" | ")}`);
-    }
   }
-  expect(failures).toEqual([]);
 });
 
-test("links and buttons never fall back to the browser's default blue", async ({ page }) => {
+test.describe("links and buttons never fall back to the browser's default blue", () => {
+  test.describe.configure({ mode: "parallel" });
   for (const path of publicPages) {
-    await page.goto(path);
-    const blue = await page.evaluate(() => [...document.querySelectorAll("a")].filter((anchor) => /^rgb\(0, 0, (238|255)\)$|^rgb\(85, 26, 139\)$/.test(getComputedStyle(anchor).color)).map((anchor) => anchor.textContent.trim().slice(0, 40)));
-    expect(blue, path).toEqual([]);
+    test(path, async ({ page }) => {
+      await page.goto(path);
+      const blue = await page.evaluate(() => [...document.querySelectorAll("a")].filter((anchor) => /^rgb\(0, 0, (238|255)\)$|^rgb\(85, 26, 139\)$/.test(getComputedStyle(anchor).color)).map((anchor) => anchor.textContent.trim().slice(0, 40)));
+      expect(blue, path).toEqual([]);
+    });
   }
 });
 
