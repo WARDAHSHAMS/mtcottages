@@ -1,24 +1,24 @@
 import type { HomeMicrosite } from "./types";
 import { ravenswoodArea, ravenswoodDirectionsFrom, ravenswoodNearby } from "./towns";
 import p117 from "../../../assets/images/cottages/ravenswood-02/photo-117.avif";
-import p54 from "../../../assets/images/cottages/ravenswood-02/photo-54.avif";
 import p53 from "../../../assets/images/cottages/ravenswood-02/photo-53.avif";
 import p55 from "../../../assets/images/cottages/ravenswood-02/photo-55.avif";
-import p77 from "../../../assets/images/cottages/ravenswood-02/photo-77.avif";
 import p27 from "../../../assets/images/cottages/ravenswood-02/photo-27.avif";
 import p116 from "../../../assets/images/cottages/ravenswood-02/photo-116.avif";
 
 // Virginia's street address is not approved, so the location is town-level
 // only. The current photos show the rooms only partly furnished; the page says
-// so rather than implying a finished, fully furnished interior.
+// so rather than implying a finished, fully furnished interior. The kitchen
+// (photo-54) and sunroom (photo-77) frames are left out: both are mid-cleanup
+// maintenance frames (cleaning supplies, an uncovered electrical box, a torn-out
+// outlet and a shop-vac), so the kitchen shows its photo gap and the sunroom,
+// which nothing else shows, is not claimed.
 const ph = (src: HomeMicrosite["hero"]["src"], alt: string, caption: string, focal?: string) => ({ src, alt, caption, ...(focal ? { focal } : {}) });
 
 const photos = {
   fireplace: ph(p117, "Room with deep red walls, a white-painted brick fireplace with a wide mantel, built-in white bookshelves beside it, and wood floors", "A white brick fireplace and built-in shelves against deep red walls.", "45% 50%"),
-  kitchen: ph(p54, "Kitchen with white cabinets and a red countertop", "White cabinets and a red countertop."),
-  powder: ph(p53, "Small bathroom vanity with a mirror and floral wallpaper", "A vanity and mirror against floral wallpaper."),
+  powder: ph(p53, "Small powder room seen through an open paneled door, with a white vanity sink, an octagonal mirror, a three-light fixture and a white tile floor", "A powder room with a vanity sink and an octagonal mirror."),
   dining: ph(p55, "Sunny dining room with toile wallpaper, a wooden farmhouse table with four spindle-back chairs, a tall double window, and wood floors", "A sunny dining room with toile wallpaper and a farmhouse table."),
-  sunroom: ph(p77, "Bright room with windows and a black-and-white checkerboard floor, not yet furnished", "A bright sunroom with a checkerboard floor, shown before furnishing."),
   stairs: ph(p27, "Curved staircase with a dark wood handrail, turned balusters and a newel post, white risers, green treads, and yellow walls", "A curved staircase with a dark wood handrail."),
   room: ph(p116, "Corner of a room with yellow walls, a tall double window looking onto shrubs, a carved wood chest of drawers, and wood floors", "A sunny corner with a tall double window and a carved chest of drawers."),
 };
@@ -30,7 +30,7 @@ export const virginiaHome: HomeMicrosite = {
   town: { name: "Ravenswood", state: "WV", slug: "ravenswood" },
   tagline: "A two-bedroom home in Ravenswood with a brick fireplace, a curved staircase, and a sunny dining room.",
   summary:
-    "Virginia Cottage is a two-bedroom home in Ravenswood with older-house character: a white brick fireplace with built-in shelves, a curved staircase with a dark wood handrail, a dining room with toile wallpaper, and a bright sunroom. The current photos show the rooms only partly furnished, so ask us how the home is set up for your dates. It is offered for stays of a month or longer.",
+    "Virginia Cottage is a two-bedroom home in Ravenswood with older-house character: a white brick fireplace with built-in shelves, a curved staircase with a dark wood handrail, and a dining room with toile wallpaper. The current photos show the rooms only partly furnished, so ask us how the home is set up for your dates. It is offered for stays of a month or longer.",
   address: ravenswoodArea,
   bedrooms: 2,
   priceGuide: "$2,295/month",
@@ -79,22 +79,11 @@ export const virginiaHome: HomeMicrosite = {
     {
       slug: "kitchen",
       name: "Kitchen",
-      summary: "White cabinets and a red countertop.",
-      photos: [photos.kitchen],
+      summary: "A full kitchen is part of the listing. A new photo is still to come.",
+      photos: [],
       notes: [
         { text: "Full kitchen.", status: "listed" },
-        { text: "White cabinets and a red countertop.", status: "photographed" },
         { text: "Appliances, cookware and dishes.", status: "confirm" },
-      ],
-    },
-    {
-      slug: "sunroom",
-      name: "Sunroom",
-      summary: "A bright room with a checkerboard floor, shown before it was furnished.",
-      photos: [photos.sunroom],
-      notes: [
-        { text: "Windows on several sides and a black-and-white checkerboard floor.", status: "photographed" },
-        { text: "How the sunroom is furnished for a stay.", status: "confirm" },
       ],
     },
     {
@@ -111,10 +100,10 @@ export const virginiaHome: HomeMicrosite = {
     {
       slug: "bathroom",
       name: "Bathroom",
-      summary: "A vanity and mirror against floral wallpaper.",
+      summary: "A powder room with a vanity sink and an octagonal mirror.",
       photos: [photos.powder],
       notes: [
-        { text: "Vanity with a mirror and floral wallpaper.", status: "photographed" },
+        { text: "Powder room with a vanity sink, an octagonal mirror and a white tile floor.", status: "photographed" },
         { text: "Shower or tub, and the number of bathrooms.", status: "confirm" },
       ],
     },
@@ -141,7 +130,6 @@ export const virginiaHome: HomeMicrosite = {
         { name: "Fireplace feature", status: "listed" },
         { name: "Built-in bookshelves", status: "photographed" },
         { name: "Dining table with four chairs", status: "photographed" },
-        { name: "Sunroom", status: "photographed" },
         { name: "Sofa and living-room seating", status: "confirm" },
       ],
     },
@@ -170,12 +158,11 @@ export const virginiaHome: HomeMicrosite = {
       {
         name: "Ground floor (illustrative)",
         rooms: [
-          { id: "fire", label: "Fireplace room", kind: "living", x: 0, y: 0, w: 14, h: 13 },
-          { id: "stairs", label: "Stairs", kind: "stairs", x: 14, y: 0, w: 6, h: 13 },
-          { id: "dining", label: "Dining room", kind: "dining", x: 20, y: 0, w: 12, h: 13 },
-          { id: "sun", label: "Sunroom", kind: "other", x: 0, y: 13, w: 14, h: 9 },
-          { id: "powder", label: "Bathroom", kind: "bath", x: 14, y: 13, w: 6, h: 9 },
-          { id: "kitchen", label: "Kitchen", kind: "kitchen", x: 20, y: 13, w: 12, h: 9 },
+          { id: "fire", label: "Fireplace room", kind: "living", x: 0, y: 0, w: 20, h: 13 },
+          { id: "powder", label: "Bathroom", kind: "bath", x: 20, y: 0, w: 12, h: 6 },
+          { id: "stairs", label: "Stairs", kind: "stairs", x: 20, y: 6, w: 12, h: 7 },
+          { id: "kitchen", label: "Kitchen", kind: "kitchen", x: 0, y: 13, w: 14, h: 9 },
+          { id: "dining", label: "Dining room", kind: "dining", x: 14, y: 13, w: 18, h: 9 },
         ],
       },
       {
