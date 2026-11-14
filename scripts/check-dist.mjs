@@ -4,7 +4,7 @@
 // merge-request pipeline (.gitlab-ci.yml), so both gate on the same rules.
 // Usage: node scripts/check-dist.mjs [distDir]
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative, sep } from "node:path";
 
 // Every page counts: 6 home microsites x 5 template pages, Frederick's guide,
 // the microsite redirects (old .html summaries, Frederick's 10 old pages,
@@ -53,6 +53,33 @@ if (existsSync(join(dist, "apply.html"))) errors.push(`${dist}/apply.html is a r
 for (const sitemap of files.filter((file) => /\/sitemap-[^/]*\.xml$/.test(file))) {
   if (read(sitemap).includes("apply.html")) errors.push(`${sitemap} advertises the removed apply route`);
 }
+// The sitemap feeds search engines and the Lighthouse gate, which finds each home microsite there.
+// It must list every microsite index as a directory URL and nothing that is a redirect or noindex.
+const isNoindex = (markup) => /<meta[^>]+name="robots"[^>]+noindex/i.test(markup);
+const sitemapPaths = new Set();
+for (const sitemap of files.filter((file) => /\/sitemap-\d+\.xml$/.test(file))) {
+  for (const match of read(sitemap).matchAll(/<loc>([^<]+)<\/loc>/g)) {
+    let pathname;
+    try {
+      pathname = decodeURIComponent(new URL(match[1]).pathname);
+    } catch (error) {
+      errors.push(`${sitemap} lists an invalid URL ${match[1]}: ${error instanceof Error ? error.message : String(error)}`);
+      continue;
+    }
+    sitemapPaths.add(pathname);
+    const file = join(dist, pathname.endsWith("/") ? `${pathname}index.html` : pathname);
+    if (!existsSync(file)) errors.push(`${sitemap} lists ${pathname}, which was not built`);
+    else if (isNoindex(read(file))) errors.push(`${sitemap} lists ${pathname}, a redirect or noindex page`);
+  }
+}
+if (sitemapPaths.size === 0) errors.push("no sitemap-N.xml lists any page");
+for (const page of pages) {
+  const microsite = relative(dist, page).split(sep).join("/").match(/^([a-z0-9-]+\/[a-z0-9-]+)\/index\.html$/);
+  if (microsite && !isNoindex(read(page)) && !sitemapPaths.has(`/${microsite[1]}/`)) {
+    errors.push(`the sitemap does not list the /${microsite[1]}/ microsite; add it to micrositeRoots in astro.config.mjs`);
+  }
+}
+
 if (pages.length !== EXPECTED_PAGES) {
   errors.push(`expected ${EXPECTED_PAGES} generated HTML pages, found ${pages.length}`);
 }
