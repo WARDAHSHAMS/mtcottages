@@ -85,6 +85,7 @@ export const broadHome: HomeMicrosite = {
   summary:
     "Broad Cottage is a furnished one-bedroom, one-bath home in Parkersburg. The photos show a living room with knotty wood paneling, a sectional sofa and a wall-mounted TV, a bedroom with a queen bed and a desk by the window, and a bathroom with a full tub, a curtained shower area and a washer and dryer beside the vanity. A full kitchen and fiber-optic internet are part of the listing. We have not photographed the kitchen or the outside yet, so those details are marked for confirmation.",
   address: {
+    kind: "street",
     streetAddress: "3113 Broad St",
     locality: "Parkersburg",
     region: "WV",

@@ -1,5 +1,11 @@
 import type { ImageMetadata } from "astro";
 
+/** A street address the owner approved for publication, with the home's own coordinates. */
+export type StreetAddress = { kind: "street"; streetAddress: string; locality: string; region: string; postalCode: string; lat: number; lng: number };
+
+/** Town-level location for a home whose street address is not approved. lat/lng are the town centre. */
+export type TownArea = { kind: "town"; locality: string; region: string; lat: number; lng: number };
+
 /**
  * Shared data contract for every Mt Cottages home microsite. One file per
  * home in src/data/homes/<id>.ts exports a HomeMicrosite; the shared route
@@ -77,11 +83,18 @@ export type HomeMicrosite = {
   id: string;
   /** URL segment under the town, e.g. "henrietta-cottage" → /ravenswood/henrietta-cottage/. */
   slug: string;
+  /** Older one-page URLs in the same town (no .html) that also redirect here, beyond `${slug}.html`. */
+  legacySlugs?: string[];
   name: string;
   town: { name: string; state: "WV" | "OH"; slug: string };
   tagline: string;
   summary: string;
-  address: { streetAddress: string; locality: string; region: string; postalCode: string; lat: number; lng: number };
+  /**
+   * "street" only for an owner-approved address (see CLAUDE.md). Every other
+   * home is "town": the page names the town only, and lat/lng are the town
+   * centre, never the house, so no street, house number or pin is published.
+   */
+  address: StreetAddress | TownArea;
   bedrooms: number;
   bathrooms?: number;
   sleeps?: number;
