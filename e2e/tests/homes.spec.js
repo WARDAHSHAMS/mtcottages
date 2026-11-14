@@ -46,7 +46,8 @@ for (const home of homes) {
       await page.goto(`${home.base}location.html`);
       const card = page.locator("[data-address-card]");
       await expect(card.locator("address")).toBeVisible();
-      await expect(card.locator("address")).toContainText(home.address);
+      // A street address renders on two lines (<br>); read it as the guest sees it.
+      expect((await card.locator("address").innerText()).trim().replace(/\s*\n\s*/g, ", ")).toBe(home.address);
       await expect(card.locator("[data-directions]")).toHaveAttribute("href", `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(home.address)}`);
       await expect(card.locator('a[href^="https://maps.apple.com/"]')).toHaveCount(1);
       if (home.street) {

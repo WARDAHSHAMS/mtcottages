@@ -74,7 +74,8 @@ test("the homepage lists every home and links each one to its microsite", async 
     const link = listing.locator(`.property-link[href="${href}"]`);
     await expect(link, `${href} card link`).toHaveCount(1);
     await expect(link).toContainText("Explore the home site");
-    if (name) await expect(listing.locator(".property-card").filter({ has: link })).toContainText(name);
+    // filter({ has }) resolves its locator inside each card, so it must be page-rooted, not listing-rooted.
+    if (name) await expect(listing.locator(".property-card").filter({ has: page.locator(`.property-link[href="${href}"]`) })).toContainText(name);
     expect((await request.get(href)).status(), `${href} status`).toBe(200);
   }
   await expect(page.locator('section a[href="https://stay.mtcottages.com/"]').filter({ hasText: "Ask about your dates" }).first()).toBeVisible();
