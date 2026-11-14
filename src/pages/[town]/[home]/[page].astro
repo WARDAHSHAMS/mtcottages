@@ -8,7 +8,7 @@ import LocationMap from "../../../components/home/LocationMap.astro";
 import { homeShell } from "../../../components/home/shell";
 import { homes } from "../../../data/homes";
 import {
-  appleMapsTo, fullAddress, googleDirectionsFrom, googleDirectionsTo, googleSearch,
+  addressPhrase, appleMapsTo, fullAddress, googleDirectionsFrom, hasStreetAddress, privateAddressNote, googleDirectionsTo, googleSearch,
   nearbyKindLabel, nearbyKindOrder, planKindColor, planKindLabel, statusHelp, statusLabel,
 } from "../../../data/homes/links";
 import { homeSchema } from "../../../data/homes/schema";
@@ -24,6 +24,7 @@ export function getStaticPaths() {
 const { home, page } = Astro.props as { home: HomeMicrosite; page: Page };
 const shell = homeShell(home);
 const address = fullAddress(home);
+const street = hasStreetAddress(home);
 const where = `${home.town.name}, ${home.town.state}`;
 
 const copy: Record<Page, { eyebrow: string; heading: string; lede: string; title: string; description: string }> = {
@@ -32,7 +33,7 @@ const copy: Record<Page, { eyebrow: string; heading: string; lede: string; title
     heading: "Room by room.",
     lede: `Every published photo of ${home.name}, grouped by room, with notes on what is listed, visible or still to confirm.`,
     title: `Photo tour of ${home.name}, ${where}`,
-    description: `Room-by-room photos of ${home.name} at ${address}, with notes on what is confirmed.`,
+    description: `Room-by-room photos of ${home.name} ${addressPhrase(home)}, with notes on what is confirmed.`,
   },
   plan: {
     eyebrow: `${home.name} · Plan & 3D`,
@@ -46,14 +47,16 @@ const copy: Record<Page, { eyebrow: string; heading: string; lede: string; title
     heading: "What comes with the home.",
     lede: "Grouped amenities, each marked as listed, seen in photos, confirmed, or still to confirm on inquiry.",
     title: `Amenities at ${home.name}, ${where}`,
-    description: `Amenities at ${home.name}, ${address}, and which details are listed, visible in photos or still to confirm.`,
+    description: `Amenities at ${home.name} ${addressPhrase(home)}, and which details are listed, visible in photos or still to confirm.`,
   },
   location: {
     eyebrow: `${home.name} · Location`,
     heading: "Where it is and what is close.",
-    lede: `${address}. Directions, a map and nearby places to get started.`,
+    lede: street
+      ? `${address}. Directions, a map and nearby places to get started.`
+      : `${home.name} is in ${address}. ${privateAddressNote} Here are directions to town, a map and nearby places to get started.`,
     title: `Location, directions and nearby places for ${home.name}`,
-    description: `Directions to ${home.name} at ${address}, plus nearby health care, groceries, food and parks.`,
+    description: `Directions to ${home.name} ${addressPhrase(home)}, plus nearby health care, groceries, food and parks.`,
   },
 };
 const c = copy[page];
@@ -77,7 +80,7 @@ const hasRooms = home.rooms.length > 0;
   heading={c.heading}
   lede={c.lede}
   hero={home.hero}
-  chip={address}
+  chip={street ? address : `${address} · street address on inquiry`}
   schema={homeSchema(home)}
 >
   {page === "tour" && (
@@ -199,13 +202,18 @@ const hasRooms = home.rooms.length > 0;
       <section class="section" aria-labelledby="address-title">
         <div class="site-width split split--wide">
           <div class="hm-address-card reveal" data-address-card>
-            <p class="eyebrow">Address</p>
+            <p class="eyebrow">{street ? "Address" : "Town"}</p>
             <h2 id="address-title">{home.name}</h2>
-            <address class="hm-address" data-address-text>{home.address.streetAddress}<br />{home.address.locality}, {home.address.region} {home.address.postalCode}</address>
+            {home.address.kind === "street"
+              ? <address class="hm-address" data-address-text>{home.address.streetAddress}<br />{home.address.locality}, {home.address.region} {home.address.postalCode}</address>
+              : <>
+                  <address class="hm-address" data-address-text>{address}</address>
+                  <p class="text-muted" data-private-address>{privateAddressNote} Until then, directions take you to the centre of {home.address.locality}.</p>
+                </>}
             <div class="cluster mt-2">
-              <a class="button" href={googleDirectionsTo(address)} rel="noopener" target="_blank" data-directions>Get directions<span class="sr-only"> in Google Maps (new tab)</span> ↗</a>
+              <a class="button" href={googleDirectionsTo(address)} rel="noopener" target="_blank" data-directions>{street ? "Get directions" : `Directions to ${home.address.locality}`}<span class="sr-only"> in Google Maps (new tab)</span> ↗</a>
               <a class="button button--ghost" href={appleMapsTo(address)} rel="noopener" target="_blank">Apple Maps<span class="sr-only"> (new tab)</span> ↗</a>
-              <button type="button" class="button button--ghost" data-copy-address={address}>Copy address</button>
+              {street && <button type="button" class="button button--ghost" data-copy-address={address}>Copy address</button>}
             </div>
             <p class="text-muted hm-copy-status" role="status" data-copy-status></p>
           </div>

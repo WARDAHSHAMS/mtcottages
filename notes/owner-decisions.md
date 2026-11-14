@@ -11,4 +11,18 @@ Checked 2026-11-01 against the live pages for Frederick, Henrietta, Oak and Broa
 | 5 | Henrietta | Bathrooms | houses.json says 1, while its description says "Multiple bathrooms" | The two disagree | Suzanne or Wardah |
 | 6 | All four | Real front-of-house hero photos | Some heroes use the strongest honest room or outdoor image | Site rule: no generated photography; Wardah picks substitutes | Wardah |
 
+## Virginia Cottage (Ravenswood, #7)
+
+Added 2026-11-13 with the Virginia microsite (/ravenswood/virginia-cottage/). The page marks each of these "Confirm on inquiry" until answered. Rows 1 to 4 above apply to Virginia too.
+
+| # | Fact | What the site shows now | Why it is not stated | Who answers |
+|---|---|---|---|---|
+| V1 | Street address | Town only (Ravenswood, WV), town-centre map with no pin | Not on the owner-approved address list in CLAUDE.md | Suzanne |
+| V2 | Bathrooms | A powder room is photographed; no full bathroom photo | Count never confirmed | Suzanne or Wardah |
+| V3 | Kitchen photo | Kitchen is listed, with no photo on the microsite | The only kitchen frame (ravenswood-02 photo-54) shows cleaning supplies, an extinguisher and an open switch box | Wardah: reshoot or pick a substitute |
+| V4 | Sunroom photo | Not shown | The only frame (photo-77) is an empty room with a patched outlet and a vacuum | Wardah |
+| V5 | Bedroom photos | The sunny room with a chest of drawers is shown, but not called a bedroom | No photo shows a bed; which rooms are bedrooms is unknown | Wardah |
+| V6 | Fireplace | Photographed, use "to be confirmed" | Whether it is usable (it holds a pipe) is unknown | Suzanne |
+| V7 | Front-of-house hero | Hero is the fireplace room | No clean exterior photo exists | Wardah |
+
 Labelled AI 3D and concept views are allowed on the sites (each carries a visible "AI-generated concept" label). Photos are never generated.

@@ -43,10 +43,10 @@ import whiteBedroomAlt from "../../assets/images/cottages/ravenswood-01/photo-12
 import whiteBathroom from "../../assets/images/cottages/ravenswood-01/photo-108.avif";
 
 import virginiaLiving from "../../assets/images/cottages/ravenswood-02/photo-117.avif";
-import virginiaKitchen from "../../assets/images/cottages/ravenswood-02/photo-54.avif";
-import virginiaHall from "../../assets/images/cottages/ravenswood-02/photo-53.avif";
-import virginiaBedroom from "../../assets/images/cottages/ravenswood-02/photo-55.avif";
-import virginiaBath from "../../assets/images/cottages/ravenswood-02/photo-77.avif";
+import virginiaStairs from "../../assets/images/cottages/ravenswood-02/photo-27.avif";
+import virginiaPowder from "../../assets/images/cottages/ravenswood-02/photo-53.avif";
+import virginiaDining from "../../assets/images/cottages/ravenswood-02/photo-55.avif";
+import virginiaWindowRoom from "../../assets/images/cottages/ravenswood-02/photo-116.avif";
 
 import henriettaDining from "../../assets/images/cottages/ravenswood-03/photo-17.avif";
 import henriettaLiving from "../../assets/images/cottages/ravenswood-03/photo-06.avif";
@@ -160,7 +160,7 @@ export const cottages: Cottage[] = [
     name: "Buck Cottage",
     town: "Parkersburg, WV",
     locationPath: "parkersburg/index.html",
-    path: "parkersburg/buck-apartment-1.html",
+    path: "parkersburg/buck-cottage/",
     bedrooms: "1 Bedroom",
     price: publishedLuxuryFurnishedRates["1 Bedroom"],
     shortTerm: "Confirm current availability",
@@ -249,22 +249,22 @@ export const cottages: Cottage[] = [
     name: "Virginia Cottage",
     town: "Ravenswood, WV",
     locationPath: "ravenswood/index.html",
-    path: "ravenswood/virginia-cottage.html",
+    path: "ravenswood/virginia-cottage/",
     bedrooms: "2 Bedrooms",
     price: publishedLuxuryFurnishedRates["2 Bedrooms"],
     shortTerm: "Confirm current availability",
     pricingNote: publishedLuxuryFurnishedPricingNote,
     signals: publishedStaySignals,
     summary: "A two-bedroom furnished home with a distinctive fireplace, bright rooms, and a flexible footprint for connected living.",
-    hero: photo(virginiaLiving, "Virginia Cottage living room with white fireplace and built-in shelving", "The strongest usable public image is a clear living-room view; a clean front exterior is still a photo need."),
+    hero: photo(virginiaLiving, "Virginia Cottage room with red walls, a white painted-brick fireplace and built-in shelving", "The strongest usable public image is a clear fireplace view; a clean front exterior is still a photo need."),
     gallery: [
-      photo(virginiaKitchen, "Virginia Cottage kitchen with white cabinets and red countertop"),
-      photo(virginiaHall, "Virginia Cottage powder-room vanity and mirror"),
-      photo(virginiaBedroom, "Virginia Cottage dining or work area with table and windows"),
-      photo(virginiaBath, "Virginia Cottage unfurnished dining or sunroom with windows"),
+      photo(virginiaDining, "Virginia Cottage dining room with a farmhouse table, four chairs and a tall double window"),
+      photo(virginiaStairs, "Virginia Cottage curved staircase with a dark-wood newel post and turned balusters"),
+      photo(virginiaWindowRoom, "Virginia Cottage room with tall windows and a carved chest of drawers"),
+      photo(virginiaPowder, "Virginia Cottage powder room with a vanity sink and octagonal mirror"),
     ],
     amenities: ["Furnished rooms", "Full kitchen", "Fireplace feature", "Private bedrooms", "Laundry access", "Guest support"],
-    coverage: ["Living room", "Kitchen", "Powder room", "Dining / work area", "Sunroom"],
+    coverage: ["Fireplace room", "Dining room", "Staircase", "Sunny room", "Powder room"],
   },
   {
     id: "henrietta",
@@ -487,5 +487,8 @@ export const navGroups = [
 
 export const routePaths = [
   "about.html", "available.html", "contact.html", "cottages.html", "cozy-places.html", "emergency-maintenance.html", "family-stays.html", "faq.html", "fully-furnished-homes.html", "guest-services.html", "health-professionals.html", "home-amenities.html", "housekeeping.html", "insurance-housing.html", "living.html", "locations.html", "maintenance.html", "meal-preparation.html", "partnerships.html", "pay-rent.html", "privacy.html", "property-care.html", "resident-portal.html", "residents.html", "room-to-settle.html", "services.html", "work-relocation.html",
-  "parkersburg/buck-apartment-1.html", "parkersburg/yellow-cottage.html", "ravenswood/virginia-cottage.html", "ravenswood/walnut-cottage.html",
+  // Yellow and Walnut keep their single property pages (CEO decision
+  // 2026-11-14: no microsite for either). Buck's and Virginia's old pages
+  // redirect to their microsites from src/pages/[town]/[home].html.ts.
+  "parkersburg/yellow-cottage.html", "ravenswood/walnut-cottage.html",
 ];

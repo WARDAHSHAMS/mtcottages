@@ -4,7 +4,7 @@ import ResponsivePhoto from "../../../components/ResponsivePhoto.astro";
 import FactGrid from "../../../components/home/FactGrid.astro";
 import { homeShell } from "../../../components/home/shell";
 import { homes } from "../../../data/homes";
-import { fullAddress, homeHref, inquiryUrl } from "../../../data/homes/links";
+import { fullAddress, hasStreetAddress, homeHref, inquiryUrl } from "../../../data/homes/links";
 import { homeSchema } from "../../../data/homes/schema";
 import type { HomeMicrosite } from "../../../data/homes/types";
 
@@ -26,7 +26,7 @@ const bedLabel = `${home.bedrooms} ${home.bedrooms === 1 ? "bedroom" : "bedrooms
   heading={home.name}
   lede={home.tagline}
   hero={home.hero}
-  chip={address}
+  chip={hasStreetAddress(home) ? address : `${address} · street address on inquiry`}
   schema={homeSchema(home)}
   shareHero
 >

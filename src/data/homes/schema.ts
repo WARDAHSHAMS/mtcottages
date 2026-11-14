@@ -1,9 +1,14 @@
 import type { HomeMicrosite } from "./types";
 import { homeBase } from "./links";
 
-/** Accommodation with a full postal address and geo point. No Offer: prices are not confirmed. */
+/**
+ * Accommodation structured data. Owner-approved homes carry a full postal
+ * address and geo point; town-level homes carry only locality and region, with
+ * no street, postcode or coordinates. No Offer: prices are not confirmed.
+ */
 export const homeSchema = (home: HomeMicrosite) => {
   const url = new URL(homeBase(home), "https://mtcottages.com").toString();
+  const a = home.address;
   return {
     "@context": "https://schema.org",
     "@type": "Accommodation",
@@ -16,13 +21,13 @@ export const homeSchema = (home: HomeMicrosite) => {
     ...(home.sleeps !== undefined && { occupancy: { "@type": "QuantitativeValue", maxValue: home.sleeps } }),
     address: {
       "@type": "PostalAddress",
-      streetAddress: home.address.streetAddress,
-      addressLocality: home.address.locality,
-      addressRegion: home.address.region,
-      postalCode: home.address.postalCode,
+      ...(a.kind === "street" && { streetAddress: a.streetAddress }),
+      addressLocality: a.locality,
+      addressRegion: a.region,
+      ...(a.kind === "street" && { postalCode: a.postalCode }),
       addressCountry: "US",
     },
-    geo: { "@type": "GeoCoordinates", latitude: home.address.lat, longitude: home.address.lng },
+    ...(a.kind === "street" && { geo: { "@type": "GeoCoordinates", latitude: a.lat, longitude: a.lng } }),
     containedInPlace: { "@type": "Place", name: "Mid-Ohio Valley" },
   };
 };

@@ -44,47 +44,8 @@ jobs:
           git diff --check
           for json_file in infra/azure/*.json; do jq empty "$json_file"; done
           python3 -m py_compile scripts/check-form-parity.py infra/azure/apply-proxy/function_app.py
-          python3 - <<'PY'
-          from pathlib import Path
-
-          errors = []
-          pages = sorted(Path("dist").rglob("*.html"))
-          if Path("dist/CNAME").read_text(encoding="utf-8").strip() != "mtcottages.com":
-              errors.append("CNAME must remain mtcottages.com")
-          if not Path("dist/.nojekyll").is_file():
-              errors.append(".nojekyll is missing")
-          if Path("dist/apply.html").exists():
-              errors.append("dist/apply.html is a removed legacy application route")
-          for sitemap in Path("dist").glob("sitemap-*.xml"):
-              if "apply.html" in sitemap.read_text(encoding="utf-8"):
-                  errors.append(f"{sitemap} advertises the removed apply route")
-          if len(pages) != 91:
-              errors.append(f"expected 91 generated HTML pages, found {len(pages)}")
-          legacy_markers = ("jquery", "bootstrap", "modernizr", "swiper", "owl.carousel", "venobox", "gsap", "hotelhub")
-          for page in pages:
-              markup = page.read_text(encoding="utf-8").lower()
-              if "/apply.html" in markup or "apply.mtcottages.com" in markup:
-                  errors.append(f"{page} contains a removed application alias")
-              if "255 court st" in markup:
-                  errors.append(f"{page} contains private/non-public inventory")
-              # AI-generated room concepts are allowed only when visibly labelled.
-              if ("dollhouse" in markup or "data-photo3d" in markup) and "ai-generated concept" not in markup:
-                  errors.append(f"{page} shows an AI concept image without an AI-generated concept label")
-              if any(marker in markup for marker in legacy_markers):
-                  errors.append(f"{page} contains a legacy runtime marker")
-              if '<link rel="canonical"' not in markup:
-                  errors.append(f"{page} is missing a canonical URL")
-              images = __import__("re").findall(r'<img[^>]+src="([^"]+)"', markup)
-              if any("/_astro/logo-mtcottages" not in source for source in images) and "srcset=" not in markup:
-                  errors.append(f"{page} contains an unresponsive content image")
-              if "assets/images/cottages/" in markup:
-                  errors.append(f"{page} leaks a source asset path instead of an optimized Astro asset")
-          if errors:
-              raise SystemExit("\n".join(errors))
-          print(f"Validated {len(pages)} Astro HTML pages")
-          PY
-          test "$(du -sm dist | cut -f1)" -le 70
-          test -z "$(find dist -type f -size +2M -print -quit)"
+          # Shared with the GitLab merge-request pipeline (.gitlab-ci.yml).
+          node scripts/check-dist.mjs dist
 
       - name: Run proxy unit tests
         run: |
@@ -106,13 +67,7 @@ jobs:
           # owner approved publishing 125 Frederick St (Oct 2026). The owner
           # also approved exactly three more home addresses (200 Henrietta,
           # 2712 Broad, 3113 Broad); every other house number stays banned.
-          if git ls-files \
-              | grep -vE '^(\.github/|\.claude/|e2e/|CLAUDE\.md$|agents\.md$|claude\.md$)' \
-              | xargs -r grep -InP '255 Court|216 Sand|287 Ridgeway|\b(?!(?:200 Henrietta|2712 Broad|3113 Broad)\b)[0-9]+ (Court|Sand|Broad|45th|32nd|Walnut|Virginia|Henrietta|Gallatin|Ridgeway)'; then
-            echo "ERROR: banned street address pattern found in a tracked file (see matches above)"
-            exit 1
-          fi
-          echo "No banned street address patterns found in tracked content/data files."
+          bash scripts/check-addresses.sh
 
       - name: Check application form parity
         run: |

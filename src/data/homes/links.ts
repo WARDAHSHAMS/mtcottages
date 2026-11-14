@@ -1,8 +1,19 @@
 import { stayApplicationUrl } from "../site";
 import type { HomeMicrosite, FactStatus, NearbyKind, PlanRoomKind } from "./types";
 
-export const fullAddress = (home: HomeMicrosite) =>
-  `${home.address.streetAddress}, ${home.address.locality}, ${home.address.region} ${home.address.postalCode}`;
+/** True only for homes whose street address the owner approved for publication. */
+export const hasStreetAddress = (home: HomeMicrosite) => home.address.kind === "street";
+
+/** The full street address for approved homes, otherwise just "Town, ST". */
+export const fullAddress = (home: HomeMicrosite) => {
+  const a = home.address;
+  return a.kind === "street" ? `${a.streetAddress}, ${a.locality}, ${a.region} ${a.postalCode}` : `${a.locality}, ${a.region}`;
+};
+
+/** "at 200 Henrietta St, …" for a street address, "in Ravenswood, WV" for a town-level home. */
+export const addressPhrase = (home: HomeMicrosite) => `${hasStreetAddress(home) ? "at" : "in"} ${fullAddress(home)}`;
+
+export const privateAddressNote = "The street address is shared once you inquire.";
 
 export const homeBase = (home: HomeMicrosite) => `/${home.town.slug}/${home.slug}/`;
 
@@ -23,15 +34,16 @@ export const googleSearch = (query: string) =>
 
 export const appleMapsTo = (address: string) => `https://maps.apple.com/?daddr=${encodeURIComponent(address)}&dirflg=d`;
 
-export const osmEmbedUrl = (lat: number, lng: number) => {
-  const dLat = 0.006;
-  const dLng = 0.009;
+/** Street homes get a close view with a pin; town-level homes get a wide town view with no pin. */
+export const osmEmbedUrl = (lat: number, lng: number, pin = true) => {
+  const dLat = pin ? 0.006 : 0.03;
+  const dLng = pin ? 0.009 : 0.045;
   const bbox = [lng - dLng, lat - dLat, lng + dLng, lat + dLat].map((n) => n.toFixed(6)).join("%2C");
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lng}`;
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik${pin ? `&marker=${lat}%2C${lng}` : ""}`;
 };
 
-export const osmLargeUrl = (lat: number, lng: number) =>
-  `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`;
+export const osmLargeUrl = (lat: number, lng: number, pin = true) =>
+  pin ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}` : `https://www.openstreetmap.org/#map=14/${lat}/${lng}`;
 
 export const statusLabel: Record<FactStatus, string> = {
   confirmed: "Confirmed",

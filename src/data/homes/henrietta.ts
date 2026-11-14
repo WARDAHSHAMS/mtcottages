@@ -93,6 +93,7 @@ export const henriettaHome: HomeMicrosite = {
   summary:
     "Henrietta Cottage is a furnished two-bedroom home in Ravenswood. Inside, the photos show a blue dining room with an oval table, a striped-wallpaper room with a round table, an oak-cabinet kitchen with a gas range and an eat-in table, a furnished bedroom, and two bathrooms. Outside there is a lawn with a fence and trees. Details that are not yet confirmed are marked on this page.",
   address: {
+    kind: "street",
     streetAddress: "200 Henrietta St",
     locality: "Ravenswood",
     region: "WV",

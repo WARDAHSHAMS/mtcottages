@@ -4,12 +4,14 @@ import { family } from "../../data/homes";
 
 interface Props { currentId: string }
 const { currentId } = Astro.props as Props;
+const townNames = [...new Set(family.map((member) => member.town.split(",")[0]))];
+const towns = townNames.length > 1 ? `${townNames.slice(0, -1).join(", ")} and ${townNames.at(-1)}` : townNames[0];
 ---
 <section class="section section--paper hm-family" aria-labelledby="hm-family-title">
   <div class="site-width">
     <div class="section-heading">
       <div><p class="eyebrow">The Mt Cottages family</p><h2 id="hm-family-title">Compare the other homes.</h2></div>
-      <p>Four furnished homes across Marietta, Parkersburg and Ravenswood, each with its own photo tour, plan and map.</p>
+      <p>{family.length} furnished homes across {towns}, each with its own photo tour, plan and map.</p>
     </div>
     <ul class="hm-family-grid">
       {family.map((member) => (

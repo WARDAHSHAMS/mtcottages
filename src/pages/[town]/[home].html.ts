@@ -5,9 +5,15 @@ import { homeBase } from "../../data/homes/links";
 // The old one-page summaries (/ravenswood/henrietta-cottage.html and friends)
 // now point at each home's microsite. Astro's own `redirects` cannot express
 // these without colliding with the microsite index route, so they are emitted
-// here as small meta-refresh pages.
+// here as small meta-refresh pages. A home can list extra older slugs
+// (e.g. Buck's /parkersburg/buck-apartment-1.html) in `legacySlugs`.
 export function getStaticPaths() {
-  return homes.map((home) => ({ params: { town: home.town.slug, home: home.slug }, props: { target: homeBase(home), name: home.name } }));
+  return homes.flatMap((home) =>
+    [home.slug, ...(home.legacySlugs ?? [])].map((slug) => ({
+      params: { town: home.town.slug, home: slug },
+      props: { target: homeBase(home), name: home.name },
+    })),
+  );
 }
 
 export const GET: APIRoute = ({ props }) => {
