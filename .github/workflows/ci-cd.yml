@@ -67,13 +67,7 @@ jobs:
           # owner approved publishing 125 Frederick St (Oct 2026). The owner
           # also approved exactly three more home addresses (200 Henrietta,
           # 2712 Broad, 3113 Broad); every other house number stays banned.
-          if git ls-files \
-              | grep -vE '^(\.github/|\.claude/|e2e/|CLAUDE\.md$|agents\.md$|claude\.md$)' \
-              | xargs -r grep -InP '255 Court|216 Sand|287 Ridgeway|\b(?!(?:200 Henrietta|2712 Broad|3113 Broad)\b)[0-9]+ (Court|Sand|Broad|45th|32nd|Walnut|Virginia|Henrietta|Gallatin|Ridgeway)'; then
-            echo "ERROR: banned street address pattern found in a tracked file (see matches above)"
-            exit 1
-          fi
-          echo "No banned street address patterns found in tracked content/data files."
+          bash scripts/check-addresses.sh
 
       - name: Check application form parity
         run: |

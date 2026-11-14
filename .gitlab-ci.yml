@@ -73,13 +73,7 @@ site-check:
     - npm run build
     - node scripts/check-dist.mjs dist
     # Same address guard as GitHub Actions: only the four approved addresses.
-    - |
-      if git ls-files \
-          | grep -vE '^(\.github/|\.claude/|e2e/|CLAUDE\.md$|agents\.md$|claude\.md$)' \
-          | xargs -r grep -InP '255 Court|216 Sand|287 Ridgeway|\b(?!(?:200 Henrietta|2712 Broad|3113 Broad)\b)[0-9]+ (Court|Sand|Broad|45th|32nd|Walnut|Virginia|Henrietta|Gallatin|Ridgeway)'; then
-        echo "ERROR: banned street address pattern found in a tracked file"
-        exit 1
-      fi
+    - bash scripts/check-addresses.sh
     - npm --prefix e2e ci --no-audit --no-fund
     - nohup npx astro preview --host 127.0.0.1 --port 4173 > astro-preview.log 2>&1 &
     - |
