@@ -8,20 +8,42 @@
 # lives on the demo branch instead — gh-pages only needs the mirror job,
 # so we include just that job file rather than the whole static-site
 # pipeline.
+#
+# main (the default branch) and merge requests get one light validation job,
+# `validate`, so the default branch has a pipeline. Without it, every job in
+# this file is gated on `$CI_COMMIT_BRANCH == "gh-pages"`, so a push to main
+# created zero jobs and therefore no pipeline. validate is read-only: it builds
+# nothing, deploys nothing and never runs on gh-pages, so the mirror job above
+# is unchanged.
 
 include:
   - project: 'DroidOpsInc/launch-sequence'
     ref: 327c2283a8f056624e979c135de1408d465e680c
     file: '/jobs/github-mirror.yml'
+  - project: 'DroidOpsInc/launch-sequence'
+    ref: 327c2283a8f056624e979c135de1408d465e680c
+    file: '/jobs/preflight.yml'
 
 variables:
   GITHUB_REPO: "WorldEnterpriseGroup/mtcottages"
   # launch-sequence's mirror job fails closed without a GITHUB_TOKEN. This project defines
   # none (the previous template skipped silently), so keep "push nothing" explicit.
   GITHUB_MIRROR_EXTERNAL: "true"
+  PREFLIGHT_IMAGE: "harbor.focuscell.org/dockerhub-proxy/alpine/k8s:1.33.1"
+  PREFLIGHT_REQUIRED_TOOLS: "jq python3"
+  # The "Before publishing" checks from CLAUDE.md that need no npm install.
+  PREFLIGHT_COMMANDS: |
+    python3 -I scripts/check-form-parity.py
+    jq empty infra/azure/*.json
+    test -f .nojekyll
+    grep -qx 'mtcottages.com' CNAME
 
 stages:
+  - preflight
   - mirror
 
 mirror:
   extends: .mirror:github
+
+validate:
+  extends: .preflight:lint

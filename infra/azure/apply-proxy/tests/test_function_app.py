@@ -211,6 +211,24 @@ def test_health_endpoint_retains_contract_and_security_headers():
     assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
 
 
+def test_front_door_probe_gets_health_on_the_origin_host_but_nothing_else(monkeypatch):
+    monkeypatch.setenv("TURNSTILE_SITE_KEY", "site-key")
+    monkeypatch.setenv("TURNSTILE_SECRET_KEY", "secret-key")
+    origin_host = "mtcottages-apply-proxy.azurewebsites.net"
+    probe = function_app.application_form(
+        Request(method="GET", url=f"https://{origin_host}/api/health", headers={"Host": origin_host})
+    )
+    assert probe.status_code == 200
+    assert json.loads(probe.body) == {"status": "ok", "service": "mtcottages-apply-proxy"}
+
+    for path in ("/", "/apply", "/other/health"):
+        other = function_app.application_form(
+            Request(method="GET", url=f"https://{origin_host}{path}", headers={"Host": origin_host})
+        )
+        assert other.status_code == 404
+        assert "data-application-form" not in other.body
+
+
 def test_malformed_probe_is_not_rate_limited_and_valid_repeat_gets_retry_after(monkeypatch):
     function_app._last_submission.clear()
     bot_response = function_app.apply(_form_request({"website": "ci-probe"}))

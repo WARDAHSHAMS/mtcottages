@@ -1,15 +1,17 @@
 # Mt Cottages
 
+_Last verified: 2026-11-13._
+
 The guest-facing Mt Cottages site is a static Astro v7 publication for furnished stays across the Mid-Ohio Valley. It uses TypeScript 7, native HTML/CSS, and Astro’s responsive image pipeline. The public domain is `https://mtcottages.com`.
 
 ## What is in the current build
 
 - Native Astro pages with the existing public `.html` URLs preserved.
 - Responsive desktop mega-menu and mobile disclosure navigation with keyboard/Escape support.
-- Shared property cards, Quick Details, amenity cards, room-by-room galleries, and location guides. Stay inquiries live exclusively at `https://stay.mtcottages.com/`.
+- Shared property cards, Quick Details, amenity cards, room-by-room galleries, and location guides.
 - Curated portfolio photography imported by opaque house ID and emitted as AVIF/WebP with JPG fallbacks, `srcset`, dimensions, and loading metadata.
 - No jQuery, Bootstrap, Modernizr, legacy sliders, Venobox, or copied theme runtime in the marketing artifact.
-- Stay inquiries are served only at `https://stay.mtcottages.com/`. The canonical Azure-backed form intentionally excludes SSN, full DOB, payment-card, and bank fields.
+- Stay inquiries are served only at `https://stay.mtcottages.com/` by the Azure application host in `infra/azure/apply-proxy` (the form is `infra/azure/apply-proxy/index.html`; the marketing site has no `/apply.html`). The form intentionally excludes SSN, full DOB, payment-card, and bank fields.
 
 ## Photo workflow
 
@@ -42,4 +44,8 @@ git diff --check
 
 ## Deployment
 
-Push a verified commit to `gh-pages`. GitHub Actions runs type-checking, the Astro build, privacy/runtime guards, form parity, local Chromium checks, GitHub Pages deployment, and the safe application-edge smoke suite. `CNAME` and `public/.nojekyll` keep the custom domain configured.
+`gh-pages` is the published source branch. On a push to it, `.github/workflows/ci-cd.yml` on the GitHub copy runs type-checking, the Astro build, privacy/runtime and street-address guards, the apply-proxy unit tests, form parity, local Chromium checks (`e2e/`), then `publish-pages` (GitHub Pages) and the safe application-edge `live-smoke` suite. Pull requests run the same checks without publishing. `CNAME` and `public/.nojekyll` keep the custom domain configured.
+
+`gh-pages` reaches the GitHub copy through the `weg-ghpages-mirror` CronJob (short-lived GitHub App token), not through GitLab CI: the `mirror` job in `.gitlab-ci.yml` runs on `gh-pages` with `GITHUB_MIRROR_EXTERNAL=true` and pushes nothing. GitLab CI also runs a read-only `validate` preflight (form parity, `jq empty` on the Azure JSON, `.nojekyll` and `CNAME`) on `main` and merge requests.
+
+`main` is GitLab's default branch but never deploys. On 2026-11-13 `main` was merged into `gh-pages` (WorldEnterpriseGroup/mtcottages#3), bringing the apply-proxy health and SCM lock-down fixes (FocusApiary/infrastructure#509/#510), the launch-sequence CI include and the `validate` job onto the live branch, and `main` was then fast-forwarded to that `gh-pages` tip. Branch from `gh-pages` for site work; land fixes there and fast-forward `main` after, so the two do not diverge again.
