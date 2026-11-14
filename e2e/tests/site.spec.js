@@ -216,8 +216,9 @@ test("the homepage hero links to the cottage it showcases", async ({ page }) => 
 
 // One test per page, so each axe run gets its own timeout. A single loop over every page under one
 // timeout took 3.9 minutes on a quiet runner and timed out twice on a CPU-starved one (MR !19).
+// The pages stay serial in one worker: running them in parallel put ten Chromium axe runs in the
+// site-check pod at once and it was OOM-killed.
 test.describe("every public page meets WCAG 2.1 AA colour contrast, including open navigation panels", () => {
-  test.describe.configure({ mode: "parallel" });
   for (const path of publicPages) {
     test(path, async ({ page }) => {
       test.setTimeout(90_000);
@@ -236,7 +237,6 @@ test.describe("every public page meets WCAG 2.1 AA colour contrast, including op
 });
 
 test.describe("links and buttons never fall back to the browser's default blue", () => {
-  test.describe.configure({ mode: "parallel" });
   for (const path of publicPages) {
     test(path, async ({ page }) => {
       await page.goto(path);
