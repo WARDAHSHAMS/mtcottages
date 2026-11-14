@@ -47,3 +47,58 @@ mirror:
 
 validate:
   extends: .preflight:lint
+
+# Merge requests also get the full site check that GitHub Actions runs after a
+# push to gh-pages (static-checks + e2e-local), so a change is proven green
+# before it reaches the published branch. Builds run in CI, never locally. The
+# image tag matches @playwright/test in e2e/package.json, so its browsers fit.
+site-check:
+  stage: preflight
+  image: "harbor.focuscell.org/mcr-proxy/playwright:v1.62.1-noble"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  variables:
+    BASE_URL: "http://127.0.0.1:4173"
+    npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  cache:
+    key:
+      files: [package-lock.json, e2e/package-lock.json]
+    paths: [.npm/]
+  script:
+    - set -eu
+    - node --version
+    - git diff --check "$CI_MERGE_REQUEST_DIFF_BASE_SHA" HEAD
+    - npm ci --no-audit --no-fund
+    - npm run check
+    - npm run build
+    - node scripts/check-dist.mjs dist
+    # Same address guard as GitHub Actions: only the four approved addresses.
+    - |
+      if git ls-files \
+          | grep -vE '^(\.github/|\.claude/|e2e/|CLAUDE\.md$|agents\.md$|claude\.md$)' \
+          | xargs -r grep -InP '255 Court|216 Sand|287 Ridgeway|\b(?!(?:200 Henrietta|2712 Broad|3113 Broad)\b)[0-9]+ (Court|Sand|Broad|45th|32nd|Walnut|Virginia|Henrietta|Gallatin|Ridgeway)'; then
+        echo "ERROR: banned street address pattern found in a tracked file"
+        exit 1
+      fi
+    - npm --prefix e2e ci --no-audit --no-fund
+    - nohup npx astro preview --host 127.0.0.1 --port 4173 > astro-preview.log 2>&1 &
+    - |
+      ready=no
+      attempt=0
+      while [ "$attempt" -lt 30 ]; do
+        if node -e 'fetch(process.argv[1]).then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))' "$BASE_URL/index.html"; then
+          ready=yes
+          break
+        fi
+        attempt=$((attempt + 1))
+        sleep 1
+      done
+      if [ "$ready" != yes ]; then cat astro-preview.log; exit 1; fi
+    - npm --prefix e2e test
+  artifacts:
+    when: on_failure
+    expire_in: 14 days
+    paths:
+      - e2e/playwright-report/
+      - e2e/test-results/
+      - astro-preview.log
