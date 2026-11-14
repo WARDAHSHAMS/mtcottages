@@ -211,6 +211,28 @@ def _response(payload, status_code, origin, extra_headers=None):
     return func.HttpResponse(json.dumps(payload), status_code=status_code, headers=headers)
 
 
+def _build_commit():
+    """Return the commit the deployed package was built from.
+
+    The `package:apply-proxy` CI job writes the full commit SHA to BUILD_COMMIT
+    next to this file. A package built any other way has no such file, and a
+    file that is not a 40-character SHA is ignored, so both report "unknown".
+    """
+    try:
+        value = Path(__file__).with_name("BUILD_COMMIT").read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError):
+        return "unknown"
+    return value if re.fullmatch(r"[0-9a-f]{40}", value) else "unknown"
+
+
+BUILD_COMMIT = _build_commit()
+
+
+def _health_response(req):
+    payload = {"status": "ok", "service": "mtcottages-apply-proxy", "commit": BUILD_COMMIT}
+    return _response(payload, 200, req.headers.get("Origin", ""))
+
+
 def _style_csp_source(markup):
     match = re.search(r"<style(?:\s[^>]*)?>(.*?)</style>", markup, flags=re.IGNORECASE | re.DOTALL)
     if not match:
@@ -510,11 +532,11 @@ def application_form(req: func.HttpRequest) -> func.HttpResponse:
     # reachable only through Front Door (x-azure-fdid access restriction); every
     # other path still requires the canonical hostname.
     if requested_path == "/api/health":
-        return _response({"status": "ok", "service": "mtcottages-apply-proxy"}, 200, req.headers.get("Origin", ""))
+        return _health_response(req)
     if not _canonical_host(req):
         return func.HttpResponse("Not found", status_code=404, headers=SECURITY_HEADERS)
     if requested_path.endswith("/health"):
-        return _response({"status": "ok", "service": "mtcottages-apply-proxy"}, 200, req.headers.get("Origin", ""))
+        return _health_response(req)
     form_path = Path(__file__).with_name("index.html")
     try:
         markup = form_path.read_text(encoding="utf-8")
@@ -612,4 +634,4 @@ def apply(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.route(route="api/health", methods=["GET"])
 def health(req: func.HttpRequest) -> func.HttpResponse:
-    return _response({"status": "ok", "service": "mtcottages-apply-proxy"}, 200, req.headers.get("Origin", ""))
+    return _health_response(req)
