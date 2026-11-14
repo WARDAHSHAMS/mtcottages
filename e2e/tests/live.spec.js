@@ -53,6 +53,26 @@ test("the application API is healthy and safely rejects a bot probe", async ({ r
   expect(health.status()).toBe(200);
   await expect(health.json()).resolves.toMatchObject({ status: "ok" });
 
+  // After a pipeline deploy the GitLab smoke job passes the commit it published.
+  // The new package can take a short while to start serving, so poll for it.
+  const expectedCommit = (process.env.EXPECTED_COMMIT || "").trim();
+  if (expectedCommit) {
+    await expect
+      .poll(
+        async () => {
+          try {
+            const response = await request.get("/api/health");
+            if (!response.ok()) return "";
+            return (await response.json()).commit || "";
+          } catch {
+            return "";
+          }
+        },
+        { timeout: 180_000, intervals: [5_000, 10_000] }
+      )
+      .toBe(expectedCommit);
+  }
+
   const rejected = await request.post("/api/apply", {
     form: { website: "ci-probe" }
   });

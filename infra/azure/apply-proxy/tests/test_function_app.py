@@ -206,9 +206,37 @@ def test_health_endpoint_retains_contract_and_security_headers():
         Request(method="GET", url="https://stay.mtcottages.com/api/health", headers={"Origin": "https://stay.mtcottages.com"})
     )
     assert response.status_code == 200
-    assert json.loads(response.body) == {"status": "ok", "service": "mtcottages-apply-proxy"}
+    assert json.loads(response.body) == {
+        "status": "ok",
+        "service": "mtcottages-apply-proxy",
+        "commit": function_app.BUILD_COMMIT,
+    }
     assert response.headers["Access-Control-Allow-Origin"] == "https://stay.mtcottages.com"
     assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
+
+
+def test_health_reports_the_packaged_commit(monkeypatch):
+    commit = "0123456789abcdef0123456789abcdef01234567"
+    monkeypatch.setattr(function_app, "BUILD_COMMIT", commit)
+    response = function_app.health(Request(method="GET", url="https://stay.mtcottages.com/api/health"))
+    assert json.loads(response.body)["commit"] == commit
+
+
+def test_build_commit_reads_only_a_full_sha_from_the_package(monkeypatch, tmp_path):
+    monkeypatch.setattr(function_app, "__file__", str(tmp_path / "function_app.py"))
+    assert function_app._build_commit() == "unknown"
+
+    marker = tmp_path / "BUILD_COMMIT"
+    commit = "0123456789abcdef0123456789abcdef01234567"
+    marker.write_text(f"{commit}\n", encoding="utf-8")
+    assert function_app._build_commit() == commit
+
+    for invalid in ("", "0123456", "not-a-commit", f"{commit}\nextra", "<script>alert(1)</script>"):
+        marker.write_text(invalid, encoding="utf-8")
+        assert function_app._build_commit() == "unknown"
+
+    marker.write_bytes(b"\xff\xfe\x00")
+    assert function_app._build_commit() == "unknown"
 
 
 def test_front_door_probe_gets_health_on_the_origin_host_but_nothing_else(monkeypatch):
@@ -219,7 +247,11 @@ def test_front_door_probe_gets_health_on_the_origin_host_but_nothing_else(monkey
         Request(method="GET", url=f"https://{origin_host}/api/health", headers={"Host": origin_host})
     )
     assert probe.status_code == 200
-    assert json.loads(probe.body) == {"status": "ok", "service": "mtcottages-apply-proxy"}
+    assert json.loads(probe.body) == {
+        "status": "ok",
+        "service": "mtcottages-apply-proxy",
+        "commit": function_app.BUILD_COMMIT,
+    }
 
     for path in ("/", "/apply", "/other/health"):
         other = function_app.application_form(

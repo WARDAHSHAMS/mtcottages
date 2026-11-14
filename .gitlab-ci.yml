@@ -15,6 +15,12 @@
 # created zero jobs and therefore no pipeline. validate is read-only: it builds
 # nothing, deploys nothing and never runs on gh-pages, so the mirror job above
 # is unchanged.
+#
+# The stay application host (infra/azure/apply-proxy, the Azure Function behind
+# stay.mtcottages.com) is published by this pipeline and by nothing else
+# (WorldEnterpriseGroup/mtcottages#9). test:apply-proxy and package:apply-proxy
+# run on merge requests and on gh-pages; deploy:apply-proxy and
+# smoke:apply-proxy run on gh-pages only. See infra/azure/README.md.
 
 include:
   - project: 'DroidOpsInc/launch-sequence'
@@ -23,6 +29,10 @@ include:
   - project: 'DroidOpsInc/launch-sequence'
     ref: 327c2283a8f056624e979c135de1408d465e680c
     file: '/jobs/preflight.yml'
+  # Pinned separately: the two includes above predate this job file.
+  - project: 'DroidOpsInc/launch-sequence'
+    ref: 9668a18a9ec16f8238fafe14153d510cc9ef5b76
+    file: '/jobs/deploy-azure-function.yml'
 
 variables:
   GITHUB_REPO: "WorldEnterpriseGroup/mtcottages"
@@ -41,9 +51,124 @@ variables:
 stages:
   - preflight
   - mirror
+  - package
+  - deploy
+  - smoke
 
 mirror:
   extends: .mirror:github
 
 validate:
   extends: .preflight:lint
+
+# ---------------------------------------------------------------------------
+# Stay application host (infra/azure/apply-proxy)
+# ---------------------------------------------------------------------------
+
+# When the apply-proxy jobs run. A pipeline started by hand ("Run pipeline" on
+# gh-pages) has no push to compare against, so `changes` is true and the current
+# commit is published again.
+.apply-proxy:paths: &apply_proxy_paths
+  - infra/azure/apply-proxy/**/*
+  - .gitlab-ci.yml
+
+.apply-proxy:verify-rules:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        paths: *apply_proxy_paths
+    - if: '$CI_COMMIT_BRANCH == "gh-pages"'
+      changes: *apply_proxy_paths
+
+# APPLY_PROXY_DEPLOY_ENABLED is a switch, not a credential. It stays unset until
+# the deploy identity, its ExternalSecret and the scoped runner mount exist
+# (infra/azure/README.md, "Prerequisites"). With it unset the deploy and smoke
+# jobs are not created, so a pipeline never waits on a runner that is not there.
+.apply-proxy:deploy-rules:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $APPLY_PROXY_DEPLOY_ENABLED == "true"'
+      changes: *apply_proxy_paths
+    - when: never
+
+test:apply-proxy:
+  extends: .apply-proxy:verify-rules
+  stage: preflight
+  interruptible: true
+  # renovate: datasource=docker depName=python
+  image: "harbor.focuscell.org/dockerhub-proxy/library/python:3.14-slim"
+  script:
+    - python3 -m pip install --disable-pip-version-check --no-input --quiet "pytest>=8,<9"
+    - python3 -m py_compile infra/azure/apply-proxy/function_app.py
+    - python3 -m pytest -q infra/azure/apply-proxy/tests
+
+# Builds the zip the Function App runs: the four app files at the archive root
+# plus BUILD_COMMIT, which /api/health reports as `commit`.
+package:apply-proxy:
+  extends: .apply-proxy:verify-rules
+  stage: package
+  interruptible: true
+  image: ${PREFLIGHT_IMAGE}
+  needs:
+    - job: test:apply-proxy
+      artifacts: false
+  script:
+    - cd infra/azure/apply-proxy
+    - printf '%s\n' "$CI_COMMIT_SHA" > BUILD_COMMIT
+    - python3 -I -m zipfile -c "$CI_PROJECT_DIR/apply-proxy.zip" function_app.py host.json requirements.txt index.html BUILD_COMMIT
+    - python3 -I -m zipfile -l "$CI_PROJECT_DIR/apply-proxy.zip"
+  artifacts:
+    paths:
+      - apply-proxy.zip
+    expire_in: 1 week
+
+# Publishes the zip. The job runs on the scoped `azure-deploy` runner, which
+# mounts the ESO-delivered certificate Secret (client-id, tenant-id, sp.pem);
+# no GitLab CI variable holds a credential and the template refuses to run if
+# one is set. AZURE_FUNCTION_SUBSCRIPTION_ID is a project CI/CD variable: it is
+# an identifier, not a credential, and the template fails clearly without it.
+deploy:apply-proxy:
+  extends:
+    - .deploy:azure-function
+    - .apply-proxy:deploy-rules
+  stage: deploy
+  needs:
+    - job: package:apply-proxy
+      artifacts: true
+  variables:
+    # The template pulls ${IMAGE_REGISTRY}/mcr-proxy/azure-cli.
+    IMAGE_REGISTRY: "harbor.focuscell.org"
+    AZURE_FUNCTION_APP: mtcottages-apply-proxy
+    AZURE_FUNCTION_RESOURCE_GROUP: mtcottages
+    AZURE_FUNCTION_ZIP: apply-proxy.zip
+    # Linux Consumption Python app: Kudu installs requirements.txt on publish.
+    AZURE_FUNCTION_ZIP_REMOTE_BUILD: "true"
+    AZURE_FUNCTION_HEALTH_URL: https://stay.mtcottages.com/api/health
+  environment:
+    name: stay-application-host
+    url: https://stay.mtcottages.com/
+
+# The safe application-edge suite against the live host. It waits for
+# /api/health to report this commit, loads the form and posts one honeypot
+# probe that the proxy rejects with HTTP 400. It never submits a valid
+# application. The marketing microsite checks in the same file stay with the
+# GitHub Pages workflow.
+smoke:apply-proxy:
+  extends: .apply-proxy:deploy-rules
+  stage: smoke
+  # renovate: datasource=docker depName=playwright registryUrl=https://mcr.microsoft.com
+  image: "harbor.focuscell.org/mcr-proxy/playwright:v1.62.1-noble"
+  needs:
+    - job: deploy:apply-proxy
+      artifacts: false
+  variables:
+    BASE_URL: https://stay.mtcottages.com
+    EXPECTED_COMMIT: $CI_COMMIT_SHA
+  script:
+    - cd e2e
+    - npm ci
+    - npx playwright test tests/live.spec.js --grep-invert microsite
+  artifacts:
+    when: on_failure
+    paths:
+      - e2e/playwright-report
+    expire_in: 1 week

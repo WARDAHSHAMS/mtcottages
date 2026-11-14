@@ -36,17 +36,46 @@ The existing `dynamicscrmonline` connection and `d365Organization` parameter rem
 
 ## Live deployment / runbook
 
-The Function App is Linux Consumption. Zip the contents of `apply-proxy/` so that `function_app.py`, `host.json`, `requirements.txt`, and `index.html` are at the archive root, then use remote build:
+The Function App `mtcottages-apply-proxy` (resource group `mtcottages`, Linux Consumption) is published by GitLab CI and by nothing else (WorldEnterpriseGroup/mtcottages#9). Nobody deploys it from a workstation: the hand-run `az functionapp deployment source config-zip` path is retired.
 
-```bash
-az functionapp deployment source config-zip \
-  --resource-group <resource-group> \
-  --name <function-app-name> \
-  --src <path-to-apply-proxy.zip> \
-  --build-remote true
-```
+### Pipeline
 
-The SCM (Kudu) and FTP publishing surface accepts only Microsoft Entra bearer tokens: basic-auth publishing is disabled by `apply-proxy-scm.bicep` (`az deployment group create -g mtcottages --template-file infra/azure/apply-proxy-scm.bicep`) and FTPS is `Disabled` (`az functionapp config set --ftps-state Disabled`). The `config-zip` command above uses the token automatically; there is no publish profile. SCM is not IP-restricted because deploys run from workstations with no stable egress IP. Kudu API calls send `Authorization: Bearer $(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)` (FocusApiary/infrastructure#509).
+A push to `gh-pages` that changes `infra/azure/apply-proxy/` or `.gitlab-ci.yml` runs these jobs. The first two also run on merge requests.
+
+| Job | What it does |
+|---|---|
+| `test:apply-proxy` | Compiles `function_app.py` and runs the unit tests in `apply-proxy/tests`. |
+| `package:apply-proxy` | Builds `apply-proxy.zip` with `function_app.py`, `host.json`, `requirements.txt`, `index.html` and `BUILD_COMMIT` (the commit SHA) at the archive root. |
+| `deploy:apply-proxy` | Publishes the zip with the launch-sequence `.deploy:azure-function` template (Kudu remote build), then waits for `https://stay.mtcottages.com/api/health` to return HTTP 200. |
+| `smoke:apply-proxy` | Runs the stay tests in `e2e/tests/live.spec.js` against the live host. It waits for `/api/health` to report the published commit, loads the form and posts one honeypot probe that the proxy rejects with HTTP 400. It never submits a valid application. |
+
+`/api/health` returns `{"status": "ok", "service": "mtcottages-apply-proxy", "commit": "<sha>"}`. `commit` is the `BUILD_COMMIT` from the package; a package not built by the pipeline reports `unknown`.
+
+To publish the current commit again without a code change, start a pipeline on `gh-pages` from the GitLab UI ("Run pipeline").
+
+### Credentials
+
+The deploy job signs in as a certificate-credential service principal, the pattern in FocusApiary/infrastructure `docs/adr/0005-crown-backup-writer-certificate-sp.md`. The certificate is generated in Key Vault `omlab-secrets`, delivered by an ExternalSecret into a Kubernetes Secret, and mounted read-only into the job pod by the scoped `azure-deploy` runner. No GitLab CI/CD variable holds a credential, and the template refuses to run if `AZURE_CLIENT_SECRET`, `AZURE_PASSWORD` or `AZURE_CLIENT_CERTIFICATE_PASSWORD` is set. The job never prints the certificate, the ids or a token.
+
+Two project CI/CD variables control the job. Neither is a credential.
+
+| Variable | Meaning |
+|---|---|
+| `APPLY_PROXY_DEPLOY_ENABLED` | `true` creates the deploy and smoke jobs on `gh-pages`. Unset, they are not created. |
+| `AZURE_FUNCTION_SUBSCRIPTION_ID` | Subscription id of the `mtcottages` resource group. |
+
+### Prerequisites
+
+These live outside this repository, the same split as WorldEnterpriseGroup/trustora (trustora#3). `APPLY_PROXY_DEPLOY_ENABLED` stays unset until all of them exist.
+
+- A service principal with a certificate credential and `Website Contributor` on `mtcottages-apply-proxy` only, with its certificate in `omlab-secrets`: a Terraform environment in FocusApiary/infrastructure modelled on `terraform/environments/trustora-deploy-identity`, applied by the Admiral.
+- An ExternalSecret in FocusApiary/registry that delivers `client-id`, `tenant-id` and `sp.pem` for that identity.
+- The scoped `azure-deploy` runner (gitlab-k8s) enabled for this project with that Secret mounted. If it is mounted somewhere other than `/var/run/azure-deploy`, or behind another runner tag, set `AZURE_DEPLOY_CERT_DIR` or `AZURE_DEPLOY_RUNNER_TAG` on `deploy:apply-proxy`.
+- `gh-pages` stays a protected branch: the runner accepts protected refs only.
+
+### Publishing surface
+
+The SCM (Kudu) and FTP publishing surface accepts only Microsoft Entra bearer tokens: basic-auth publishing is disabled by `apply-proxy-scm.bicep` and FTPS is `Disabled` (FocusApiary/infrastructure#509). There is no publish profile. The deploy job's service principal token is the only credential that publishes.
 
 Required application-setting names for the proxy (provision the values out of band):
 
@@ -65,14 +94,14 @@ Provision the real Turnstile site and secret values separately in the Function A
 
 1. Confirm `mtcottages-apply-route` is HTTPS-only and attaches only `stay.mtcottages.com`.
 2. Confirm the `SecurityHeaders` ruleset is attached to the live route and the Standard WAF policy association includes the stay custom domain.
-3. Deploy the zip, then smoke-test the canonical stay page, Turnstile asset loading, and the application endpoint through Front Door.
+3. Let the pipeline publish the zip; `smoke:apply-proxy` checks the canonical stay page, Turnstile asset loading, and the application endpoint through Front Door.
 4. Keep the direct-origin restriction staged until those smoke checks pass. Apply the origin lock last, then repeat the canonical and application-edge smoke checks through Front Door.
 
 ### Release checklist and rollback
 
-- [ ] The zip has the app files at its root and remote build is enabled.
+- [ ] `deploy:apply-proxy` and `smoke:apply-proxy` are green, and `/api/health` reports the commit that was merged.
 - [ ] All required setting names are present; Turnstile values were provisioned separately and are not in source control.
 - [ ] Front Door route, `SecurityHeaders` ruleset, and WAF domain associations are verified before enabling the origin lock.
 - [ ] Canonical, form, Turnstile, and invalid-submission smoke checks pass after deployment and again after the origin lock.
 
-If smoke checks fail, redeploy the previous known-good zip with the same command, leave the direct-origin restriction staged (or revert the latest edge change), and repeat the smoke checks before reopening the path.
+If smoke checks fail, fix forward: merge the fix to `gh-pages` and let the pipeline publish it. Leave the direct-origin restriction staged until the smoke job is green again.

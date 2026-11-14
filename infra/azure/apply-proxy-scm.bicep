@@ -6,9 +6,9 @@
 //   az deployment group what-if -g mtcottages --template-file infra/azure/apply-proxy-scm.bicep
 //   az deployment group create  -g mtcottages --template-file infra/azure/apply-proxy-scm.bicep
 //
-// `az functionapp deployment source config-zip` (see README.md) switches to the
-// Entra token on its own once basic auth is off. SCM is deliberately not
-// IP-restricted: operators deploy from workstations with no stable egress IP.
+// The GitLab CI job deploy:apply-proxy (see README.md) publishes with the Entra
+// token of its certificate service principal, so it needs no basic auth. SCM is
+// not IP-restricted here; that is tracked in FocusApiary/infrastructure#529.
 targetScope = 'resourceGroup'
 
 @description('Existing Function App that serves the stay application proxy.')
