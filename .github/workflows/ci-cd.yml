@@ -194,7 +194,7 @@ jobs:
           BASE_URL: https://mtcottages.com
         run: npm test
 
-      - name: Lighthouse gate on the four home microsites
+      - name: Lighthouse gate on every home microsite (overview and tour)
         working-directory: e2e
         env:
           BASE_URL: https://mtcottages.com

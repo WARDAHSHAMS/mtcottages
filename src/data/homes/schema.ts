@@ -1,5 +1,15 @@
 import type { HomeMicrosite } from "./types";
-import { homeBase } from "./links";
+import { homeBase, homeHref, type HomePage } from "./links";
+
+const origin = "https://mtcottages.com";
+
+const pageTitle: Record<HomePage, string> = {
+  tour: "Tour",
+  plan: "Plan & 3D",
+  amenities: "Amenities",
+  location: "Location",
+  guide: "Guide",
+};
 
 /**
  * Accommodation structured data. Owner-approved homes carry a full postal
@@ -7,7 +17,7 @@ import { homeBase } from "./links";
  * no street, postcode or coordinates. No Offer: prices are not confirmed.
  */
 export const homeSchema = (home: HomeMicrosite) => {
-  const url = new URL(homeBase(home), "https://mtcottages.com").toString();
+  const url = new URL(homeBase(home), origin).toString();
   const a = home.address;
   return {
     "@context": "https://schema.org",
@@ -31,3 +41,21 @@ export const homeSchema = (home: HomeMicrosite) => {
     containedInPlace: { "@type": "Place", name: "Mid-Ohio Valley" },
   };
 };
+
+/** Breadcrumbs matching the visible trail: Home / Town / Home name / Page. */
+export const homeBreadcrumbs = (home: HomeMicrosite, page?: HomePage) => {
+  const trail = [
+    { name: "Home", url: `${origin}/` },
+    { name: home.town.name, url: `${origin}/${home.town.slug}/index.html` },
+    { name: home.name, url: new URL(homeBase(home), origin).toString() },
+    ...(page ? [{ name: pageTitle[page], url: new URL(homeHref(home, page), origin).toString() }] : []),
+  ];
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: trail.map((crumb, index) => ({ "@type": "ListItem", position: index + 1, name: crumb.name, item: crumb.url })),
+  };
+};
+
+/** Everything a home page publishes as JSON-LD. */
+export const homePageSchema = (home: HomeMicrosite, page?: HomePage) => [homeSchema(home), homeBreadcrumbs(home, page)];

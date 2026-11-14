@@ -3,7 +3,13 @@ import sitemap from "@astrojs/sitemap";
 
 // Home microsites: the shared Mt Cottages template renders these (src/pages/[town]/[home]).
 // Their index pages are directory URLs; every other page is a .html file.
-const micrositeRoots = ["/ravenswood/henrietta-cottage", "/parkersburg/oak-cottage", "/parkersburg/broad-cottage"];
+const micrositeRoots = ["/marietta/frederick", "/ravenswood/henrietta-cottage", "/parkersburg/oak-cottage", "/parkersburg/broad-cottage"];
+
+// Frederick's old hand-built pages, now redirects emitted from `legacyPages` in
+// src/data/homes/frederick.ts. Keep this list in step with that map so the
+// redirects stay out of the sitemap (site.spec.js checks both).
+const frederickBase = "/marietta/frederick";
+const frederickLegacyPages = ["rooms", "kitchen", "bathrooms", "living", "outdoors", "gallery", "area", "arrival", "utilities", "handbook"];
 
 // The 23 section pages of the old bespoke Broad Cottage site now land on the closest new page.
 const broadBase = "/parkersburg/broad-cottage";
@@ -42,6 +48,7 @@ const redirects = Object.fromEntries(
 const isMicrositeRedirect = (pathname) => {
   const clean = pathname.replace(/\/+$/, "");
   if (micrositeRoots.some((root) => clean === `${root}.html`)) return true;
+  if (frederickLegacyPages.some((page) => clean === `${frederickBase}/${page}` || clean === `${frederickBase}/${page}.html`)) return true;
   return Object.keys(broadSectionTargets).some((section) => clean === `${broadBase}/${section}` || clean === `${broadBase}/${section}/index.html`);
 };
 
@@ -54,6 +61,9 @@ export default defineConfig({
   site: "https://mtcottages.com",
   output: "static",
   compressHTML: true,
+  // Outside node_modules so `npm ci` keeps it: CI caches this folder, and the
+  // optimised images in it save re-encoding every photo on each build.
+  cacheDir: "./.cache/astro",
   build: {
     format: "preserve",
     assets: "_astro"
@@ -73,7 +83,7 @@ export default defineConfig({
         url.pathname = `${root}/`;
         return { ...item, url: url.toString() };
       }
-      const locationGuides = new Set(["/grantsville", "/marietta", "/parkersburg", "/racine", "/ravenswood", "/marietta/frederick"]);
+      const locationGuides = new Set(["/grantsville", "/marietta", "/parkersburg", "/racine", "/ravenswood"]);
       if (url.pathname !== "/") {
         url.pathname = locationGuides.has(url.pathname) ? `${url.pathname}/index.html` : url.pathname.endsWith("/") ? `${url.pathname}index.html` : `${url.pathname}.html`;
       }

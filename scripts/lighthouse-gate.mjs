@@ -1,11 +1,15 @@
 #!/usr/bin/env node
-// Performance gate for the four home microsite index pages.
-// Runs Lighthouse (mobile emulation, the default) and fails when a category
-// drops below its threshold. Run from the e2e folder so its dependencies resolve:
+// Lighthouse gate for every home microsite.
+// Runs Lighthouse (mobile emulation, the default) on each microsite's overview and
+// photo tour, and fails when a category drops below its threshold. The pages come
+// from the built sitemap, so a new home is gated the day it ships.
+// Run from the e2e folder so its dependencies resolve:
 //   BASE_URL=https://mtcottages.com npm --prefix e2e run perf
 // Chrome comes from CHROME_PATH, or from the Playwright Chromium install.
+// LH_REPORT=<file> also writes every page's scores as JSON (CI keeps it as an artifact).
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const require = createRequire(path.join(path.dirname(fileURLToPath(import.meta.url)), "../e2e/package.json"));
@@ -13,52 +17,83 @@ const lighthouse = (await import(require.resolve("lighthouse"))).default;
 const chromeLauncher = await import(require.resolve("chrome-launcher"));
 
 const base = (process.env.BASE_URL || "https://mtcottages.com").replace(/\/+$/, "");
-const pages = [
-  "/marietta/frederick/index.html",
-  "/ravenswood/henrietta-cottage/",
-  "/parkersburg/oak-cottage/",
-  "/parkersburg/broad-cottage/",
-];
+const minimum = (name, fallback) => {
+  const value = Number(process.env[name] ?? fallback);
+  if (!Number.isFinite(value) || value < 0 || value > 1) throw new Error(`${name} must be a score between 0 and 1, got ${process.env[name]}`);
+  return value;
+};
 const thresholds = {
-  performance: Number(process.env.LH_PERFORMANCE_MIN || 0.85),
-  accessibility: 0.95,
-  "best-practices": 0.9,
-  seo: 0.9,
+  performance: minimum("LH_PERFORMANCE_MIN", 0.95),
+  accessibility: minimum("LH_ACCESSIBILITY_MIN", 0.95),
+  "best-practices": minimum("LH_BEST_PRACTICES_MIN", 0.95),
+  seo: minimum("LH_SEO_MIN", 0.95),
 };
 // Best of three: a busy CI runner can add a few hundred ms of blocking time to one run.
 const attempts = Number(process.env.LH_ATTEMPTS || 3);
+
+/** Microsite roots are the sitemap's two-level directory URLs, e.g. /marietta/frederick/. */
+async function micrositePages() {
+  if (process.env.LH_PAGES) return process.env.LH_PAGES.split(",").map((page) => page.trim()).filter(Boolean);
+  const sitemapUrl = `${base}/sitemap-0.xml`;
+  let xml;
+  try {
+    const response = await fetch(sitemapUrl);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    xml = await response.text();
+  } catch (error) {
+    throw new Error(`Could not read ${sitemapUrl} to find the microsites: ${error.message}`);
+  }
+  const roots = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)]
+    .map((match) => new URL(match[1]).pathname)
+    .filter((pathname) => /^\/[a-z0-9-]+\/[a-z0-9-]+\/$/.test(pathname))
+    .sort();
+  if (roots.length === 0) throw new Error(`${sitemapUrl} lists no home microsites`);
+  return roots.flatMap((root) => [root, `${root}tour.html`]);
+}
 
 if (!process.env.CHROME_PATH) {
   try {
     const { chromium } = require("@playwright/test");
     process.env.CHROME_PATH = chromium.executablePath();
-  } catch {
-    /* chrome-launcher falls back to a system Chrome */
+  } catch (error) {
+    console.warn(`Playwright Chromium not found (${error.message}); chrome-launcher will look for a system Chrome.`);
   }
 }
 
+const pages = await micrositePages();
+console.log(`Lighthouse gate: ${pages.length} pages, minimums ${JSON.stringify(thresholds)}`);
 const chrome = await chromeLauncher.launch({ chromeFlags: ["--headless=new", "--no-sandbox", "--disable-gpu"] });
 const failures = [];
+const report = [];
 try {
   for (const route of pages) {
     const url = `${base}${route}`;
     let best;
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
       const result = await lighthouse(url, { port: chrome.port, output: "json", logLevel: "error", onlyCategories: Object.keys(thresholds) });
+      if (!result?.lhr) throw new Error(`Lighthouse returned no result for ${url}`);
+      if (result.lhr.runtimeError) throw new Error(`Lighthouse could not load ${url}: ${result.lhr.runtimeError.message}`);
       const scores = Object.fromEntries(Object.entries(result.lhr.categories).map(([id, category]) => [id, category.score]));
-      const lcp = result.lhr.audits["largest-contentful-paint"].displayValue;
+      const lcp = result.lhr.audits["largest-contentful-paint"]?.displayValue ?? "n/a";
+      const cls = result.lhr.audits["cumulative-layout-shift"]?.displayValue ?? "n/a";
       const ok = Object.entries(thresholds).every(([id, min]) => scores[id] >= min);
-      best = { scores, lcp, ok };
+      const total = Object.values(scores).reduce((sum, score) => sum + (score ?? 0), 0);
+      if (!best || ok || total > best.total) best = { scores, lcp, cls, ok, total };
       if (ok) break;
     }
-    const line = Object.entries(best.scores).map(([id, score]) => `${id} ${Math.round(score * 100)}`).join("  ");
-    console.log(`${best.ok ? "PASS" : "FAIL"} ${url}  ${line}  LCP ${best.lcp}`);
+    const line = Object.entries(best.scores).map(([id, score]) => `${id} ${Math.round((score ?? 0) * 100)}`).join("  ");
+    console.log(`${best.ok ? "PASS" : "FAIL"} ${route}  ${line}  LCP ${best.lcp}  CLS ${best.cls}`);
+    report.push({ page: route, ...best.scores, lcp: best.lcp, cls: best.cls, pass: best.ok });
     for (const [id, min] of Object.entries(thresholds)) {
-      if (best.scores[id] < min) failures.push(`${url} ${id} ${best.scores[id]} < ${min}`);
+      if (!(best.scores[id] >= min)) failures.push(`${url} ${id} ${best.scores[id]} < ${min}`);
     }
   }
 } finally {
   await chrome.kill();
+  if (process.env.LH_REPORT) {
+    await writeFile(process.env.LH_REPORT, `${JSON.stringify({ base, thresholds, pages: report }, null, 2)}\n`);
+    console.log(`Scores written to ${process.env.LH_REPORT}`);
+  }
 }
 if (failures.length) {
   console.error(`\nLighthouse gate failed:\n${failures.join("\n")}`);

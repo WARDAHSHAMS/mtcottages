@@ -70,13 +70,21 @@ site-check:
   image: "harbor.focuscell.org/mcr-proxy/playwright:v1.62.1-noble"
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  # A cold build re-encodes ~370 photos and can take most of an hour on its own;
+  # later runs reuse the cached images in .cache/astro.
+  timeout: 90 minutes
   variables:
     BASE_URL: "http://127.0.0.1:4173"
     npm_config_cache: "$CI_PROJECT_DIR/.npm"
   cache:
-    key:
-      files: [package-lock.json, e2e/package-lock.json]
-    paths: [.npm/]
+    - key:
+        files: [package-lock.json, e2e/package-lock.json]
+      paths: [.npm/]
+    # Astro's optimised-image cache (cacheDir in astro.config.mjs). Shared across
+    # branches: entries are keyed by source image and options, so stale ones are harmless.
+    - key: astro-images
+      paths: [.cache/astro/]
+      when: always
   script:
     - set -eu
     - node --version
@@ -101,14 +109,18 @@ site-check:
         sleep 1
       done
       if [ "$ready" != yes ]; then cat astro-preview.log; exit 1; fi
+    # Playwright covers behaviour, privacy and axe (WCAG 2.1 AA) on every public page.
     - npm --prefix e2e test
+    # Mobile Lighthouse on every microsite overview and tour (pages come from the sitemap).
+    - LH_REPORT="$CI_PROJECT_DIR/lighthouse-scores.json" npm --prefix e2e run perf
   artifacts:
-    when: on_failure
+    when: always
     expire_in: 14 days
     paths:
       - e2e/playwright-report/
       - e2e/test-results/
       - astro-preview.log
+      - lighthouse-scores.json
 
 # ---------------------------------------------------------------------------
 # Stay application host (infra/azure/apply-proxy)

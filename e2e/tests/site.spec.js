@@ -1,17 +1,20 @@
 const { test, expect } = require("@playwright/test");
 const AxeBuilder = require("@axe-core/playwright").default;
 
-// The data-driven home microsites (Frederick keeps its own hand-authored pages below).
-const homeMicrosites = [
+// Every home microsite; all of them render from the shared template in src/pages/[town]/[home].
+const frederickBase = "/marietta/frederick/";
+const otherMicrosites = [
   "/parkersburg/broad-cottage/", "/parkersburg/buck-cottage/", "/parkersburg/oak-cottage/",
   "/ravenswood/virginia-cottage/", "/ravenswood/henrietta-cottage/",
 ];
+const homeMicrosites = [frederickBase, ...otherMicrosites];
 // Yellow and Walnut have no microsite (CEO decision 2026-11-14); they keep their single property pages.
 const singlePropertyPages = ["/parkersburg/yellow-cottage.html", "/ravenswood/walnut-cottage.html"];
-// Every home on the home page and where its card must link. Walnut was never on the home page and stays off it.
+// Every home on the home page and where its card must link (Frederick's card keeps its long-standing
+// index.html URL). Walnut was never on the home page and stays off it.
 const listedHomes = [
   ["Frederick Cottage", "/marietta/frederick/index.html", "Explore the home site"],
-  ...homeMicrosites.map((base) => [null, base, "Explore the home site"]),
+  ...otherMicrosites.map((base) => [null, base, "Explore the home site"]),
   ["Yellow Cottage", "/parkersburg/yellow-cottage.html", "View property"],
 ];
 
@@ -27,7 +30,7 @@ const publicPages = [
   "/grantsville/index.html", "/racine/index.html",
   ...singlePropertyPages,
   ...homeMicrosites.flatMap((base) => [base, ...["tour", "plan", "amenities", "location"].map((page) => `${base}${page}.html`)]),
-  "/marietta/frederick/index.html", "/marietta/frederick/gallery.html", "/marietta/frederick/rooms.html", "/marietta/frederick/kitchen.html", "/marietta/frederick/bathrooms.html", "/marietta/frederick/living.html", "/marietta/frederick/outdoors.html", "/marietta/frederick/amenities.html", "/marietta/frederick/utilities.html", "/marietta/frederick/arrival.html", "/marietta/frederick/area.html", "/marietta/frederick/handbook.html",
+  "/marietta/frederick/index.html", `${frederickBase}guide.html`,
   "/404.html"
 ];
 
@@ -244,45 +247,34 @@ test("the Frederick microsite quotes the $2,575 monthly guide and never the stal
   await expect(page.locator("body")).not.toContainText("$1,395");
 });
 
-test("Bedroom 1 exposes the interactive 3D concept viewer", async ({ page }) => {
-  await page.goto("/marietta/frederick/rooms.html");
-  const viewer = page.locator('[data-bed1="bedroom-1"]');
-  await viewer.scrollIntoViewIfNeeded();
-  await expect(viewer).toContainText("AI-generated concept image");
-  await viewer.locator("[data-load-bed1]").click();
-  await expect(viewer.locator(".bed1-stage")).toBeVisible();
-  await expect(viewer).toHaveAttribute("data-viewer-ready", "true", { timeout: 30000 });
-  await expect.poll(() => page.evaluate(() => window.__bed1Ready), { timeout: 30000 }).toBe(true);
-});
-
-test("every AI concept view of a Frederick bedroom is labelled as AI-generated", async ({ page }) => {
-  await page.goto("/marietta/frederick/rooms.html");
-  const concepts = page.locator("[data-dollhouse], [data-photo3d]");
-  await expect(concepts).toHaveCount(3);
+test("every AI concept view of a Frederick bedroom is labelled and kept off the photo tour", async ({ page }) => {
+  await page.goto(`${frederickBase}plan.html`);
+  const concepts = page.locator(".hm-shot--ai");
+  await expect(concepts).toHaveCount(4);
   for (const concept of await concepts.all()) {
-    await expect(concept.locator(".ai-badge")).toContainText("AI-generated concept image");
+    await expect(concept.locator(".hm-ai-label")).toHaveText("AI-generated concept");
+    await expect(concept.locator("img")).toHaveAttribute("alt", /^AI-generated concept/);
   }
-  for (const img of await concepts.locator("img").all()) {
-    await expect(img).toHaveAttribute("alt", /AI-generated concept/);
-  }
+  await page.goto(`${frederickBase}tour.html`);
+  await expect(page.locator(".hm-shot--ai")).toHaveCount(0);
 });
 
-test("Frederick arrival publishes the cottage address and walking directions start there", async ({ page }) => {
-  await page.goto("/marietta/frederick/arrival.html");
+test("Frederick publishes the cottage address and walking directions start there", async ({ page }) => {
+  await page.goto(`${frederickBase}location.html`);
   await expect(page.locator("main")).toContainText("125 Frederick St, Marietta, OH 45750");
-  await page.goto("/marietta/frederick/area.html");
-  const walking = page.locator('#schools a[href*="travelmode=walking"]');
-  await expect(walking).toHaveCount(6);
+  const walking = page.locator('#nearby a.hm-walk[href*="travelmode=walking"]');
+  expect(await walking.count()).toBeGreaterThanOrEqual(20);
   for (const link of await walking.all()) {
-    await expect(link).toHaveAttribute("href", /origin=125%20Frederick%20St/);
+    await expect(link).toHaveAttribute("href", /origin=125(%20|\+)Frederick(%20|\+)St/);
+    await expect(link).toHaveAttribute("target", "_blank");
   }
 });
 
 test("the shared photo viewer opens once, steps through photos, and returns focus", async ({ page }) => {
-  await page.goto("/marietta/frederick/area.html");
+  await page.goto(`${frederickBase}tour.html`);
   await expect(page.locator("body")).not.toContainText("Global fancy lightbox");
   await expect(page.locator("dialog")).toHaveCount(1);
-  const thumb = page.locator("#restaurants .gallery-item img").first();
+  const thumb = page.locator("#kitchen [data-lightbox-item] img").first();
   await thumb.scrollIntoViewIfNeeded();
   await thumb.focus();
   await page.keyboard.press("Enter");
@@ -298,27 +290,7 @@ test("the shared photo viewer opens once, steps through photos, and returns focu
   await expect(thumb).toBeFocused();
 });
 
-test("the Nearby highlights carousel can be paused and keeps off-screen slides out of the tab order", async ({ page }) => {
-  await page.goto("/marietta/frederick/area.html");
-  const carousel = page.locator("#nearby-hero");
-  await expect(carousel.locator("[data-slide]:not([inert])")).toHaveCount(1);
-  const toggle = carousel.locator("[data-toggle]");
-  await expect(toggle).toHaveText("Pause");
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
-  await carousel.locator("[data-next]").click();
-  await expect(carousel.locator('[data-dot="1"]')).toHaveAttribute("aria-current", "true");
-});
-
-test("the Nearby guide search also finds answers inside the FAQs", async ({ page }) => {
-  await page.goto("/marietta/frederick/area.html");
-  await page.fill("#nearby-search", "Grand Central");
-  await expect(page.locator("#nearby-count")).toContainText("match");
-  await expect(page.locator("#transit")).toBeHidden();
-  await expect(page.locator("#shopping")).toBeVisible();
-});
-
-test("shared links preview as JPEG, same-site links prerender, and Frederick publishes listing data", async ({ page, request }) => {
+test("shared links preview as JPEG, same-site links prerender, and Frederick publishes home data without an unconfirmed Offer", async ({ page, request }) => {
   await page.goto("/marietta/frederick/index.html");
   const og = await page.locator('meta[property="og:image"]').getAttribute("content");
   expect(og).toMatch(/\.jpe?g$/);
@@ -332,7 +304,7 @@ test("shared links preview as JPEG, same-site links prerender, and Frederick pub
   expect(home.address).toMatchObject({ streetAddress: "125 Frederick St", postalCode: "45750", addressLocality: "Marietta", addressRegion: "OH" });
   expect(home.numberOfBedrooms).toBe(3);
   expect(home.occupancy.maxValue).toBe(6);
-  const offer = schemas.find((item) => item["@type"] === "Offer");
-  expect(offer.itemOffered["@id"]).toBe(home["@id"]);
-  expect(offer.priceSpecification).toMatchObject({ price: 2575, priceCurrency: "USD", unitCode: "MON" });
+  // The monthly guide is shown on the page, but rates are confirmed on inquiry, so no Offer is published.
+  expect(schemas.find((item) => item["@type"] === "Offer")).toBeUndefined();
+  expect(schemas.find((item) => item["@type"] === "BreadcrumbList")).toBeTruthy();
 });

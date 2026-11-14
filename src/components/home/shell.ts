@@ -1,7 +1,5 @@
-import type { Residence } from "../../data/residences";
 import type { HomeMicrosite } from "../../data/homes/types";
-import { homeBase, homeHref, inquiryUrl } from "../../data/homes/links";
-import { residenceHref } from "../../data/residences";
+import { homeBase, homeHref, homePages, inquiryUrl } from "../../data/homes/links";
 
 export type HomeNavItem = { label: string; href: string; description: string };
 
@@ -17,17 +15,6 @@ export type HomeShell = {
   inquiryUrl: string;
 };
 
-export const residenceShell = (residence: Residence): HomeShell => ({
-  id: residence.id,
-  name: residence.name,
-  townName: residence.town.split(",")[0].trim(),
-  townHref: "/marietta/index.html",
-  baseHref: residenceHref(residence, "index"),
-  brandSub: `${residence.town} · Research Residence`,
-  nav: residence.nav,
-  inquiryUrl: inquiryUrl(residence.id),
-});
-
 export const homeShell = (home: HomeMicrosite): HomeShell => ({
   id: home.id,
   name: home.name,
@@ -41,6 +28,9 @@ export const homeShell = (home: HomeMicrosite): HomeShell => ({
     { label: "Plan & 3D", href: homeHref(home, "plan"), description: "Concept floor plan and 3D model." },
     { label: "Amenities", href: homeHref(home, "amenities"), description: "What is listed, photographed or still to confirm." },
     { label: "Location", href: homeHref(home, "location"), description: "Address, directions and nearby places." },
+    ...(homePages(home).includes("guide")
+      ? [{ label: "Guide", href: homeHref(home, "guide"), description: "Utilities, arrival and how living here works." }]
+      : []),
   ],
   inquiryUrl: inquiryUrl(home.id),
 });

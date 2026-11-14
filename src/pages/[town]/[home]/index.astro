@@ -5,7 +5,7 @@ import FactGrid from "../../../components/home/FactGrid.astro";
 import { homeShell } from "../../../components/home/shell";
 import { homes } from "../../../data/homes";
 import { fullAddress, hasStreetAddress, homeHref, inquiryUrl } from "../../../data/homes/links";
-import { homeSchema } from "../../../data/homes/schema";
+import { homePageSchema } from "../../../data/homes/schema";
 import type { HomeMicrosite } from "../../../data/homes/types";
 
 export function getStaticPaths() {
@@ -27,7 +27,7 @@ const bedLabel = `${home.bedrooms} ${home.bedrooms === 1 ? "bedroom" : "bedrooms
   lede={home.tagline}
   hero={home.hero}
   chip={hasStreetAddress(home) ? address : `${address} · street address on inquiry`}
-  schema={homeSchema(home)}
+  schema={homePageSchema(home)}
   shareHero
 >
   <section class="section section--paper" aria-labelledby="facts-title">
@@ -38,6 +38,7 @@ const bedLabel = `${home.bedrooms} ${home.bedrooms === 1 ? "bedroom" : "bedrooms
       </div>
       <div class="details-panel reveal">
         <FactGrid facts={home.facts} label={`${home.name} key facts`} />
+        {home.priceGuide && <p class="hm-price"><span>Monthly guide</span> <strong>{home.priceGuide}</strong> <small>Confirm the current rate and your dates when you ask.</small></p>}
         <div class="cluster"><a class="button" href={inquiryUrl(home.id)}>Ask about this home ↗</a><a class="button button--ghost" href={homeHref(home, "location")}>Directions and nearby</a></div>
       </div>
     </div>
