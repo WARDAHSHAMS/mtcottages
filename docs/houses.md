@@ -25,8 +25,8 @@ Every other home is published at **town level only**. Its microsite shows the to
 | Walnut Cottage | `ravenswood-01` | Ravenswood, WV | Town only (not approved) | 1 | Listed | [/ravenswood/walnut-cottage/](https://mtcottages.com/ravenswood/walnut-cottage/) |
 | Virginia Cottage | `ravenswood-02` | Ravenswood, WV | Town only (not approved) | 2 | Listed | [/ravenswood/virginia-cottage/](https://mtcottages.com/ravenswood/virginia-cottage/) |
 | Henrietta Cottage | `ravenswood-03` | Ravenswood, WV | 200 Henrietta St, Ravenswood WV 26164 | 2 | Listed | [/ravenswood/henrietta-cottage/](https://mtcottages.com/ravenswood/henrietta-cottage/) |
-| Gallatin Cottage | none merged | Ravenswood, WV | Not published | Unknown | Coming soon (off-market since 2026-07-21) | None. Owner decision needed |
-| Sand | none merged | Ravenswood, WV | Not published | Unknown | Coming soon (never listed) | None. Owner decision needed |
+| Gallatin Cottage | `ravenswood-04` (SharePoint map); no usable photos | Ravenswood, WV | Not published | 3 (Wardah's draft, unconfirmed) | Coming soon: under renovation | None, blocked on finished photos |
+| Sand | `ravenswood-05`; no own photos | Ravenswood, WV | Not published | 2 (Wardah's draft, unconfirmed) | Coming soon: never listed | None, blocked on real photos |
 | Grantsville home (`grantsville-01`) | none merged | Grantsville, WV | Not published, banned in CI | Unknown | Coming soon (private inventory) | None. Owner decision needed |
 
 ## Photo gaps on the new microsites
@@ -40,7 +40,11 @@ Every photo is a real portfolio frame chosen after looking at it. Maintenance, c
 
 ## Waiting on the owner (Suzanne) or Wardah
 
-1. **Gallatin and Sand:** relist them or keep them off the market. Wardah's unmerged branches `feat/gallatin-gallery-amenity-2026-09-24` and `216-sand-images` hold nine Gallatin photos and one Sand exterior. A microsite can be built from these once the owner relists a home, and only after each frame has been checked against the photo rules. The two branches give the two homes opposite folder IDs (`ravenswood-04` and `ravenswood-05`), so settle which ID is which first.
+1. **Gallatin and Sand need real, finished photos before they can have a microsite.** Every frame was reviewed on 2026-11-13. Wardah's unmerged branches (`feat/gallatin-gallery-amenity-2026-09-24`, `216-sand-images`) cannot be used:
+   - **Gallatin:** the nine frames show a house under renovation. Every room is empty, the kitchen ceiling is open to the joists, a gas heater sits on bare wiring, and the front photo shows the house number. A furnished-stay page built on them would mislead guests and break the address rule. They look like a pre-purchase listing set, not portfolio photography.
+   - **Sand:** its one exterior carries a "Kanawha Valley Board of REALTORS" copyright watermark (an MLS photo, not ours), and it shows peeling paint. Wardah's draft filled the gaps with other homes' photos, which the photo rules forbid.
+
+   Once each home is furnished and photographed, it can get a microsite the same day: add `src/data/homes/<id>.ts` (town-level, like Walnut) and register it. The SharePoint map gives the folders: `ravenswood-04` is Gallatin and `ravenswood-05` is Sand. Wardah's branches have these two IDs swapped.
 2. **Street addresses:** approve them for Buck, Yellow, Walnut and Virginia, or keep those homes at town level.
 3. **Interior and front-of-house photos:** the gaps listed above.
 4. **Facts marked "Confirm on inquiry"** on each microsite, and the open items in `notes/owner-decisions.md`.
