@@ -76,9 +76,7 @@ const microsites = [
   ["/marietta/frederick/index.html", "Frederick Cottage"],
   ["/parkersburg/broad-cottage/", "Broad Cottage"],
   ["/parkersburg/buck-cottage/", "Buck Cottage"],
-  ["/parkersburg/yellow-cottage/", "Yellow Cottage"],
   ["/parkersburg/oak-cottage/", "Oak Cottage"],
-  ["/ravenswood/walnut-cottage/", "Walnut Cottage"],
   ["/ravenswood/virginia-cottage/", "Virginia Cottage"],
   ["/ravenswood/henrietta-cottage/", "Henrietta Cottage"],
 ];

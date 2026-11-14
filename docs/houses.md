@@ -20,9 +20,9 @@ Every other home is published at **town level only**. Its microsite shows the to
 | Frederick Cottage | `marietta-01` | Marietta, OH | 125 Frederick St, Marietta OH 45750 | 3 | Listed | [/marietta/frederick/](https://mtcottages.com/marietta/frederick/index.html) (hand-built) |
 | Broad Cottage | `parkersburg-01` | Parkersburg, WV | 3113 Broad St, Parkersburg WV 26104 | 1 | Listed | [/parkersburg/broad-cottage/](https://mtcottages.com/parkersburg/broad-cottage/) |
 | Buck Cottage | `parkersburg-02` | Parkersburg, WV | Town only (not approved) | 1 | Listed | [/parkersburg/buck-cottage/](https://mtcottages.com/parkersburg/buck-cottage/) (the old `buck-apartment-1.html` redirects here) |
-| Yellow Cottage | `parkersburg-03` | Parkersburg, WV | Town only (not approved) | 2 | Listed | [/parkersburg/yellow-cottage/](https://mtcottages.com/parkersburg/yellow-cottage/) |
+| Yellow Cottage | `parkersburg-03` | Parkersburg, WV | Not published | 2 | Listed | None: deferred, not ready to publish (CEO decision 2026-11-14). Keeps its single page [/parkersburg/yellow-cottage.html](https://mtcottages.com/parkersburg/yellow-cottage.html) |
 | Oak Cottage | `parkersburg-04` | Parkersburg, WV | 2712 Broad St, Parkersburg WV 26101 | 3 | Listed | [/parkersburg/oak-cottage/](https://mtcottages.com/parkersburg/oak-cottage/) |
-| Walnut Cottage | `ravenswood-01` | Ravenswood, WV | Town only (not approved) | 1 | Listed | [/ravenswood/walnut-cottage/](https://mtcottages.com/ravenswood/walnut-cottage/) |
+| Walnut Cottage | `ravenswood-01` | Ravenswood, WV | Not published | 1 | Listed | None: no microsite by CEO decision (2026-11-14). Keeps its single page [/ravenswood/walnut-cottage.html](https://mtcottages.com/ravenswood/walnut-cottage.html) |
 | Virginia Cottage | `ravenswood-02` | Ravenswood, WV | Town only (not approved) | 2 | Listed | [/ravenswood/virginia-cottage/](https://mtcottages.com/ravenswood/virginia-cottage/) |
 | Henrietta Cottage | `ravenswood-03` | Ravenswood, WV | 200 Henrietta St, Ravenswood WV 26164 | 2 | Listed | [/ravenswood/henrietta-cottage/](https://mtcottages.com/ravenswood/henrietta-cottage/) |
 | Gallatin Cottage | `ravenswood-04` (SharePoint map); no usable photos | Ravenswood, WV | Not published | 3 (Wardah's draft, unconfirmed) | Coming soon: under renovation | None, blocked on finished photos |
@@ -34,9 +34,9 @@ Every other home is published at **town level only**. Its microsite shows the to
 Every photo is a real portfolio frame chosen after looking at it. Maintenance, construction, duplicate and address-revealing frames were left out, and each gap is shown on the page rather than filled.
 
 - **Buck:** no front-of-house photo. The only exterior frames show a street panorama and the house number, so the hero is the living room. One photographed room has a desk and a second bed although the home is listed as one bedroom, so the page asks the guest to confirm it. No cooktop is shown in the kitchen photo.
-- **Yellow:** only the two exterior photos are published. The curated interior frames are maintenance close-ups (a cracked backsplash and a light fixture with no shade), so the kitchen, bedrooms and bathroom show "not published yet".
-- **Walnut:** no kitchen photo and no front-of-house photo (the porch frame shows needed repairs). A second made bed is visible through a doorway although the home is listed as one bedroom, so the page asks the guest to confirm it.
-- **Virginia:** no bedroom with a bed and no front-of-house photo. The rooms are only partly furnished in the photos, and the page says so.
+- **Virginia:** no usable kitchen photo, no bedroom with a bed and no front-of-house photo. The kitchen (photo-54) and sunroom (photo-77) frames are mid-cleanup maintenance frames and are left out; the sunroom is not claimed because nothing else shows it. The rooms are only partly furnished in the photos, and the page says so. Open facts are V1 to V7 in `notes/owner-decisions.md`.
+
+Yellow and Walnut have no microsite (CEO decisions 2026-11-14: no Walnut microsite; Yellow is not ready to publish). Their main-site presence is unchanged: single property pages, Yellow's card on the home page, and both on the cottages and Ravenswood/Parkersburg pages. The microsite work for both is parked on branch `park/yellow-walnut`.
 
 ## Waiting on the owner (Suzanne) or Wardah
 
@@ -44,7 +44,7 @@ Every photo is a real portfolio frame chosen after looking at it. Maintenance, c
    - **Gallatin:** the nine frames show a house under renovation. Every room is empty, the kitchen ceiling is open to the joists, a gas heater sits on bare wiring, and the front photo shows the house number. A furnished-stay page built on them would mislead guests and break the address rule. They look like a pre-purchase listing set, not portfolio photography.
    - **Sand:** its one exterior carries a "Kanawha Valley Board of REALTORS" copyright watermark (an MLS photo, not ours), and it shows peeling paint. Wardah's draft filled the gaps with other homes' photos, which the photo rules forbid.
 
-   Once each home is furnished and photographed, it can get a microsite the same day: add `src/data/homes/<id>.ts` (town-level, like Walnut) and register it. The SharePoint map gives the folders: `ravenswood-04` is Gallatin and `ravenswood-05` is Sand. Wardah's branches have these two IDs swapped.
-2. **Street addresses:** approve them for Buck, Yellow, Walnut and Virginia, or keep those homes at town level.
+   Once each home is furnished and photographed, it can get a microsite the same day: add `src/data/homes/<id>.ts` (town-level, like Buck) and register it. The SharePoint map gives the folders: `ravenswood-04` is Gallatin and `ravenswood-05` is Sand. Wardah's branches have these two IDs swapped.
+2. **Street addresses:** approve them for Buck and Virginia, or keep those homes at town level.
 3. **Interior and front-of-house photos:** the gaps listed above.
 4. **Facts marked "Confirm on inquiry"** on each microsite, and the open items in `notes/owner-decisions.md`.

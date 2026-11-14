@@ -9,8 +9,6 @@ const homes = [
   { id: "oak", name: "Oak Cottage", base: "/parkersburg/oak-cottage/", street: "2712 Broad St", address: "2712 Broad St, Parkersburg, WV 26101", concepts: true },
   { id: "broad", name: "Broad Cottage", base: "/parkersburg/broad-cottage/", street: "3113 Broad St", address: "3113 Broad St, Parkersburg, WV 26104", concepts: true },
   { id: "buck", name: "Buck Cottage", base: "/parkersburg/buck-cottage/", street: null, address: "Parkersburg, WV", concepts: false },
-  { id: "yellow", name: "Yellow Cottage", base: "/parkersburg/yellow-cottage/", street: null, address: "Parkersburg, WV", concepts: false },
-  { id: "walnut", name: "Walnut Cottage", base: "/ravenswood/walnut-cottage/", street: null, address: "Ravenswood, WV", concepts: false },
   { id: "virginia", name: "Virginia Cottage", base: "/ravenswood/virginia-cottage/", street: null, address: "Ravenswood, WV", concepts: false },
 ];
 const familySize = homes.length + 1; // plus the hand-built Frederick microsite
@@ -276,8 +274,6 @@ test("the old summary pages redirect to the new microsites", async ({ page, requ
     ["/parkersburg/broad-cottage.html", "/parkersburg/broad-cottage/"],
     ["/parkersburg/buck-apartment-1.html", "/parkersburg/buck-cottage/"],
     ["/parkersburg/buck-cottage.html", "/parkersburg/buck-cottage/"],
-    ["/parkersburg/yellow-cottage.html", "/parkersburg/yellow-cottage/"],
-    ["/ravenswood/walnut-cottage.html", "/ravenswood/walnut-cottage/"],
     ["/ravenswood/virginia-cottage.html", "/ravenswood/virginia-cottage/"],
   ];
   for (const [from, to] of moves) {

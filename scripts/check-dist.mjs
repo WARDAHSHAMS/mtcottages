@@ -6,8 +6,8 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-// 7 data-driven home microsites x 5 pages, plus their redirect pages.
-const EXPECTED_PAGES = 112;
+// 5 data-driven home microsites x 5 pages, plus their redirect pages.
+const EXPECTED_PAGES = 102;
 const MAX_DIST_MB = 70;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const LEGACY_MARKERS = ["jquery", "bootstrap", "modernizr", "swiper", "owl.carousel", "venobox", "gsap", "hotelhub"];

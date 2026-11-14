@@ -3,11 +3,17 @@ const AxeBuilder = require("@axe-core/playwright").default;
 
 // The data-driven home microsites (Frederick keeps its own hand-authored pages below).
 const homeMicrosites = [
-  "/parkersburg/broad-cottage/", "/parkersburg/buck-cottage/", "/parkersburg/yellow-cottage/", "/parkersburg/oak-cottage/",
-  "/ravenswood/walnut-cottage/", "/ravenswood/virginia-cottage/", "/ravenswood/henrietta-cottage/",
+  "/parkersburg/broad-cottage/", "/parkersburg/buck-cottage/", "/parkersburg/oak-cottage/",
+  "/ravenswood/virginia-cottage/", "/ravenswood/henrietta-cottage/",
 ];
-// Every listed home and the microsite its card must link to.
-const listedHomes = [["Frederick Cottage", "/marietta/frederick/index.html"], ...homeMicrosites.map((base) => [null, base])];
+// Yellow and Walnut have no microsite (CEO decision 2026-11-14); they keep their single property pages.
+const singlePropertyPages = ["/parkersburg/yellow-cottage.html", "/ravenswood/walnut-cottage.html"];
+// Every home on the home page and where its card must link. Walnut was never on the home page and stays off it.
+const listedHomes = [
+  ["Frederick Cottage", "/marietta/frederick/index.html", "Explore the home site"],
+  ...homeMicrosites.map((base) => [null, base, "Explore the home site"]),
+  ["Yellow Cottage", "/parkersburg/yellow-cottage.html", "View property"],
+];
 
 const publicPages = [
   "/index.html", "/cottages.html", "/available.html", "/locations.html", "/room-to-settle.html",
@@ -19,6 +25,7 @@ const publicPages = [
   "/resident-portal.html", "/maintenance.html", "/emergency-maintenance.html",
   "/marietta/index.html", "/parkersburg/index.html", "/ravenswood/index.html",
   "/grantsville/index.html", "/racine/index.html",
+  ...singlePropertyPages,
   ...homeMicrosites.flatMap((base) => [base, ...["tour", "plan", "amenities", "location"].map((page) => `${base}${page}.html`)]),
   "/marietta/frederick/index.html", "/marietta/frederick/gallery.html", "/marietta/frederick/rooms.html", "/marietta/frederick/kitchen.html", "/marietta/frederick/bathrooms.html", "/marietta/frederick/living.html", "/marietta/frederick/outdoors.html", "/marietta/frederick/amenities.html", "/marietta/frederick/utilities.html", "/marietta/frederick/arrival.html", "/marietta/frederick/area.html", "/marietta/frederick/handbook.html",
   "/404.html"
@@ -65,15 +72,17 @@ test("every public route is reachable and privacy-safe", async ({ page, request 
   }
 });
 
-test("the homepage lists every home and links each one to its microsite", async ({ page, request }) => {
+test("the homepage lists every microsite home and links each one to its microsite", async ({ page, request }) => {
   await page.goto("/index.html");
   const listing = page.locator("[data-home-listing]");
   await expect(listing.locator(".property-card")).toHaveCount(listedHomes.length);
-  await expect(page.locator(".hero-copy .button").first()).toHaveText(new RegExp(`Browse ${listedHomes.length} cottages`));
-  for (const [name, href] of listedHomes) {
+  // The hero counts every listed cottage, Walnut included.
+  await expect(page.locator(".hero-copy .button").first()).toHaveText(/Browse 8 cottages/);
+  await expect(listing.locator('a[href*="walnut"]')).toHaveCount(0);
+  for (const [name, href, label] of listedHomes) {
     const link = listing.locator(`.property-link[href="${href}"]`);
     await expect(link, `${href} card link`).toHaveCount(1);
-    await expect(link).toContainText("Explore the home site");
+    await expect(link).toContainText(label);
     // filter({ has }) resolves its locator inside each card, so it must be page-rooted, not listing-rooted.
     if (name) await expect(listing.locator(".property-card").filter({ has: page.locator(`.property-link[href="${href}"]`) })).toContainText(name);
     expect((await request.get(href)).status(), `${href} status`).toBe(200);
@@ -113,10 +122,11 @@ test("the cottages and locations indexes expose useful property details", async 
   await expect(page.locator(".location-row").nth(3)).toContainText("Planning guide");
 });
 
-test("Walnut and Buck microsites lead with interior photography", async ({ page }) => {
-  await page.goto("/ravenswood/walnut-cottage/");
+test("Walnut's property page and Buck's microsite lead with interior photography", async ({ page }) => {
+  await page.goto("/ravenswood/walnut-cottage.html");
   await expect(page.locator("h1")).toHaveText("Walnut Cottage");
-  await expect(page.locator("main img").first()).toHaveAttribute("alt", /four-poster bed/i);
+  await expect(page.locator("main img").first()).toHaveAttribute("alt", /Walnut Cottage.*bedroom/i);
+  await expect(page.locator('main img[alt*="exterior"]')).toHaveCount(0);
 
   await page.goto("/parkersburg/buck-cottage/");
   await expect(page.locator("h1")).toHaveText("Buck Cottage");
