@@ -10,6 +10,10 @@ sharepoint-download-staging/
 # Python cache
 __pycache__/
 
+# Written by the package:apply-proxy CI job; never committed.
+infra/azure/apply-proxy/BUILD_COMMIT
+apply-proxy.zip
+
 # Claude Code isolated worktrees
 .claude/worktrees/
 

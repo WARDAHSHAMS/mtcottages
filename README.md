@@ -48,4 +48,6 @@ git diff --check
 
 `gh-pages` reaches the GitHub copy through the `weg-ghpages-mirror` CronJob (short-lived GitHub App token), not through GitLab CI: the `mirror` job in `.gitlab-ci.yml` runs on `gh-pages` with `GITHUB_MIRROR_EXTERNAL=true` and pushes nothing. GitLab CI also runs a read-only `validate` preflight (form parity, `jq empty` on the Azure JSON, `.nojekyll` and `CNAME`) on `main` and merge requests.
 
+GitLab CI is the only path that publishes the stay application host: a change under `infra/azure/apply-proxy` on `gh-pages` is tested, packaged, deployed to the Azure Function App and smoke-tested by the `*:apply-proxy` jobs. See `infra/azure/README.md`.
+
 `main` is GitLab's default branch but never deploys. On 2026-11-13 `main` was merged into `gh-pages` (WorldEnterpriseGroup/mtcottages#3), bringing the apply-proxy health and SCM lock-down fixes (FocusApiary/infrastructure#509/#510), the launch-sequence CI include and the `validate` job onto the live branch, and `main` was then fast-forwarded to that `gh-pages` tip. Branch from `gh-pages` for site work; land fixes there and fast-forward `main` after, so the two do not diverge again.
