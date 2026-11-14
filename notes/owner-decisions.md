@@ -25,4 +25,43 @@ Added 2026-11-13 with the Virginia microsite (/ravenswood/virginia-cottage/). Th
 | V6 | Fireplace | Photographed, use "to be confirmed" | Whether it is usable (it holds a pipe) is unknown | Suzanne |
 | V7 | Front-of-house hero | Hero is the fireplace room | No clean exterior photo exists | Wardah |
 
+Portfolio review, 2026-11-14 (#10, candidate list in issue note 364397): every `ravenswood-02` frame labelled kitchen, bath, bedroom, sunroom or exterior, plus the ten highest-rated frames, was viewed. The house was photographed mid-renovation, and no frame is clean enough to publish (tools, supplies, boxes, exposed lath, stripped wallpaper, bare ceiling wires). The hand-drawn room sketches and the breaker-panel labels are internal evidence only and are never published. They suggest these answers, still to be confirmed:
+
+- V2: two bathrooms. Sketches photo-183 and photo-206 show a 2nd-floor bathroom with a tub, and the panel lists "Bath 1" and "Bath 2".
+- V5: both bedrooms upstairs. Sketch photo-188 is a "Middle bedroom", sketch photo-211 a carpeted "2nd floor back room", and the panel lists "2F bedroom" and "2F back bed".
+
+## Wardah's photo review, Nov 2026 (#10)
+
+Requested by Atlas in the Tao Precision chat on 2026-11-14 at 08:29Z, reply due 2026-11-17. The question IDs (B, V, F, Y, W) match the candidate list in #10 issue note 364397. Buck, Virginia and Frederick answers are applied to their microsites. Yellow and Walnut answers are recorded below only.
+
+### Frederick Cottage (open items from #8)
+
+| # | Question | Site today | Answer |
+|---|---|---|---|
+| F1 | `frederick-ext-2.jpeg` | Left out. The number painted on the porch column does not read as Frederick's approved number | Awaiting Wardah |
+| F2 | Rights to the 14 nearby business photos | Left out; nearby places are text plus map links | Awaiting Wardah |
+| F3 | Bath: tub or shower | "Confirm on inquiry" | Awaiting Wardah |
+
+### Yellow Cottage (`parkersburg-03`): record only
+
+Not published, by CEO decision 2026-11-14 (not ready). Nothing here goes live. The parked microsite is on branch `park/yellow-walnut`.
+
+| # | Question | What the parked branch says | Answer |
+|---|---|---|---|
+| Y1 | Finished interior photos | The curated photo-448 (kitchen backsplash) and photo-468 (bathroom light) are maintenance close-ups | Awaiting Wardah |
+| Y2 | Bathroom count, and tub or shower | Unknown | Awaiting Wardah |
+| Y3 | Entrance step count | Unknown | Awaiting Wardah |
+| Y4 | Bed sizes and which floor each bedroom is on | Unknown | Awaiting Wardah |
+
+### Walnut Cottage (`ravenswood-01`): record only
+
+No microsite, by CEO decision 2026-11-14. Nothing here goes live.
+
+| # | Question | What the parked branch says | Answer |
+|---|---|---|---|
+| W1 | Sleeping arrangement | A second made bed shows, though the home is listed as one bedroom | Awaiting Wardah |
+| W2 | Fireplace | A mantel is shown; whether it can be used is unknown | Awaiting Wardah |
+| W3 | Bathroom count, and tub or shower | Unknown | Awaiting Wardah |
+| W4 | Guest use of the yard and shed | Unknown | Awaiting Wardah |
+
 Labelled AI 3D and concept views are allowed on the sites (each carries a visible "AI-generated concept" label). Photos are never generated.
