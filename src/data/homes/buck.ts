@@ -7,6 +7,7 @@ import kitchen from "../../../assets/images/cottages/parkersburg-02/buck-kitchen
 import bed from "../../../assets/images/cottages/parkersburg-02/buck-bedroom.jpg";
 import bedAlt from "../../../assets/images/cottages/parkersburg-02/buck-bedroom-alt.jpg";
 import bath from "../../../assets/images/cottages/parkersburg-02/buck-bathroom.jpg";
+import porch from "../../../assets/images/cottages/parkersburg-02/photo-45.jpg";
 
 // Excluded from the public set: photo-09 (street panorama) and photo-23 (front
 // of house with a visible house number). Buck's street address is not approved.
@@ -20,6 +21,7 @@ const photos = {
   desk: ph(p38, "Room with deep blue walls, two tall windows with blinds, a wooden desk with a monitor and keyboard, a blue upholstered desk chair, and a bed with a floral comforter", "A blue room with a desk by the window and a second bed."),
   kitchen: ph(kitchen, "Compact kitchen with pale blue cabinets, a double stainless sink, granite-look counters, a toaster oven, a stainless refrigerator, and a microwave on top", "Pale blue cabinets, a double sink, and a full-size refrigerator."),
   bath: ph(bath, "Bathroom with a tub and shower behind a mint curtain, a grab bar, a toilet with a cabinet above, a white vanity with a mirror cabinet, and a glass-block window", "Tub and shower, a vanity, and a glass-block window for daylight."),
+  porch: ph(porch, "Covered front porch seen from the open front door, with dark wood posts and railings, a painted ceiling, and autumn trees beyond", "The covered front porch, seen from the front door.", "40% 50%"),
 };
 
 export const buckHome: HomeMicrosite = {
@@ -113,6 +115,16 @@ export const buckHome: HomeMicrosite = {
         { text: "Whether there is more than one bathroom.", status: "confirm" },
       ],
     },
+    {
+      slug: "porch",
+      name: "Covered porch",
+      summary: "A covered front porch with wood railings, just outside the front door.",
+      photos: [photos.porch],
+      notes: [
+        { text: "Covered front porch with dark wood posts and railings, seen from the front door.", status: "photographed" },
+        { text: "Whether there is porch seating.", status: "confirm" },
+      ],
+    },
   ],
   amenities: [
     {
@@ -152,7 +164,10 @@ export const buckHome: HomeMicrosite = {
     },
     {
       group: "Outdoors & parking",
-      items: [{ name: "Parking options", status: "listed" }],
+      items: [
+        { name: "Covered front porch", status: "photographed" },
+        { name: "Parking options", status: "listed" },
+      ],
     },
     {
       group: "Connectivity",

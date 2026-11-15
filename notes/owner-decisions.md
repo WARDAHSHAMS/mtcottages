@@ -25,4 +25,61 @@ Added 2026-11-13 with the Virginia microsite (/ravenswood/virginia-cottage/). Th
 | V6 | Fireplace | Photographed, use "to be confirmed" | Whether it is usable (it holds a pipe) is unknown | Suzanne |
 | V7 | Front-of-house hero | Hero is the fireplace room | No clean exterior photo exists | Wardah |
 
+Portfolio review, 2026-11-14 (#10, candidate list in issue note 364397): every `ravenswood-02` frame labelled kitchen, bath, bedroom, sunroom or exterior, plus the ten highest-rated frames, was viewed. The house was photographed mid-renovation, and no frame is clean enough to publish (tools, supplies, boxes, exposed lath, stripped wallpaper, bare ceiling wires). The hand-drawn room sketches and the breaker-panel labels are internal evidence only and are never published. They suggest these answers, still to be confirmed:
+
+- V2: two bathrooms. Sketches photo-183 and photo-206 show a 2nd-floor bathroom with a tub, and the panel lists "Bath 1" and "Bath 2".
+- V5: both bedrooms upstairs. Sketch photo-188 is a "Middle bedroom", sketch photo-211 a carpeted "2nd floor back room", and the panel lists "2F bedroom" and "2F back bed".
+
+## Wardah's photo review, Nov 2026 (#10)
+
+Requested by Atlas in the Tao Precision chat on 2026-11-14 at 08:29Z. The question IDs (B, V, F, M, Y, W) match the candidate list in #10 issue note 364397 and the review page sent to Suzanne Conejos.
+
+CEO directive, #10 note 370119 (2026-11-15): decide every open question without waiting, ship Buck, Virginia and Frederick, and treat Suzanne's answers as optional feedback for a v2. The picks below are live. Rule used: editorial and photo choices are decided outright; a fact is stated only when there is evidence for it, otherwise it stays "confirm on inquiry".
+
+### Buck and Virginia, and the layout pages (decided 2026-11-15)
+
+| # | Pick | Reason |
+|---|---|---|
+| B1 | Keep photo-49 as the hero | The strongest clean frame; the front-of-house photos show the house number, and the address is not approved |
+| B2 | Add photo-45, the covered front porch | A real, clean exterior view with nothing address-revealing |
+| B3-B6 | Desk room, bathroom count, cooking, bed, TV, laundry and parking stay "confirm on inquiry" | No photo or record settles them; what the photos show (toaster oven and microwave, bedroom TV, one full bath) is already listed |
+| V2 | Two bathrooms: a powder room down, a full bath with a tub up (still marked confirm) | Room sketches photo-183/206 and the breaker panel (Bath 1, Bath 2) agree |
+| V3 | Keep the kitchen photo gap; reshoot requested | The only frame (photo-54) is a maintenance frame |
+| V4 | Leave the sunroom unmentioned | The only frame (photo-77) is a maintenance frame, and nothing else shows the room |
+| V5 | Both bedrooms upstairs, a middle and a back room (still marked confirm) | Sketches photo-188/211 and the panel (2F bedroom, 2F back bed) agree |
+| V6 | Keep the fireplace "use to be confirmed" | A pipe sits in the firebox; whether it works is unknown |
+| V7 | Keep photo-117, the fireplace room, as the hero | No clean exterior frame exists |
+| V8 | Reshoot list: front of house, kitchen, both bedrooms, upstairs bath | These are the gaps the page shows |
+| M1-M6 | Illustrative layouts kept as they are, with Virginia's upper floor adding the bathroom | Each is labelled illustrative and matches the photos and sketches |
+
+### Frederick Cottage (open items from #8)
+
+| # | Question | Site today | Answer |
+|---|---|---|---|
+| F1 | `frederick-ext-2.jpeg` | Left out. The number painted on the porch column does not read as Frederick's approved number | Decided: stays out. A visible number that does not match the approved address must not publish |
+| F2 | Rights to the 14 nearby business photos | Left out; nearby places are text plus map links | Decided: stays out. We hold no rights to them (a legal matter, so only an owner can reverse it) |
+| F3 | Bath: tub or shower | "Confirm on inquiry" | Decided: stays "confirm on inquiry". The photo shows only a shower curtain |
+
+### Yellow Cottage (`parkersburg-03`): record only
+
+Not published, by CEO decision 2026-11-14 (not ready). Nothing here goes live. The parked microsite is on branch `park/yellow-walnut`.
+
+| # | Question | What the parked branch says | Answer |
+|---|---|---|---|
+| Y1 | Finished interior photos | The curated photo-448 (kitchen backsplash) and photo-468 (bathroom light) are maintenance close-ups | Awaiting Suzanne (optional); nothing goes live |
+| Y2 | Bathroom count, and tub or shower | Unknown | Awaiting Suzanne (optional); nothing goes live |
+| Y3 | Entrance step count | Unknown | Awaiting Suzanne (optional); nothing goes live |
+| Y4 | Bed sizes and which floor each bedroom is on | Unknown | Awaiting Suzanne (optional); nothing goes live |
+
+### Walnut Cottage (`ravenswood-01`): record only
+
+No microsite, by CEO decision 2026-11-14. Nothing here goes live.
+
+| # | Question | What the parked branch says | Answer |
+|---|---|---|---|
+| W1 | Sleeping arrangement | A second made bed shows, though the home is listed as one bedroom | Awaiting Suzanne (optional); nothing goes live |
+| W2 | Fireplace | A mantel is shown; whether it can be used is unknown | Awaiting Suzanne (optional); nothing goes live |
+| W3 | Bathroom count, and tub or shower | Unknown | Awaiting Suzanne (optional); nothing goes live |
+| W4 | Guest use of the yard and shed | Unknown | Awaiting Suzanne (optional); nothing goes live |
+
 Labelled AI 3D and concept views are allowed on the sites (each carries a visible "AI-generated concept" label). Photos are never generated.
