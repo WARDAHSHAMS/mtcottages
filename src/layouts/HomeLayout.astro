@@ -28,7 +28,7 @@ interface Props {
 const { shell, title, description, eyebrow, heading, lede, hero, heroCaption, chip, schema, shareHero = false, inquiryExtra } = Astro.props as Props;
 ---
 
-<SiteLayout title={title} description={description} schema={schema} socialImage={shareHero ? hero.src : undefined} socialImageAlt={shareHero ? hero.alt : undefined}>
+<SiteLayout title={title} description={description} schema={schema} socialImage={shareHero ? hero.src : undefined} socialImageAlt={shareHero ? hero.alt : undefined} home={shell.id}>
   <HomeNav shell={shell} current={Astro.url.pathname} />
 
   <section class="residence-hero hm-hero section--tight">
@@ -43,7 +43,7 @@ const { shell, title, description, eyebrow, heading, lede, hero, heroCaption, ch
         <h1>{heading}</h1>
         <p class="lede">{lede}</p>
         {chip && <p class="hm-chip"><span aria-hidden="true">⌖</span> <span class="sr-only">Address: </span>{chip}</p>}
-        <div class="cluster mt-3">
+        <div class="cluster mt-3" data-cta="hero">
           <a class="button" href={shell.inquiryUrl}>Ask about this home <span aria-hidden="true">↗</span></a>
         </div>
       </div>

@@ -138,6 +138,46 @@
       const submissionField = form.querySelector('[name="submissionId"]');
       submissionField.value = newSubmissionId();
 
+      // Cookieless counts (#23, docs/marketing/analytics-adr.md): form views, first
+      // input and sent inquiries. Never a field value, no cookie, no stored id.
+      const countSlug = (value) => {
+        const candidate = (value || "").trim().toLowerCase();
+        return /^[a-z0-9][a-z0-9-]{0,39}$/.test(candidate) ? candidate : "";
+      };
+      const externalReferrer = () => {
+        try {
+          const referrer = document.referrer ? new URL(document.referrer) : null;
+          return referrer && !referrer.hostname.endsWith("mtcottages.com") ? referrer.hostname : "";
+        } catch {
+          return "";
+        }
+      };
+      const countOptedOut = navigator.globalPrivacyControl === true || navigator.doNotTrack === "1";
+      const countTest = navigator.webdriver ? countSlug(params.get("mtc_test")) || "webdriver" : "";
+      const countBase = {
+        p: window.location.pathname,
+        h: property ? countSlug(params.get("property")) : "",
+        a: countSlug(params.get("audience")) || countSlug(params.get("stayType")),
+        s: countSlug(params.get("src")),
+        r: externalReferrer(),
+      };
+      const count = (event) => {
+        if (countOptedOut) return;
+        const beacon = { e: event, ...countBase };
+        if (countTest) beacon.t = countTest;
+        if (window.location.hostname !== "stay.mtcottages.com") {
+          (window.__mtcAnalytics ||= []).push(beacon);
+          return;
+        }
+        try {
+          navigator.sendBeacon("/api/collect", new Blob([JSON.stringify(beacon)], { type: "text/plain" }));
+        } catch (error) {
+          console.warn("Visit count not sent", error);
+        }
+      };
+      count("form_view");
+      form.addEventListener("input", () => count("form_start"), { once: true });
+
       const status = form.querySelector("[data-form-status]");
       const submit = form.querySelector('[type="submit"]');
       form.addEventListener("submit", async (event) => {
@@ -159,6 +199,7 @@
           status.textContent = "Thanks — your inquiry is on its way. Mt Cottages will follow up about availability and next steps.";
           submit.textContent = "Inquiry sent";
           submissionField.value = newSubmissionId();
+          count("form_submit");
         } catch (error) {
           status.dataset.state = "error";
           status.textContent = error instanceof Error ? error.message : "Application intake unavailable. Please try again shortly.";

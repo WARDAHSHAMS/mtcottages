@@ -1,0 +1,89 @@
+---
+// Cookieless visit and conversion counts (WorldEnterpriseGroup/mtcottages#23,
+// docs/marketing/analytics-adr.md). Sends a page view and every click on an
+// inquiry link to the first-party collector on stay.mtcottages.com. It stores
+// nothing in the browser: no cookie, no localStorage, no identifier. Off the
+// live hosts (local preview, CI) the beacons are kept in window.__mtcAnalytics
+// instead of being sent, so tests can read them.
+---
+
+<script>
+  type Beacon = { e: string; p: string; h?: string; a?: string; s?: string; r?: string; t?: string };
+
+  const ENDPOINT = "https://stay.mtcottages.com/api/collect";
+  const LIVE_HOSTS = new Set(["mtcottages.com", "www.mtcottages.com"]);
+  const STAY_HOST = "stay.mtcottages.com";
+  const slug = (value: string | null | undefined): string => {
+    const candidate = (value ?? "").trim().toLowerCase();
+    return /^[a-z0-9][a-z0-9-]{0,39}$/.test(candidate) ? candidate : "";
+  };
+
+  const analyticsWindow = window as Window & { __mtcAnalytics?: Beacon[] };
+  const optedOut = (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true || navigator.doNotTrack === "1";
+  // A webdriver-controlled browser is our own CI or an audit tool: its beacons are labelled as test traffic.
+  const testLabel = navigator.webdriver ? slug(new URLSearchParams(location.search).get("mtc_test")) || "webdriver" : "";
+  const page = document.body.dataset;
+
+  const send = (beacon: Beacon) => {
+    if (optedOut) return;
+    const payload: Beacon = { ...beacon };
+    if (testLabel) payload.t = testLabel;
+    if (!LIVE_HOSTS.has(location.hostname)) {
+      (analyticsWindow.__mtcAnalytics ??= []).push(payload);
+      return;
+    }
+    const body = JSON.stringify(payload);
+    try {
+      // text/plain keeps this a simple cross-origin request: no preflight, no credentials.
+      if (navigator.sendBeacon?.(ENDPOINT, new Blob([body], { type: "text/plain" }))) return;
+      void fetch(ENDPOINT, { method: "POST", body, keepalive: true, mode: "no-cors", credentials: "omit" }).catch(() => undefined);
+    } catch (error) {
+      console.warn("Visit count not sent", error);
+    }
+  };
+
+  const externalReferrer = (): string => {
+    try {
+      const referrer = document.referrer ? new URL(document.referrer) : null;
+      return referrer && !referrer.hostname.endsWith("mtcottages.com") ? referrer.hostname : "";
+    } catch {
+      return "";
+    }
+  };
+
+  const pageview = () => send({ e: "pageview", p: location.pathname, h: slug(page.home), a: slug(page.audience), r: externalReferrer() });
+  // A prerendered page (speculation rules) is counted when the visitor actually opens it.
+  if ((document as Document & { prerendering?: boolean }).prerendering) {
+    document.addEventListener("prerenderingchange", pageview, { once: true });
+  } else {
+    pageview();
+  }
+
+  const ctaSource = (link: Element): string => {
+    const marked = link.closest<HTMLElement>("[data-cta]")?.dataset.cta;
+    if (marked) return slug(marked);
+    if (link.closest(".site-header")) return "header";
+    if (link.closest(".mobile-action")) return "mobile-bar";
+    if (link.closest(".site-footer, footer")) return "footer";
+    return "page";
+  };
+
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    if (!(target instanceof HTMLAnchorElement)) return;
+    let url: URL;
+    try {
+      url = new URL(target.href, location.href);
+    } catch {
+      return;
+    }
+    if (url.hostname !== STAY_HOST || url.pathname.startsWith("/api/")) return;
+    send({
+      e: "cta_click",
+      p: location.pathname,
+      h: slug(url.searchParams.get("property")) || slug(page.home),
+      a: slug(url.searchParams.get("audience")) || slug(url.searchParams.get("stayType")) || slug(page.audience),
+      s: ctaSource(target),
+    });
+  }, { capture: true });
+</script>

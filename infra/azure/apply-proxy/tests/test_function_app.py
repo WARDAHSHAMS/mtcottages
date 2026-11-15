@@ -43,15 +43,19 @@ def _load_function_app():
             def queue_trigger(self, **_kwargs):
                 return lambda handler: handler
 
+            def timer_trigger(self, **_kwargs):
+                return lambda handler: handler
+
         value_type = TypeVar("value_type")
 
         class Out(Generic[value_type]):
             pass
 
-        functions.AuthLevel = SimpleNamespace(ANONYMOUS="anonymous")
+        functions.AuthLevel = SimpleNamespace(ANONYMOUS="anonymous", FUNCTION="function")
         functions.FunctionApp = FunctionApp
         functions.Out = Out
         functions.QueueMessage = object
+        functions.TimerRequest = object
         functions.HttpRequest = object
         functions.HttpResponse = HttpResponse
         azure.functions = functions
