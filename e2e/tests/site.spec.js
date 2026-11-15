@@ -10,12 +10,15 @@ const otherMicrosites = [
 const homeMicrosites = [frederickBase, ...otherMicrosites];
 // Yellow and Walnut have no microsite (CEO decision 2026-11-14); they keep their single property pages.
 const singlePropertyPages = ["/parkersburg/yellow-cottage.html", "/ravenswood/walnut-cottage.html"];
-// Every home on the home page and where its card must link (Frederick's card keeps its long-standing
-// index.html URL). Walnut was never on the home page and stays off it.
+// The live homes on the home page, by town, and where each one links (Frederick keeps its long-standing
+// index.html URL). Yellow is not ready and Walnut has no microsite, so neither is on the home page (#21).
 const listedHomes = [
-  ["Frederick Cottage", "/marietta/frederick/index.html", "Explore the home site"],
-  ...otherMicrosites.map((base) => [null, base, "Explore the home site"]),
-  ["Yellow Cottage", "/parkersburg/yellow-cottage.html", "View property"],
+  ["marietta", "Frederick Cottage", "/marietta/frederick/index.html"],
+  ["parkersburg", "Broad Cottage", "/parkersburg/broad-cottage/"],
+  ["parkersburg", "Buck Cottage", "/parkersburg/buck-cottage/"],
+  ["parkersburg", "Oak Cottage", "/parkersburg/oak-cottage/"],
+  ["ravenswood", "Virginia Cottage", "/ravenswood/virginia-cottage/"],
+  ["ravenswood", "Henrietta Cottage", "/ravenswood/henrietta-cottage/"],
 ];
 
 const publicPages = [
@@ -50,9 +53,7 @@ test("the homepage exposes the native Astro navigation and responsive image pipe
   await expect(page.locator('a[href="https://stay.mtcottages.com/?src=home"]:visible').first()).toBeVisible();
   await expect(page.locator('.hero-media img[src*="/_astro/"]')).toHaveCount(1);
   await expect(page.locator(".hero-media img")).toHaveAttribute("alt", /Frederick Cottage/);
-  for (const essential of ["Furnished", "Fiber-optic internet", "Quiet", "Peaceful"]) {
-    await expect(page.locator(".hero-essentials")).toContainText(essential);
-  }
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("A real home in the river towns, ready the day you arrive.");
   await expect(page.locator("body")).not.toContainText("30+ days");
   await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1);
   await expect(page.locator('meta[property="og:image"]')).toHaveCount(1);
@@ -75,21 +76,19 @@ test("every public route is reachable and privacy-safe", async ({ page, request 
   }
 });
 
-test("the homepage lists every microsite home and links each one to its microsite", async ({ page, request }) => {
+test("the homepage lists every live home under its town and links each one to its microsite", async ({ page, request }) => {
   await page.goto("/index.html");
-  const listing = page.locator("[data-home-listing]");
-  await expect(listing.locator(".property-card")).toHaveCount(listedHomes.length);
-  // The hero counts every listed cottage, Walnut included.
-  await expect(page.locator(".hero-copy .button").first()).toHaveText(/Browse 8 cottages/);
-  await expect(listing.locator('a[href*="walnut"]')).toHaveCount(0);
-  for (const [name, href, label] of listedHomes) {
-    const link = listing.locator(`.property-link[href="${href}"]`);
-    await expect(link, `${href} card link`).toHaveCount(1);
-    await expect(link).toContainText(label);
-    // filter({ has }) resolves its locator inside each card, so it must be page-rooted, not listing-rooted.
-    if (name) await expect(listing.locator(".property-card").filter({ has: page.locator(`.property-link[href="${href}"]`) })).toContainText(name);
+  const listing = page.locator("[data-town-cards]");
+  await expect(listing.locator(".town-card")).toHaveCount(3);
+  await expect(listing.locator(".town-card__homes a")).toHaveCount(listedHomes.length);
+  for (const [town, name, href] of listedHomes) {
+    const link = listing.locator(`#town-${town} .town-card__homes a[href="${href}"]`);
+    await expect(link, `${href} under ${town}`).toHaveCount(1);
+    await expect(link).toContainText(name);
     expect((await request.get(href)).status(), `${href} status`).toBe(200);
   }
+  await expect(page.locator("main")).not.toContainText(/Yellow|Walnut/);
+  await expect(page.locator('main a[href*="yellow"], main a[href*="walnut"]')).toHaveCount(0);
   await expect(page.locator('section a[href="https://stay.mtcottages.com/?src=home"]').filter({ hasText: /Check dates/i }).first()).toBeVisible();
 });
 

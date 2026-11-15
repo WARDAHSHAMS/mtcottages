@@ -51,6 +51,7 @@ variables:
     bash -n infra/azure/analytics-verify.sh
     yq -o=json 'explode(.)' .gitlab-ci.yml | python3 -I scripts/check-ci-runner-contract.py
     python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+    python3 -I scripts/check-edge-clients.py infra/azure/*.sh
     test -f .nojekyll
     grep -qx 'mtcottages.com' CNAME
 
@@ -82,6 +83,8 @@ site-check:
   timeout: 90 minutes
   variables:
     BASE_URL: "http://127.0.0.1:4173"
+    # The live home page, screenshotted as the "before" next to this build's "after" (e2e/tests/home-page.spec.js).
+    HOME_BEFORE_URL: "https://mtcottages.com/"
     npm_config_cache: "$CI_PROJECT_DIR/.npm"
   cache:
     - key:
@@ -122,7 +125,7 @@ site-check:
       if [ "$ready" != yes ]; then cat astro-preview.log; exit 1; fi
     # Playwright covers behaviour, privacy and axe (WCAG 2.1 AA) on every public page.
     - npm --prefix e2e test
-    # Mobile Lighthouse on every microsite overview and tour (pages come from the sitemap).
+    # Mobile Lighthouse on the home page and every microsite overview and tour (pages come from the sitemap).
     - LH_REPORT="$CI_PROJECT_DIR/lighthouse-scores.json" npm --prefix e2e run perf
   artifacts:
     when: always
@@ -169,6 +172,8 @@ verify:site-live:
 # commit is published again.
 .apply-proxy:paths: &apply_proxy_paths
   - infra/azure/apply-proxy/**/*
+  # verify:analytics proves each deploy, so a change to it re-runs the chain.
+  - infra/azure/analytics-verify.sh
   - .gitlab-ci.yml
 
 # A scheduled pipeline (the #13 drift gate, the #16 canary) has no push either,

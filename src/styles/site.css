@@ -152,9 +152,6 @@
   .hero-media__link ~ figcaption { z-index: 2; pointer-events: none; }
   .hero-media__link:hover ~ figcaption { background: var(--forest); }
   .hero-media figcaption { position: absolute; z-index: 1; right: 1rem; bottom: 1rem; max-width: 24ch; padding: .55rem .7rem; background: rgb(22 22 22 / .84); color: white; font-size: .74rem; letter-spacing: .02em; }
-  .hero-essentials { display: flex; flex-wrap: wrap; gap: .45rem .8rem; color: var(--forest); font-size: .78rem; font-weight: 700; letter-spacing: .02em; }
-  .hero-essentials li { display: inline-flex; align-items: center; gap: .42rem; }
-  .hero-essentials li::before { width: .35rem; height: .35rem; border-radius: 50%; background: var(--accent); content: ""; }
   .section-heading { display: grid; gap: 1rem; grid-template-columns: minmax(0, .65fr) minmax(0, 1.35fr); margin-bottom: var(--space-4); }
   .section-heading h2 { max-width: 18ch; }
   .section-heading p { color: var(--muted); }
@@ -317,7 +314,6 @@
   .header-inner { min-height: 4.5rem; }
   .brand img { width: 7.6rem; }
   .hero-media { aspect-ratio: 4 / 3; }
-  .hero-essentials { gap: .4rem .7rem; font-size: .74rem; }
   .card-grid, .card-grid--four, .details-grid, .amenity-grid, .footer-grid { grid-template-columns: 1fr; }
   .details-grid--wide { grid-template-columns: 1fr; }
   .prose-section { grid-template-columns: 1fr; }
@@ -512,6 +508,86 @@
 
 @media (max-width: 560px) {
   .room-grid, .step-grid { grid-template-columns: 1fr; }
+}
+
+/* Home page (#21): promise hero, audience router, town cards and the two pillars. */
+@layer components {
+  .hero--promise .hero-copy h1 { max-width: 13ch; margin-block: .8rem 1.1rem; font-size: clamp(2.35rem, 1.5rem + 3.1vw, 4.6rem); }
+  .hero-towns { display: flex; flex-wrap: wrap; gap: .35rem .5rem; margin-bottom: 1.3rem; }
+  .hero-towns a { display: inline-flex; align-items: center; min-height: 2.25rem; padding: .3rem .8rem; border: 1px solid var(--line); border-radius: 99rem; background: var(--paper); color: var(--forest); font-size: .86rem; font-weight: 700; text-decoration: none; }
+  .hero-towns a:hover { border-color: var(--forest); background: var(--forest-soft); color: var(--forest); }
+  .audience-grid { display: grid; gap: 1rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .audience-card { display: grid; gap: .6rem; align-content: start; padding: var(--space-3) 1.2rem 1.3rem; background: var(--canvas); border: 1px solid var(--line); border-top: .22rem solid var(--accent); border-radius: var(--radius); }
+  .audience-card h3 { font-size: clamp(1.3rem, 1.15rem + .5vw, 1.6rem); text-wrap: balance; }
+  .audience-card p:not(.eyebrow) { color: var(--muted); font-size: .94rem; }
+  .audience-card .text-link { align-self: end; margin-top: .4rem; }
+  .town-grid { display: grid; gap: 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .town-card { display: grid; grid-template-rows: auto 1fr; overflow: hidden; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); }
+  .town-card figure { aspect-ratio: 4 / 3; overflow: hidden; background: var(--forest-soft); }
+  .town-card figure img { width: 100%; height: 100%; object-fit: cover; }
+  .town-card__body { display: grid; gap: .8rem; align-content: start; padding: 1.2rem; }
+  .town-card__body > p { color: var(--muted); font-size: .94rem; }
+  .town-card__homes { display: grid; gap: .45rem; }
+  .town-card__homes a { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .2rem .8rem; min-height: 2.75rem; padding: .6rem .75rem; border: 1px solid var(--line); border-radius: .6rem; text-decoration: none; }
+  .town-card__homes a:hover { border-color: var(--forest); background: var(--forest-soft); color: inherit; }
+  .town-card__homes strong { color: var(--forest); font-family: var(--display); font-size: 1.12rem; font-weight: 500; }
+  .town-card__homes span { color: var(--muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
+  .town-card .text-link { margin-top: .2rem; }
+  .pillar { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: center; }
+  .pillar__photos { display: grid; gap: .7rem; grid-template-columns: 1.3fr 1fr; grid-template-rows: 1fr 1fr; }
+  .pillar__photos figure { position: relative; overflow: hidden; border-radius: var(--radius); background: var(--forest-soft); }
+  .pillar__photos figure:first-child { grid-row: span 2; }
+  .pillar__photos img { width: 100%; height: 100%; min-height: 11rem; object-fit: cover; }
+  .pillar__photos figcaption { position: absolute; inset-inline-start: .6rem; inset-block-end: .6rem; padding: .3rem .55rem; background: rgb(22 22 22 / .84); color: #fff; font-size: .72rem; }
+  .drive-chart { padding: var(--space-3); background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); }
+  .drive-chart table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .drive-chart__title { margin-bottom: 1rem; color: var(--forest); font-family: var(--display); font-size: var(--step-1); line-height: 1.15; text-align: start; caption-side: top; }
+  .drive-chart th, .drive-chart td { padding: .7rem .6rem; border-top: 1px solid var(--line); text-align: start; vertical-align: middle; }
+  .drive-chart thead th { border-top: 0; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .drive-chart tbody th { font-weight: 700; white-space: nowrap; }
+  .drive-chart tbody td { color: var(--muted); font-size: .9rem; }
+  .drive-chart__bar-cell { width: 42%; }
+  .drive-chart__axis { position: relative; display: block; height: 1.1rem; font-family: var(--mono); font-size: .68rem; letter-spacing: 0; }
+  .drive-chart__axis span { position: absolute; inset-inline-start: var(--at); translate: -50% 0; }
+  .drive-chart__axis span:first-child { translate: 0 0; }
+  .drive-chart__axis span:last-child { translate: -100% 0; }
+  .drive-chart__track { position: relative; display: block; height: 1.6rem; background: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 20%); }
+  .drive-chart__bar { position: absolute; inset-block: .3rem; inset-inline-start: 0; width: var(--share); border-radius: 0 4px 4px 0; background: var(--forest); }
+  .drive-chart__value { position: absolute; inset-block-start: 50%; inset-inline-start: calc(var(--share) + .5rem); translate: 0 -50%; color: var(--ink); font-size: .86rem; font-weight: 700; white-space: nowrap; }
+  .drive-chart__miles { white-space: nowrap; }
+  .drive-chart > figcaption { max-width: none; margin-top: 1rem; }
+}
+
+@media (max-width: 1100px) {
+  .audience-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+  .town-grid { grid-template-columns: 1fr; }
+  .town-card { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); grid-template-rows: none; }
+  .town-card figure { aspect-ratio: auto; min-height: 100%; }
+  .pillar { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .audience-grid { grid-template-columns: 1fr; }
+  .town-card { grid-template-columns: 1fr; }
+  .town-card figure { aspect-ratio: 4 / 3; }
+  .pillar__photos { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; }
+  .pillar__photos figure:first-child { grid-column: 1 / -1; grid-row: auto; }
+  .pillar__photos img { min-height: 8rem; aspect-ratio: 4 / 3; }
+  /* The chart restacks: each home becomes a block with its hospital, bar and distance. */
+  .drive-chart { padding: 1rem; }
+  .drive-chart thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .drive-chart tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .15rem .8rem; padding-block: .8rem; border-top: 1px solid var(--line); }
+  .drive-chart tbody th, .drive-chart tbody td { padding: 0; border: 0; }
+  .drive-chart tbody td:nth-child(2) { grid-column: 1 / -1; grid-row: 2; font-size: .84rem; }
+  .drive-chart__bar-cell { grid-column: 1 / -1; grid-row: 3; width: auto; padding-top: .3rem !important; }
+  .drive-chart__miles { grid-column: 2; grid-row: 1; justify-self: end; }
+}
+
+@media (forced-colors: active) {
+  .drive-chart__bar { background: CanvasText; forced-color-adjust: none; }
 }
 
 /* Shared photo viewer (src/components/SiteLightbox.astro), opened from any
