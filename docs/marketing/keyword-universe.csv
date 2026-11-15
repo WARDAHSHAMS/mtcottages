@@ -1,0 +1,76 @@
+keyword,town,stay_length,audience,intent,est_monthly_volume,difficulty,confidence,evidence,target_page,priority
+furnished apartments parkersburg wv,Parkersburg,monthly,general,transactional,50-150,medium,medium,autocomplete,/parkersburg/furnished-rentals/,1
+short term rentals parkersburg wv,Parkersburg,nightly-weekly,general,transactional,100-300,high,medium,autocomplete,/parkersburg/furnished-rentals/,1
+furnished rentals parkersburg wv,Parkersburg,monthly,general,transactional,30-100,medium,medium,autocomplete-seed,/parkersburg/furnished-rentals/,1
+monthly rentals parkersburg wv,Parkersburg,monthly,general,transactional,30-100,medium,low,autocomplete-seed,/parkersburg/furnished-rentals/,1
+houses for rent parkersburg wv,Parkersburg,long-term,long-term tenants,transactional,500-1500,high,medium,autocomplete,/parkersburg/furnished-rentals/,2
+houses for rent parkersburg wv by owner,Parkersburg,long-term,long-term tenants,transactional,100-300,medium,medium,autocomplete,/parkersburg/furnished-rentals/,2
+pet friendly rentals parkersburg wv,Parkersburg,monthly,general,transactional,20-80,low,medium,autocomplete,/parkersburg/pet-friendly/ (only after pet policy D4),3
+pet friendly houses for rent parkersburg wv,Parkersburg,long-term,long-term tenants,transactional,20-80,low,medium,autocomplete,/parkersburg/pet-friendly/ (only after pet policy D4),3
+corporate housing parkersburg wv,Parkersburg,monthly,corporate,transactional,20-60,medium,medium,competitor page (furnishedfinder corporate),/corporate-housing/,1
+travel nurse housing parkersburg wv,Parkersburg,13-week,travel nurses,transactional,20-60,medium,medium,competitor pages (travelnursehousing.com; furnishedfinder),/travel-nurses/camden-clark/,1
+housing near camden clark hospital,Parkersburg,13-week,travel nurses,transactional,10-40,low,low,autocomplete (camden clark hospital parkersburg wv),/travel-nurses/camden-clark/,1
+camden clark medical center,Parkersburg,any,travel nurses,navigational,1000-3000,high,medium,autocomplete,/travel-nurses/camden-clark/ (support only),3
+camden clark careers,Parkersburg,13-week,travel nurses,informational,100-300,high,medium,autocomplete,/travel-nurses/camden-clark/ (support only),3
+hotels near parkersburg wv,Parkersburg,nightly,visiting families,commercial,500-1500,high,medium,autocomplete,/parkersburg/furnished-rentals/ (hotel alternative angle),2
+pet friendly hotels near parkersburg wv,Parkersburg,nightly,visiting families,commercial,50-150,medium,medium,autocomplete,/parkersburg/furnished-rentals/,3
+hotels near parkersburg high school wv,Parkersburg,nightly,visiting families,commercial,20-60,low,medium,autocomplete,/guides/parkersburg-schools/,3
+parkersburg wv restaurants,Parkersburg,any,tourists,informational,500-1500,medium,medium,autocomplete,/guides/parkersburg/eat/,2
+parkersburg wv population,Parkersburg,any,relocating families,informational,100-300,low,medium,autocomplete,/guides/moving-to-parkersburg-wv/,2
+parkersburg wv jobs,Parkersburg,long-term,relocating families,informational,300-1000,high,medium,autocomplete,/guides/moving-to-parkersburg-wv/ (support only),3
+moving to parkersburg wv,Parkersburg,long-term,relocating families,informational,10-50,low,low,no autocomplete (long tail),/guides/moving-to-parkersburg-wv/,2
+cost of living parkersburg wv,Parkersburg,long-term,relocating families,informational,30-100,low,low,seed,/guides/moving-to-parkersburg-wv/,2
+best neighborhoods in parkersburg wv,Parkersburg,long-term,relocating families,informational,20-60,low,low,seed,/guides/parkersburg-neighborhoods/,2
+blennerhassett island,Parkersburg,nightly,tourists,informational,1000-3000,medium,medium,autocomplete,/guides/blennerhassett-island/,2
+blennerhassett island ferry schedule,Parkersburg,nightly,tourists,informational,100-300,low,medium,autocomplete,/guides/blennerhassett-island/,2
+blennerhassett island tickets price,Parkersburg,nightly,tourists,informational,50-150,low,medium,autocomplete,/guides/blennerhassett-island/,2
+things to do in parkersburg wv,Parkersburg,nightly,tourists,informational,300-1000,medium,medium,seed,/guides/parkersburg/things-to-do/,2
+chemours washington works,Parkersburg,monthly,corporate,navigational,300-1000,high,medium,autocomplete,/corporate-housing/washington-works/ (support only),3
+housing near chemours washington works,Parkersburg,monthly,corporate,transactional,0-20,low,low,seed,/corporate-housing/washington-works/,2
+furnished apartments marietta ohio,Marietta,monthly,general,transactional,50-150,medium,medium,autocomplete,/marietta/furnished-rentals/,1
+short term rentals marietta ohio,Marietta,nightly-weekly,general,transactional,100-300,high,medium,autocomplete (competes with Marietta GA),/marietta/furnished-rentals/,1
+furnished rentals marietta ohio,Marietta,monthly,general,transactional,20-80,medium,medium,autocomplete-seed,/marietta/furnished-rentals/,1
+monthly rentals marietta ohio,Marietta,monthly,general,transactional,20-60,medium,low,seed,/marietta/furnished-rentals/,1
+houses for rent marietta ohio,Marietta,long-term,long-term tenants,transactional,300-1000,high,low,seed (GA ambiguity),/marietta/furnished-rentals/,2
+travel nurse housing marietta ohio,Marietta,13-week,travel nurses,transactional,10-40,medium,low,competitor pages,/travel-nurses/memorial-health-marietta/,1
+housing near marietta memorial hospital,Marietta,13-week,travel nurses,transactional,10-30,low,low,seed,/travel-nurses/memorial-health-marietta/,1
+memorial health system marietta oh,Marietta,any,travel nurses,navigational,1000-3000,high,medium,autocomplete,/travel-nurses/memorial-health-marietta/ (support only),3
+memorial health system marietta family medicine residency,Marietta,long-term,medical residents,informational,20-80,low,medium,autocomplete,/travel-nurses/residents/,1
+memorial health system marietta emergency medicine residency,Marietta,long-term,medical residents,informational,20-80,low,medium,autocomplete,/travel-nurses/residents/,1
+marietta memorial health system careers,Marietta,13-week,travel nurses,informational,100-300,high,medium,autocomplete,/travel-nurses/memorial-health-marietta/ (support only),3
+things to do in marietta ohio,Marietta,nightly,tourists,informational,1000-3000,medium,medium,autocomplete,/guides/marietta/things-to-do/,2
+things to do in marietta ohio this weekend,Marietta,nightly,tourists,informational,100-300,medium,medium,autocomplete,/guides/marietta/events/,3
+marietta ohio sternwheel festival,Marietta,nightly,tourists,informational,500-1500 (seasonal Aug-Sep),medium,medium,autocomplete,/guides/marietta/sternwheel-festival/,2
+marietta ohio upcoming events,Marietta,nightly,tourists,informational,100-300,medium,medium,autocomplete,/guides/marietta/events/,3
+marietta ohio restaurants,Marietta,any,tourists,informational,500-1500,medium,medium,autocomplete,/guides/marietta/eat/,2
+marietta college football schedule,Marietta,nightly,visiting families,informational,100-300,medium,medium,autocomplete,/guides/marietta-college-visitors/,3
+marietta college academic calendar,Marietta,nightly,visiting families,informational,50-150,low,medium,autocomplete,/guides/marietta-college-visitors/,3
+hotels near marietta college,Marietta,nightly,visiting families,commercial,50-150,medium,low,seed,/guides/marietta-college-visitors/,3
+moving to marietta ohio,Marietta,long-term,relocating families,informational,10-50,low,low,seed,/guides/moving-to-marietta-ohio/,2
+marietta ohio schools,Marietta,long-term,relocating families,informational,50-150,low,low,seed,/guides/marietta-schools/,2
+campus martius museum,Marietta,nightly,tourists,informational,300-800,low,medium,seed,/guides/marietta/things-to-do/,3
+ravenswood wv restaurants,Ravenswood,any,tourists,informational,50-150,low,medium,autocomplete,/guides/ravenswood/,2
+ravenswood wv high school,Ravenswood,long-term,relocating families,informational,50-150,low,medium,autocomplete,/guides/ravenswood/schools/,2
+ravenswood wv population,Ravenswood,long-term,relocating families,informational,20-80,low,medium,autocomplete,/guides/ravenswood/,3
+ravenswood wv football schedule,Ravenswood,nightly,visiting families,informational,50-150,low,medium,autocomplete,/guides/ravenswood/,3
+ravenswood wv bridge closure,Ravenswood,any,corporate,informational,50-200 (event-driven),low,medium,autocomplete,/guides/ravenswood/getting-around/,3
+furnished rentals ravenswood wv,Ravenswood,monthly,general,transactional,0-20,low,low,seed,/ravenswood/furnished-rentals/,1
+constellium ravenswood,Ravenswood,monthly,corporate,navigational,300-800,medium,medium,autocomplete,/corporate-housing/constellium-ravenswood/ (support only),2
+constellium ravenswood jobs,Ravenswood,long-term,relocating families,informational,100-300,medium,medium,autocomplete,/corporate-housing/constellium-ravenswood/,2
+housing near constellium ravenswood,Ravenswood,monthly,corporate,transactional,0-20,low,low,seed,/corporate-housing/constellium-ravenswood/,1
+jackson general hospital ripley wv,Ravenswood,13-week,travel nurses,navigational,300-800,medium,low,seed,/travel-nurses/jackson-general/,2
+travel nurse housing ripley wv,Ravenswood,13-week,travel nurses,transactional,0-20,low,low,seed,/travel-nurses/jackson-general/,2
+apartments for rent vienna wv,Vienna,long-term,long-term tenants,transactional,100-300,medium,medium,autocomplete,/guides/vienna-wv/ (nearest homes in Parkersburg),2
+house for rent vienna wv,Vienna,long-term,long-term tenants,transactional,50-150,medium,medium,autocomplete,/guides/vienna-wv/,2
+furnished rentals vienna wv,Vienna,monthly,general,transactional,0-20,low,low,seed,/guides/vienna-wv/,2
+furnished rentals belpre ohio,Belpre,monthly,general,transactional,0-20,low,low,seed,/guides/belpre-ohio/ (nearest homes in Parkersburg),3
+belpre ohio things to do,Belpre,nightly,tourists,informational,20-80,low,low,seed,/guides/belpre-ohio/,3
+williamstown wv furnished rental,Williamstown,monthly,general,transactional,0-20,low,low,competitor listing (apartments.com),/guides/williamstown-wv/,3
+temporary housing insurance claim,Mid-Ohio Valley,month-to-month,insurance displacement,transactional,10-40 (local),medium,low,no local autocomplete; national term,/insurance-housing/,2
+ale housing for insurance claims,Mid-Ohio Valley,month-to-month,insurance displacement,transactional,0-20 (local),low,low,seed,/insurance-housing/,2
+temporary housing after house fire wv,Mid-Ohio Valley,month-to-month,insurance displacement,transactional,0-20,low,low,seed,/insurance-housing/,2
+30 day rentals near me,Mid-Ohio Valley,30+ days,general,transactional,local share unknown,high,low,national pattern (autocomplete: monthly to monthly rentals near me),/stays/monthly/,2
+month to month rentals near me,Mid-Ohio Valley,month-to-month,long-term tenants,transactional,local share unknown,high,low,autocomplete,/stays/monthly/,2
+furnished house for rent 3 months,Mid-Ohio Valley,3 months,general,transactional,local share unknown,medium,low,autocomplete (short term rental for 3 months),/stays/monthly/,2
+crew housing parkersburg wv,Parkersburg,weekly-monthly,corporate,transactional,0-20,low,low,competitor page (bluecollarhousing),/corporate-housing/,1
+mid ohio valley furnished housing,Mid-Ohio Valley,monthly,general,transactional,0-20,low,low,seed,/ (home page),1
