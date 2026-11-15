@@ -11,6 +11,9 @@ import SiteLayout from "../layouts/SiteLayout.astro";
 import ResponsivePhoto from "../components/ResponsivePhoto.astro";
 import CheckDates from "../components/CheckDates.astro";
 import { cottages, publishedLuxuryFurnishedRates, type Cottage } from "../data/site";
+import { homes as microsites } from "../data/homes";
+import { hasStreetAddress } from "../data/homes/links";
+import { distancesFor } from "../data/distances";
 import homeHero from "../../assets/images/cottages/marietta-01/frederick-exterior-full-safe.avif";
 import frederickKitchen from "../../assets/images/cottages/marietta-01/gallery-01.jpg";
 import frederickBackyard from "../../assets/images/cottages/marietta-01/frederick-backyard-cover.jpg";
@@ -86,18 +89,31 @@ const audiences = [
   },
 ];
 
-// Routed drive estimates from each home's approved address to the hospital's main campus.
-// OSRM over OpenStreetMap data (ODbL), measured 2026-11-15. Buck and Virginia have no
-// published address, so they are left out rather than measured from a guessed pin.
-const drives = [
-  { home: "Broad Cottage", href: "/parkersburg/broad-cottage/location.html#nearby", to: "WVU Medicine Camden Clark Medical Center", minutes: 7, miles: 2.5 },
-  { home: "Oak Cottage", href: "/parkersburg/oak-cottage/location.html#nearby", to: "WVU Medicine Camden Clark Medical Center", minutes: 7, miles: 2.7 },
-  { home: "Frederick Cottage", href: "/marietta/frederick/location.html#nearby", to: "Marietta Memorial Hospital", minutes: 10, miles: 3.5 },
-  { home: "Henrietta Cottage", href: "/ravenswood/henrietta-cottage/location.html#nearby", to: "Jackson General Hospital, Ripley", minutes: 15, miles: 11.2 },
-];
+// The drive from each home to its nearest hospital, from the same measured data as the
+// location pages (_data/distances.json, #25: OSRM over OpenStreetMap, ODbL). Only homes
+// with an approved street address are charted: Buck and Virginia are measured from their
+// town centre, which is not the drive a guest would make.
+const drives = microsites
+  .filter(hasStreetAddress)
+  .map((microsite) => {
+    const nearest = distancesFor(microsite).groups.find((group) => group.category === "hospital")?.rows[0];
+    if (!nearest) throw new Error(`_data/distances.json has no hospital drive for ${microsite.id}`);
+    return {
+      home: microsite.name,
+      href: `/${microsite.town.slug}/${microsite.slug}/location.html#drive-times`,
+      to: nearest.name,
+      minutes: nearest.minutes,
+      miles: nearest.miles,
+      measured: nearest.measured,
+    };
+  })
+  .sort((a, b) => a.minutes - b.minutes || a.home.localeCompare(b.home));
+if (drives.length === 0) throw new Error("No home with an approved address has a measured hospital drive");
 // The axis runs past the longest drive so the value label always fits beside its bar.
-const driveScale = 25;
-const driveTicks = [0, 5, 10, 15, 20, 25];
+const driveScale = Math.max(25, Math.ceil((Math.max(...drives.map((drive) => drive.minutes)) + 9) / 5) * 5);
+const driveTicks = Array.from({ length: driveScale / 5 + 1 }, (_, index) => index * 5);
+const driveMeasured = [...new Set(drives.map((drive) => drive.measured))].sort();
+const measuredMonth = new Date(`${driveMeasured.at(-1)}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 const homeCount = towns.reduce((total, town) => total + town.homes.length, 0);
 ---
 
@@ -197,7 +213,7 @@ const homeCount = towns.reduce((total, town) => total + town.homes.length, 0);
             ))}
           </tbody>
         </table>
-        <figcaption class="details-note">Estimated drive by car from the home to the hospital’s main campus, routed on OpenStreetMap data (© OpenStreetMap contributors, ODbL), November 2026. Traffic, shift-change hours and your unit’s entrance change the time; confirm on inquiry. Buck and Virginia Cottage drives are given on inquiry.</figcaption>
+        <figcaption class="details-note">Estimated drive by car from the home to the hospital’s main campus, routed on OpenStreetMap data (© OpenStreetMap contributors, ODbL), measured {measuredMonth}. Traffic, shift-change hours and your unit’s entrance change the time; confirm on inquiry. Buck and Virginia Cottage list drives from their town centre on their own pages; the drive from the house itself is given on inquiry.</figcaption>
       </figure>
       <CheckDates class="mt-3" placement="minutes" secondary={{ label: "Housing for healthcare staff", href: "/health-professionals.html" }} />
     </div>

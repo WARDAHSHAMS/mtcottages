@@ -67,11 +67,20 @@ test("the drive chart is a labelled table of estimates, longest bar for the long
   await expect(chart.locator("caption")).toContainText("Estimated drive");
   const rows = chart.locator("tbody tr");
   await expect(rows).toHaveCount(4);
-  await expect(rows.locator("th")).toHaveText(["Broad Cottage", "Oak Cottage", "Frederick Cottage", "Henrietta Cottage"]);
+  // The four homes with an approved address, shortest drive first (figures come from _data/distances.json).
+  expect((await rows.locator("th").allTextContents()).sort()).toEqual(["Broad Cottage", "Frederick Cottage", "Henrietta Cottage", "Oak Cottage"]);
+  const minutes = (await chart.locator(".drive-chart__value").allTextContents()).map((text) => Number(text.match(/\d+/)?.[0]));
+  expect(minutes.every((value) => value > 0)).toBe(true);
+  expect(minutes).toEqual([...minutes].sort((a, b) => a - b));
   const widths = await chart.locator(".drive-chart__bar").evaluateAll((bars) => bars.map((bar) => bar.getBoundingClientRect().width));
   expect(widths.every((width) => width > 0)).toBe(true);
-  expect(widths[3]).toBeGreaterThan(widths[2]);
-  expect(widths[2]).toBeGreaterThan(widths[0]);
+  for (let index = 1; index < widths.length; index += 1) {
+    if (minutes[index] > minutes[index - 1]) expect(widths[index]).toBeGreaterThan(widths[index - 1]);
+  }
+  // Each row links to that home's measured drive-time table.
+  for (const href of await rows.locator("th a").evaluateAll((links) => links.map((link) => link.getAttribute("href")))) {
+    expect(href).toMatch(/\/location\.html#drive-times$/);
+  }
   await expect(page.locator("#minutes figcaption")).toContainText("OpenStreetMap");
   await expect(page.locator("#minutes figcaption")).toContainText("confirm on inquiry");
   // Buck and Virginia have no published address, so they are never measured from a pin.
