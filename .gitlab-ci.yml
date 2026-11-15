@@ -58,6 +58,7 @@ stages:
   - package
   - deploy
   - smoke
+  - report
 
 mirror:
   extends: .mirror:github
@@ -376,3 +377,52 @@ canary:intake:
   timeout: 10m
   script:
     - bash infra/azure/intake-canary.sh
+
+# ---------------------------------------------------------------------------
+# Growth roadmap (WorldEnterpriseGroup/mtcottages#11)
+# ---------------------------------------------------------------------------
+# Renders the open issues, ranked by RICE and grouped by growth epic, into one
+# static HTML page kept as a job artifact. The newest render on main is always at
+#   https://git.developerdojo.org/WorldEnterpriseGroup/mtcottages/-/jobs/artifacts/main/file/roadmap/index.html?job=roadmap
+# A daily pipeline schedule on main refreshes it. Read-only: it only GETs the
+# issues and epics APIs, with ROADMAP_API_TOKEN (a read_api project access
+# token, masked). See docs/marketing/roadmap.md.
+
+.roadmap:image: &roadmap_image "harbor.focuscell.org/dockerhub-proxy/library/python:3.14-slim"
+
+roadmap:test:
+  stage: preflight
+  interruptible: true
+  image: *roadmap_image
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        paths:
+          - scripts/roadmap/**/*
+          - .gitlab-ci.yml
+  script:
+    - python3 -m unittest discover -s scripts/roadmap -v
+    - python3 -I scripts/roadmap/render_roadmap.py --issues scripts/roadmap/fixtures/issues.json --epics scripts/roadmap/fixtures/epics.json --out roadmap/index.html
+  artifacts:
+    paths:
+      - roadmap/
+    expire_in: 1 week
+
+roadmap:
+  stage: report
+  interruptible: true
+  image: *roadmap_image
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE =~ /^(push|schedule|web|api|trigger)$/'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $ROADMAP_API_TOKEN'
+      changes:
+        paths:
+          - scripts/roadmap/**/*
+          - .gitlab-ci.yml
+  script:
+    - python3 -I scripts/roadmap/render_roadmap.py --out roadmap/index.html --min-issues 1
+  artifacts:
+    expose_as: "growth roadmap"
+    paths:
+      - roadmap/
+    expire_in: 90 days

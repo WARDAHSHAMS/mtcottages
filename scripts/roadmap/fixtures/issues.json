@@ -1,0 +1,42 @@
+[
+  {
+    "iid": 101,
+    "title": "Travel-nurse landing page for Camden Clark",
+    "web_url": "https://git.developerdojo.org/WorldEnterpriseGroup/mtcottages/-/issues/101",
+    "description": "Body text.\n\n<!-- rice: reach=400 impact=2 confidence=0.8 effort=2 -->\n",
+    "labels": ["workflow::ready", "RICE::high"],
+    "milestone": {"title": "Growth M1", "due_date": "2026-12-04"},
+    "assignees": [{"username": "seat-devin"}],
+    "epic": {"iid": 10, "title": "Growth: Conversion funnels", "url": "/groups/WorldEnterpriseGroup/-/epics/10"}
+  },
+  {
+    "iid": 102,
+    "title": "Plausible-style privacy analytics <script> & escaping check",
+    "web_url": "https://git.developerdojo.org/WorldEnterpriseGroup/mtcottages/-/issues/102",
+    "description": "<!-- rice: reach=100 impact=1 confidence=0.5 effort=3 -->",
+    "labels": ["workflow::backlog", "RICE::low"],
+    "milestone": null,
+    "assignees": [],
+    "epic": {"iid": 11, "title": "Growth: Measurement", "url": "/groups/WorldEnterpriseGroup/-/epics/11"}
+  },
+  {
+    "iid": 103,
+    "title": "Issue without RICE or epic",
+    "web_url": "https://git.developerdojo.org/WorldEnterpriseGroup/mtcottages/-/issues/103",
+    "description": null,
+    "labels": [],
+    "milestone": null,
+    "assignees": [],
+    "epic": null
+  },
+  {
+    "iid": 104,
+    "title": "Staff alert within 1 minute for every inquiry (RICE 120)",
+    "web_url": "https://git.developerdojo.org/WorldEnterpriseGroup/mtcottages/-/issues/104",
+    "description": "Filed outside the growth template; the score is in the title.",
+    "labels": ["workflow::ready", "RICE::high"],
+    "milestone": null,
+    "assignees": [],
+    "epic": {"iid": 10, "title": "Growth: Conversion funnels", "url": "/groups/WorldEnterpriseGroup/-/epics/10"}
+  }
+]
