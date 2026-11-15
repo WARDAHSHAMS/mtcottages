@@ -86,6 +86,27 @@ Rollout order, so no step drops a lead:
 4. Disable SAS on the trigger. Confirm deep health is still `ok`, and that a GET on the bare callback URL is refused with 401.
 5. Rotation runbook: there is no shared secret left for the trigger. To rotate `TURNSTILE_SECRET_KEY`, write the new value to Key Vault, then change any app setting or redeploy so the reference re-resolves (a plain restart did not refresh it in infrastructure#536). Then confirm the form still accepts a Turnstile token in the smoke job.
 
+## Intake Logic App from git (#13)
+
+`mtcottages-intake.definition.json` and `mtcottages-intake.parameters.json` are the source of truth for the Logic App `mtcottages/mtcottages-intake`. Nobody edits it in the portal. `infra/azure/intake-logicapp.sh` is the only deploy path:
+
+| Job | When | What |
+|---|---|---|
+| `deploy:intake-logicapp` | protected `gh-pages` push that changes the definition, parameters, script or `.gitlab-ci.yml`, with `INTAKE_LOGICAPP_DEPLOY_ENABLED=true` | `deploy`: GET live, PUT the git definition and parameters, read back and fail unless live equals git. Keeps live `location`, `state`, `tags`, `identity`, `accessControl` and `integrationAccount`, so a deploy never re-opens a locked trigger or re-enables a disabled workflow. No-op when already equal. |
+| `drift:intake-logicapp` | nightly pipeline schedule on `gh-pages` (or "Run pipeline"), with `INTAKE_LOGICAPP_DRIFT=true` | `drift`: fails when the live definition or parameters differ from git, and prints the action names that differ plus a bounded diff. |
+
+Both run on the scoped `azure-deploy` runner as `sp-mtcottages-proxy-deploy` (certificate from `omlab-secrets`, mounted by the runner) and never print a token or the trigger callback URL. The comparison ignores key order and the empty `outputs` object ARM adds.
+
+**Prerequisites (FocusApiary/infrastructure `terraform/environments/mtcottages-deploy-identity`, Admiral apply):**
+
+- `Logic App Contributor` for `sp-mtcottages-proxy-deploy` on the workflow `mtcottages/mtcottages-intake` only (read for drift, write for deploy).
+- `Microsoft.Web/connections/join/action` on the D365 connection bound in the parameters (today `tli_interest/dynamicscrmonline`; #18 replaces it), so the PUT may reference it. `Logic App Contributor` scoped to that one connection grants it.
+- infra#822 keeps `mtcottages-intake` ("keep (on-demand endpoint, $0 idle)"); it is not in `logicapps/estate/retirements.json`.
+
+Then set the project variables `INTAKE_LOGICAPP_DEPLOY_ENABLED=true` and `INTAKE_LOGICAPP_DRIFT=true` (protected), and create a nightly schedule on `gh-pages`.
+
+The first deploy changes behaviour: live has 4 actions; git adds the `MtCottages` business-unit and owner-team lookups. If either lookup finds nothing, the Logic App answers 503. Since #15 the proxy queues such a lead for redelivery instead of losing it.
+
 ## Live deployment / runbook
 
 The Function App `mtcottages-apply-proxy` (resource group `mtcottages`, Linux Consumption) is published by GitLab CI and by nothing else (WorldEnterpriseGroup/mtcottages#9). Nobody deploys it from a workstation: the hand-run `az functionapp deployment source config-zip` path is retired.
