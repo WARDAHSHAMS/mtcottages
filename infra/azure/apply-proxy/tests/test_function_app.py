@@ -12,6 +12,9 @@ from typing import Generic, TypeVar
 import pytest
 
 FUNCTION_PATH = Path(__file__).resolve().parents[1] / "function_app.py"
+# The Functions host puts the app root on sys.path; do the same for sibling modules.
+if str(FUNCTION_PATH.parent) not in sys.path:
+    sys.path.insert(0, str(FUNCTION_PATH.parent))
 
 
 def _load_function_app():
@@ -110,8 +113,12 @@ class QueueOut:
         self.messages.append(value)
 
 
-def _apply(request, queue=None):
-    return function_app.apply(request, queue if queue is not None else QueueOut())
+def _apply(request, queue=None, notify=None):
+    return function_app.apply(
+        request,
+        queue if queue is not None else QueueOut(),
+        notify if notify is not None else QueueOut(),
+    )
 
 
 def _form_request(payload, **kwargs):
@@ -361,6 +368,8 @@ def intake(monkeypatch):
     monkeypatch.setenv("LOGICAPP_URL_APPLICATION", "https://logic.example.test/callback")
     monkeypatch.setenv("RATE_LIMIT_WINDOW_SECONDS", "1")
     monkeypatch.setattr(function_app, "_verify_turnstile", lambda _req, _payload: None)
+    for name in NOTIFY_SETTINGS:
+        monkeypatch.delenv(name, raising=False)
     state = SimpleNamespace(calls=[], answer=lambda: CallbackResponse())
 
     def urlopen(request, timeout):
@@ -532,3 +541,190 @@ def test_retry_policy_is_bounded_in_host_json():
     queues = host["extensions"]["queues"]
     assert 3 <= queues["maxDequeueCount"] <= 10
     assert queues["batchSize"] == 1
+
+
+def test_queue_polling_keeps_the_one_minute_staff_alert():
+    # The SOP promises contact within 1 minute (#14): the idle queue poll has
+    # to leave room for the send itself.
+    host = json.loads((FUNCTION_PATH.parent / "host.json").read_text(encoding="utf-8"))
+    hours, minutes, seconds = (int(part) for part in host["extensions"]["queues"]["maxPollingInterval"].split(":"))
+    assert hours * 3600 + minutes * 60 + seconds <= 15
+
+
+def test_every_app_module_is_packaged():
+    ci = (FUNCTION_PATH.parents[3] / ".gitlab-ci.yml").read_text(encoding="utf-8")
+    package_line = next(line for line in ci.splitlines() if "zipfile -c" in line)
+    for module in sorted(FUNCTION_PATH.parent.glob("*.py")):
+        assert module.name in package_line.split(), f"{module.name} is missing from package:apply-proxy"
+
+
+# ---------------------------------------------------------------------------
+# Staff alert, Teams card and guest acknowledgment (#14)
+# ---------------------------------------------------------------------------
+
+NOTIFY_SETTINGS = (
+    "ACS_EMAIL_ENDPOINT", "NOTIFY_SENDER_ADDRESS", "NOTIFY_REPLY_TO", "STAFF_ALERT_RECIPIENTS",
+    "TEAMS_INTAKE_WEBHOOK_URL", "GUEST_AUTOREPLY_ENABLED", "GUEST_RESPONSE_PROMISE",
+)
+
+
+@pytest.fixture
+def notifications(monkeypatch):
+    monkeypatch.setenv("ACS_EMAIL_ENDPOINT", "https://mtc-mail.communication.azure.com")
+    monkeypatch.setenv("NOTIFY_SENDER_ADDRESS", "stay@mtcottages.com")
+    monkeypatch.setenv("STAFF_ALERT_RECIPIENTS", "stay@mtcottages.com")
+    monkeypatch.setenv("TEAMS_INTAKE_WEBHOOK_URL", "https://teams.example.test/workflows/hook?sig=secret")
+    monkeypatch.setenv("GUEST_AUTOREPLY_ENABLED", "true")
+
+
+def test_delivered_inquiry_queues_one_notification_per_channel(intake, notifications):
+    notify = QueueOut()
+    response = _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.50")), notify=notify)
+    assert response.status_code == 200
+    assert len(notify.messages) == 1
+    envelopes = [json.loads(message) for message in notify.messages[0]]
+    assert [envelope["channel"] for envelope in envelopes] == ["staff-email", "teams", "guest-email"]
+    assert {envelope["submissionId"] for envelope in envelopes} == {SUBMISSION_ID}
+    assert {envelope["delivery"] for envelope in envelopes} == {"delivered"}
+    assert all("cf-turnstile-response" not in envelope["lead"] for envelope in envelopes)
+
+
+def test_queued_inquiry_still_alerts_staff_at_once(intake, notifications):
+    intake.answer = lambda: TimeoutError("timed out")
+    notify = QueueOut()
+    response = _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.51")), notify=notify)
+    assert response.status_code == 202
+    assert {json.loads(message)["delivery"] for message in notify.messages[0]} == {"queued"}
+
+
+def test_duplicate_and_rejected_submissions_notify_nobody(intake, notifications):
+    first, second, bot = QueueOut(), QueueOut(), QueueOut()
+    _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.52")), notify=first)
+    _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.53")), notify=second)
+    _apply(_form_request({"website": "ci-probe"}), notify=bot)
+    assert len(first.messages) == 1
+    assert second.messages == []
+    assert bot.messages == []
+
+
+def test_unconfigured_channels_are_not_queued(intake):
+    notify = QueueOut()
+    response = _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.54")), notify=notify)
+    assert response.status_code == 200
+    assert notify.messages == []
+
+
+def _notify_message(channel, dequeue_count=1):
+    envelope = json.loads(function_app.intake_notify.notification_envelopes(
+        SUBMISSION_ID, {**_valid_payload(), "submissionId": SUBMISSION_ID}, "delivered"
+    )[["staff-email", "teams", "guest-email"].index(channel)])
+    return QueueMessage(json.dumps(envelope), dequeue_count=dequeue_count)
+
+
+@pytest.fixture
+def managed_identity(monkeypatch):
+    monkeypatch.setenv("IDENTITY_ENDPOINT", "http://127.0.0.1:41000/msi/token")
+    monkeypatch.setenv("IDENTITY_HEADER", "identity-header")
+    function_app.intake_notify._token_cache.update(value=None, expires_at=0.0)
+
+
+@pytest.fixture
+def outbound(monkeypatch):
+    """Records notification HTTP calls; the managed identity answers with a token."""
+    state = SimpleNamespace(calls=[], answer=lambda: CallbackResponse(status=202, body=b"{}"))
+
+    def urlopen(request, timeout):
+        if "/msi/token" in request.full_url:
+            return CallbackResponse(body=json.dumps({"access_token": "token-value", "expires_on": "4102444800"}).encode())
+        state.calls.append({
+            "url": request.full_url,
+            "headers": dict(request.header_items()),
+            "body": json.loads(request.data.decode("utf-8")),
+            "timeout": timeout,
+        })
+        result = state.answer()
+        if isinstance(result, BaseException):
+            raise result
+        return result
+
+    monkeypatch.setattr(function_app.intake_notify.urllib.request, "urlopen", urlopen)
+    return state
+
+
+def test_staff_email_goes_through_acs_with_the_guest_as_reply_to(notifications, managed_identity, outbound):
+    function_app.send_intake_notification(_notify_message("staff-email"))
+    call = outbound.calls[0]
+    assert call["url"] == "https://mtc-mail.communication.azure.com/emails:send?api-version=2023-03-31"
+    assert call["headers"]["Authorization"] == "Bearer token-value"
+    assert call["headers"]["Repeatability-request-id"]
+    assert call["headers"]["Repeatability-first-sent"].endswith("GMT")
+    body = call["body"]
+    assert body["senderAddress"] == "stay@mtcottages.com"
+    assert body["recipients"]["to"] == [{"address": "stay@mtcottages.com"}]
+    assert body["replyTo"] == [{"address": "ada@example.com"}]
+    assert body["content"]["subject"].startswith("New stay inquiry: Ada Lovelace")
+    assert "555-555-1212" in body["content"]["plainText"]
+    assert body["userEngagementTrackingDisabled"] is True
+
+
+def test_retried_email_reuses_its_repeatability_id(notifications, managed_identity, outbound):
+    message = _notify_message("guest-email")
+    function_app.send_intake_notification(message)
+    function_app.send_intake_notification(message)
+    first, second = outbound.calls
+    assert first["headers"]["Repeatability-request-id"] == second["headers"]["Repeatability-request-id"]
+    assert first["headers"]["Repeatability-first-sent"] == second["headers"]["Repeatability-first-sent"]
+
+
+def test_guest_acknowledgment_is_branded_and_keeps_the_promise(notifications, managed_identity, outbound, monkeypatch):
+    monkeypatch.setenv("GUEST_RESPONSE_PROMISE", "within 2 business hours")
+    function_app.send_intake_notification(_notify_message("guest-email"))
+    body = outbound.calls[0]["body"]
+    assert body["recipients"]["to"] == [{"address": "ada@example.com"}]
+    assert body["replyTo"] == [{"address": "stay@mtcottages.com"}]
+    content = body["content"]
+    assert content["subject"] == "We have your inquiry, Ada"
+    text = content["plainText"]
+    assert "within 2 business hours" in text
+    assert "What happens next" in text
+    # Brand voice (#11): calm, no hype, no exclamation marks.
+    assert "!" not in text and "!" not in content["subject"]
+    assert "luxury" not in text.lower()
+    # Only what the guest needs; never their phone, message or other fields.
+    assert "555-555-1212" not in text and "A short inquiry." not in text
+
+
+def test_teams_card_is_posted_to_the_webhook(notifications, outbound):
+    function_app.send_intake_notification(_notify_message("teams"))
+    call = outbound.calls[0]
+    assert call["url"] == "https://teams.example.test/workflows/hook?sig=secret"
+    attachment = call["body"]["attachments"][0]
+    assert attachment["contentType"] == "application/vnd.microsoft.card.adaptive"
+    facts = {fact["title"]: fact["value"] for fact in attachment["content"]["body"][2]["facts"]}
+    assert facts["Name"] == "Ada Lovelace"
+    assert facts["Where"] == "Marietta, OH"
+
+
+def test_failed_channel_raises_without_leaking_the_webhook(notifications, outbound):
+    outbound.answer = lambda: urllib.error.HTTPError(
+        "https://teams.example.test/workflows/hook?sig=secret", 502, "bad gateway", {}, io.BytesIO(b"")
+    )
+    with pytest.raises(RuntimeError) as raised:
+        function_app.send_intake_notification(_notify_message("teams", dequeue_count=3))
+    assert "teams" in str(raised.value) and "502" in str(raised.value) and "attempt 3" in str(raised.value)
+    assert "sig=secret" not in str(raised.value)
+
+
+def test_channel_whose_settings_disappeared_stays_queued(notifications, monkeypatch, outbound):
+    message = _notify_message("teams")
+    monkeypatch.delenv("TEAMS_INTAKE_WEBHOOK_URL")
+    with pytest.raises(RuntimeError, match="TEAMS_INTAKE_WEBHOOK_URL"):
+        function_app.send_intake_notification(message)
+    assert outbound.calls == []
+
+
+@pytest.mark.parametrize("body", [b"\xff", b"{}", b'{"version": 1, "channel": "fax", "submissionId": "x", "lead": {}}'])
+def test_malformed_notification_is_rejected(body, outbound):
+    with pytest.raises(ValueError):
+        function_app.send_intake_notification(QueueMessage(body))
+    assert outbound.calls == []

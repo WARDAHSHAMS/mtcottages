@@ -11,6 +11,7 @@ import re
 import secrets
 import threading
 import time
+import typing
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -19,6 +20,8 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 import azure.functions as func
+
+import intake_notify
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 logger = logging.getLogger(__name__)
@@ -666,9 +669,22 @@ def application_form(req: func.HttpRequest) -> func.HttpResponse:
     )
 
 
+def _queue_notifications(notify, submission_id, outbound, delivery):
+    """Queue the staff alert, Teams card and guest acknowledgment (#14).
+
+    Only configured channels are queued. The host writes them after the
+    function returns, with the retry message, so notification never delays
+    or fails the guest's answer.
+    """
+    envelopes = intake_notify.notification_envelopes(submission_id, outbound, delivery)
+    if envelopes:
+        notify.set(envelopes)
+
+
 @app.route(route="api/apply", methods=["POST", "OPTIONS"])
 @app.queue_output(arg_name="retry", queue_name=INTAKE_RETRY_QUEUE, connection=INTAKE_QUEUE_CONNECTION)
-def apply(req: func.HttpRequest, retry: func.Out[str]) -> func.HttpResponse:
+@app.queue_output(arg_name="notify", queue_name=intake_notify.NOTIFY_QUEUE, connection=INTAKE_QUEUE_CONNECTION)
+def apply(req: func.HttpRequest, retry: func.Out[str], notify: func.Out[typing.List[str]]) -> func.HttpResponse:
     origin = req.headers.get("Origin", "").strip()
     if not _canonical_host(req):
         return _response({"success": False, "message": "Not found"}, 404, origin)
@@ -723,6 +739,7 @@ def apply(req: func.HttpRequest, retry: func.Out[str]) -> func.HttpResponse:
     if status is not None and 200 <= status < 300:
         _remember_accepted_submission(submission_id)
         logger.info("Inquiry delivered to intake: %s", submission_id)
+        _queue_notifications(notify, submission_id, outbound, "delivered")
         return _response({"success": True, "message": ACCEPTED_MESSAGE}, 200, origin)
 
     # Anything else (timeout, connection failure, any non-2xx answer, including
@@ -734,6 +751,9 @@ def apply(req: func.HttpRequest, retry: func.Out[str]) -> func.HttpResponse:
     # processed again instead of being told it was already received.
     logger.warning("Inquiry not accepted by intake (%s); queueing %s for redelivery", reason, submission_id)
     retry.set(_retry_envelope(submission_id, outbound, reason))
+    # Staff hear about a queued lead at once: the alert is how they reach the
+    # guest while CRM delivery is still retrying.
+    _queue_notifications(notify, submission_id, outbound, "queued")
     return _response({"success": True, "message": ACCEPTED_MESSAGE}, 202, origin)
 
 
@@ -765,6 +785,25 @@ def redeliver_intake(message: func.QueueMessage) -> None:
         logger.info("Queued inquiry %s delivered on attempt %s", submission_id, attempt)
         return
     raise RuntimeError(f"redelivery of {submission_id} failed on attempt {attempt}: {reason}")
+
+
+@app.queue_trigger(arg_name="message", queue_name=intake_notify.NOTIFY_QUEUE, connection=INTAKE_QUEUE_CONNECTION)
+def send_intake_notification(message: func.QueueMessage) -> None:
+    """Send one channel of one inquiry's notifications (#14).
+
+    Raising leaves the message queued; after host.json's maxDequeueCount the
+    runtime moves it to intake-notify-poison. Logs carry the submissionId and
+    channel only, never lead fields or a webhook URL.
+    """
+    envelope = intake_notify.parse_envelope(message.get_body())
+    attempt = getattr(message, "dequeue_count", None)
+    try:
+        intake_notify.send(envelope)
+    except intake_notify.NotificationError as error:
+        raise RuntimeError(
+            f"{envelope['channel']} for {envelope['submissionId']} failed on attempt {attempt}: {error}"
+        ) from None
+    logger.info("Sent %s for %s on attempt %s", envelope["channel"], envelope["submissionId"], attempt)
 
 
 @app.route(route="api/health", methods=["GET"])

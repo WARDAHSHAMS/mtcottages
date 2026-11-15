@@ -45,6 +45,30 @@ No inquiry that passed validation and Turnstile is dropped, and a retry never cr
 - **Logs** carry the `submissionId` and a reason label (`timeout`, `http-503`, …), never lead fields.
 - If the host cannot write the queue message, it answers 500. The submission is then not remembered, so the browser's retry with the same key is processed again.
 
+## Staff alert and guest acknowledgment (#14)
+
+Every accepted inquiry, whether delivered or queued for redelivery, puts one message per configured channel on the Storage queue `intake-notify`. A duplicate `submissionId` or a rejected submission notifies nobody. The queue-triggered function `send_intake_notification` sends each channel on its own, so a mail outage never delays the guest's answer or the other channels:
+
+| Channel | What staff or the guest get |
+|---|---|
+| `staff-email` | "New stay inquiry: <name>, <home or town>, move-in <date>" to `STAFF_ALERT_RECIPIENTS`, with every form fact and the message. Reply-To is the guest. |
+| `teams` | An Adaptive Card in the Mt Cottages channel, with the same facts and "Email the guest" / "Call the guest" buttons. |
+| `guest-email` | "We have your inquiry, <first name>": the response promise, the three next steps and the move-in, length, town and home they chose. It never echoes their phone, message or free text, and Reply-To is `stay@mtcottages.com`. Voice follows `docs/marketing/brand-and-positioning.md` (#11): warm, plain, no exclamation marks. |
+
+`host.json` polls idle queues at least every 10 seconds, so the staff alert lands well inside the SOP's 1 minute. A failed channel is retried up to 8 times, 2 minutes apart, then moved to `intake-notify-poison` (an alert condition, #16). ACS sends carry a `repeatability-request-id` derived from the `submissionId` and channel, so a retried email is sent once. Logs carry the `submissionId` and channel only.
+
+Application settings (a channel whose settings are missing is simply not queued):
+
+| Setting | Value |
+|---|---|
+| `ACS_EMAIL_ENDPOINT` | `https://<resource>.communication.azure.com`. Auth is the Function App's managed identity (needs a role on the ACS resource that allows `emails:send`); no access key. |
+| `NOTIFY_SENDER_ADDRESS` | The verified ACS sender, `stay@mtcottages.com` once the domain is verified in ACS. |
+| `NOTIFY_REPLY_TO` | Optional; default `stay@mtcottages.com`. |
+| `STAFF_ALERT_RECIPIENTS` | Comma-separated staff addresses. |
+| `TEAMS_INTAKE_WEBHOOK_URL` | A Key Vault reference (`@Microsoft.KeyVault(...)`) to the Teams Workflows webhook URL. The URL is a credential; never put it in git or a plain setting. |
+| `GUEST_AUTOREPLY_ENABLED` | `true` to send the guest acknowledgment. |
+| `GUEST_RESPONSE_PROMISE` | Default `within 2 business hours`. The owner confirms it (brand decision D6). |
+
 ## Live deployment / runbook
 
 The Function App `mtcottages-apply-proxy` (resource group `mtcottages`, Linux Consumption) is published by GitLab CI and by nothing else (WorldEnterpriseGroup/mtcottages#9). Nobody deploys it from a workstation: the hand-run `az functionapp deployment source config-zip` path is retired.
