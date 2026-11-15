@@ -135,6 +135,39 @@ The body holds labels and counts only, never a URL, key or lead field. The hourl
 
 **Recovering a poisoned message.** Do not copy lead data into a ticket or chat. In the Storage account's `intake-retry-poison` queue, fix the cause (look up the reason in the Function logs by `submissionId`), then move the message back to `intake-retry`, where `redeliver_intake` sends it again with the same `submissionId`. For `intake-notify-poison`, move it back to `intake-notify`. A poison message expires 7 days after it lands there, so recovery has to happen within that window.
 
+### End-to-end canary (#16)
+
+The scheduled `canary:intake` job (`infra/azure/intake-canary.sh`) sends one synthetic inquiry through the real path: Front Door, the proxy, the Logic App and Dynamics 365. It passes only when all three hold:
+
+1. The proxy answers 200, meaning the Logic App created the lead. A 202 means the lead was queued instead, so the job fails.
+2. The Logic App run for that submission succeeded. The job finds the run by `clientTrackingId`, which the proxy sets to the `submissionId` for every inquiry, not only canaries.
+3. `Delete_Canary_D365_Lead` succeeded in that run, so the canary leaves no lead behind.
+
+The canary is never a real application:
+
+- The proxy treats a request as a canary only when its `X-Intake-Canary` header matches `CANARY_TOKEN` (constant-time comparison, at least 32 characters). Only such a request skips Turnstile.
+- The proxy then replaces the name, phone, message and email with fixed synthetic values (`CANARY_LEAD_FIELDS` and `CANARY_GUEST_EMAIL`), whatever was sent.
+- The Logic App deletes the lead only when the proxy's `X-Intake-Canary-Run: 1` header is present, after it has already answered.
+
+Its staff email, Teams card and guest acknowledgment carry a `[canary]` prefix and the note "No action is needed". The guest acknowledgment goes to the canary mailbox, which is the evidence for #14.
+
+Turning it on, in this order:
+
+1. **Infra (FocusApiary/infrastructure):**
+   - Create the secret `mtcottages-intake-canary-token` (random, 48 characters or more) in `omlab-secrets`.
+   - Grant the runner's certificate SP Key Vault Secrets User on it.
+   - Grant the same SP Logic App Operator on `mtcottages/mtcottages-intake`.
+   - Grant the Function App's identity read access to the secret.
+2. **App settings:**
+   - `CANARY_TOKEN` as a Key Vault reference to that secret.
+   - `CANARY_GUEST_EMAIL` set to a mailbox we own, for example a `stay@` alias. It is not a secret.
+
+   Canary mode stays off while either one is missing.
+3. **Logic App:** deploy the definition with `Delete_Canary_Lead` (#13), before the first canary runs.
+4. **Schedule:** set the CI variable `INTAKE_CANARY_ENABLED=true` on a `gh-pages` pipeline schedule. Every 15 minutes, together with the Logic App `RunsFailed` alert evaluated over 15 minutes, meets the "breaking the Logic App fires an alert within 15 minutes" bar. Use "Run pipeline" on `gh-pages` with the same variable for a one-off check.
+
+When a canary fails, the job log names the step that failed and the `submissionId`. Look up that run in the Logic App run history by its client tracking id. If cleanup failed, delete the `Intake Canary` lead in Dynamics by hand.
+
 To publish the current commit again without a code change, start a pipeline on `gh-pages` from the GitLab UI ("Run pipeline").
 
 ### Credentials

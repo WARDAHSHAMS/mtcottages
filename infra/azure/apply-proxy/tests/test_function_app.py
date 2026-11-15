@@ -406,6 +406,7 @@ def test_delivered_inquiry_forwards_the_idempotency_key(intake):
     call = intake.calls[0]
     assert call["payload"]["submissionId"] == SUBMISSION_ID
     assert call["headers"]["Idempotency-key"] == SUBMISSION_ID
+    assert call["headers"]["X-ms-client-tracking-id"] == SUBMISSION_ID
     assert call["timeout"] == function_app.DEFAULT_LOGICAPP_TIMEOUT_SECONDS
 
 
@@ -923,3 +924,134 @@ def test_run_history_does_not_keep_lead_data():
         ["actions"]["Create_D365_Applicant_Lead"]
     )
     assert sorted(lead["runtimeConfiguration"]["secureData"]["properties"]) == ["inputs", "outputs"]
+
+
+# ---------------------------------------------------------------------------
+# End-to-end canary (#16)
+# ---------------------------------------------------------------------------
+
+CANARY_TOKEN_VALUE = "c" * 40  # test-only value, not a credential
+CANARY_MAILBOX = "intake-canary@mtcottages.com"
+
+
+def _turnstile_must_not_run(_req, _payload):
+    raise AssertionError("Turnstile was called for a canary")
+
+
+@pytest.fixture
+def canary(intake, monkeypatch):
+    monkeypatch.setenv("CANARY_TOKEN", CANARY_TOKEN_VALUE)
+    monkeypatch.setenv("CANARY_GUEST_EMAIL", CANARY_MAILBOX)
+    return intake
+
+
+def _canary_request(ip, token=CANARY_TOKEN_VALUE):
+    payload = _payload_with_id()
+    payload.pop("cf-turnstile-response")
+    return _form_request(payload, headers={**_request_from(ip), "X-Intake-Canary": token})
+
+
+def test_canary_skips_turnstile_and_becomes_a_fixed_synthetic_lead(canary, monkeypatch):
+    monkeypatch.setattr(function_app, "_verify_turnstile", _turnstile_must_not_run)
+    response = _apply(_canary_request("192.0.2.70"))
+    assert response.status_code == 200
+    call = canary.calls[0]
+    lead = call["payload"]
+    # Whatever the caller sent, the identity is the fixed synthetic one.
+    assert lead["firstName"] == "Intake" and lead["lastName"] == "Canary"
+    assert lead["email"] == CANARY_MAILBOX
+    assert lead["phone"] == "+1 304 555 0100"
+    assert "Ada" not in json.dumps(lead) and "555-555-1212" not in json.dumps(lead)
+    assert call["headers"]["X-intake-canary-run"] == "1"
+    # The proxy's own token never travels to the Logic App.
+    assert CANARY_TOKEN_VALUE not in json.dumps(call)
+
+
+def test_canary_notifications_are_marked(canary, notifications):
+    notify = QueueOut()
+    _apply(_canary_request("192.0.2.71"), notify=notify)
+    envelopes = [json.loads(message) for message in notify.messages[0]]
+    assert {envelope["canary"] for envelope in envelopes} == {True}
+    guest = next(envelope for envelope in envelopes if envelope["channel"] == "guest-email")
+    assert guest["lead"]["email"] == CANARY_MAILBOX
+    for channel in ("staff-email", "guest-email"):
+        envelope = function_app.intake_notify.parse_envelope(
+            next(m for m in notify.messages[0] if json.loads(m)["channel"] == channel).encode()
+        )
+        subject = (function_app.intake_notify.staff_email if channel == "staff-email"
+                   else function_app.intake_notify.guest_email)(envelope)[0]
+        assert subject.startswith("[canary] ")
+    card = function_app.intake_notify.teams_card(function_app.intake_notify.parse_envelope(
+        next(m for m in notify.messages[0] if json.loads(m)["channel"] == "teams").encode()
+    ))
+    assert card["attachments"][0]["content"]["body"][0]["text"].startswith("[canary] ")
+
+
+def test_real_inquiries_are_never_marked_canary(intake, notifications):
+    notify = QueueOut()
+    _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.72")), notify=notify)
+    assert {json.loads(message)["canary"] for message in notify.messages[0]} == {False}
+    assert "X-intake-canary-run" not in intake.calls[0]["headers"]
+    envelope = function_app.intake_notify.parse_envelope(notify.messages[0][0].encode())
+    assert not function_app.intake_notify.staff_email(envelope)[0].startswith("[canary]")
+
+
+@pytest.mark.parametrize("token", ["", "wrong-" + "c" * 34, "c" * 39])
+def test_a_wrong_canary_token_still_needs_turnstile(canary, monkeypatch, token):
+    seen = []
+    monkeypatch.setattr(function_app, "_verify_turnstile", lambda req, payload: seen.append(1) or (400, "verify"))
+    response = _apply(_canary_request("192.0.2.73", token=token))
+    assert response.status_code == 400
+    assert seen == [1]
+    assert canary.calls == []
+
+
+@pytest.mark.parametrize("missing", ["CANARY_TOKEN", "CANARY_GUEST_EMAIL"])
+def test_canary_mode_is_off_unless_fully_configured(canary, monkeypatch, missing):
+    monkeypatch.delenv(missing)
+    monkeypatch.setattr(function_app, "_verify_turnstile", lambda _req, _payload: (400, "verify"))
+    assert _apply(_canary_request("192.0.2.74")).status_code == 400
+    assert canary.calls == []
+
+
+def test_short_canary_token_setting_is_refused(canary, monkeypatch):
+    monkeypatch.setenv("CANARY_TOKEN", "short")
+    monkeypatch.setattr(function_app, "_verify_turnstile", lambda _req, _payload: (400, "verify"))
+    assert _apply(_canary_request("192.0.2.75", token="short")).status_code == 400
+
+
+def test_queued_canary_keeps_its_marker_through_redelivery(canary):
+    canary.answer = lambda: TimeoutError("timed out")
+    queue = QueueOut()
+    assert _apply(_canary_request("192.0.2.76"), queue).status_code == 202
+    envelope = queue.messages[0]
+    assert json.loads(envelope)["canary"] is True
+    canary.answer = lambda: CallbackResponse()
+    function_app.redeliver_intake(QueueMessage(envelope))
+    assert canary.calls[-1]["headers"]["X-intake-canary-run"] == "1"
+
+
+def test_scheduled_pipelines_never_rebuild_or_redeploy_the_proxy():
+    # The drift gate (#13) and the canary (#16) run from schedules; `changes`
+    # is always true there, so only an explicit rule keeps them read-only.
+    ci = (FUNCTION_PATH.parents[3] / ".gitlab-ci.yml").read_text(encoding="utf-8")
+    for anchor in (".apply-proxy:verify-rules:", ".apply-proxy:deploy-rules:"):
+        block = ci.split(anchor, 1)[1].split("\n\n", 1)[0]
+        first_rule = block.split("    - if:", 2)[1]
+        assert "$CI_PIPELINE_SOURCE == \"schedule\"" in first_rule and "when: never" in first_rule, anchor
+
+
+def test_logic_app_deletes_only_canary_leads_after_answering():
+    definition = json.loads((FUNCTION_PATH.parents[1] / "mtcottages-intake.definition.json").read_text(encoding="utf-8"))
+    owner_team = (
+        definition["actions"]["Require_MtCottages_Business_Unit"]["actions"]["Require_MtCottages_Owner_Team"]["actions"]
+    )
+    cleanup = owner_team["Delete_Canary_Lead"]
+    assert cleanup["runAfter"] == {"Respond_Success": ["Succeeded"]}
+    assert cleanup["expression"] == {
+        "equals": [f"@triggerOutputs()?['headers']?['{function_app.CANARY_LOGICAPP_HEADER}']", "1"]
+    }
+    delete = cleanup["actions"]["Delete_Canary_D365_Lead"]["inputs"]
+    assert delete["method"] == "delete"
+    assert "body('Create_D365_Applicant_Lead')?['leadid']" in delete["path"]
+    assert cleanup["else"]["actions"] == {}

@@ -193,8 +193,12 @@ def configured_channels():
 # Envelopes
 # ---------------------------------------------------------------------------
 
-def notification_envelopes(submission_id, lead, delivery):
-    """One queue message per configured channel. ``delivery`` is ``delivered`` or ``queued``."""
+def notification_envelopes(submission_id, lead, delivery, canary=False):
+    """One queue message per configured channel. ``delivery`` is ``delivered`` or ``queued``.
+
+    ``canary`` marks the synthetic end-to-end check (#16): every message it
+    produces says so in its subject or title, so staff can ignore it.
+    """
     queued_at = email.utils.format_datetime(datetime.now(timezone.utc), usegmt=True)
     return [
         json.dumps({
@@ -203,6 +207,7 @@ def notification_envelopes(submission_id, lead, delivery):
             "submissionId": submission_id,
             "delivery": delivery,
             "queuedAt": queued_at,
+            "canary": bool(canary),
             "lead": lead,
         })
         for channel in configured_channels()
@@ -224,6 +229,7 @@ def parse_envelope(body):
     envelope["lead"] = lead
     if not isinstance(envelope.get("queuedAt"), str):
         envelope["queuedAt"] = email.utils.format_datetime(datetime.now(timezone.utc), usegmt=True)
+    envelope["canary"] = envelope.get("canary") is True
     return envelope
 
 
@@ -233,6 +239,14 @@ def parse_envelope(body):
 
 def _one_line(value, limit):
     return " ".join(str(value).split())[:limit]
+
+
+CANARY_PREFIX = "[canary] "
+CANARY_NOTE = "This is the automated intake check. No action is needed."
+
+
+def _canary_prefix(envelope):
+    return CANARY_PREFIX if envelope.get("canary") is True else ""
 
 
 def _home_name(property_id):
@@ -303,10 +317,12 @@ def staff_email(envelope):
     name = _full_name(lead)
     where = _home_name(lead.get("propertyId", "")) or _one_line(lead.get("preferredLocation", ""), 64)
     move_in = _one_line(lead.get("moveInDate", ""), 10)
-    subject = _one_line(f"New stay inquiry: {name}, {where}, move-in {move_in}", 200)
+    subject = _one_line(f"{_canary_prefix(envelope)}New stay inquiry: {name}, {where}, move-in {move_in}", 200)
     facts = _staff_facts(lead)
     message = str(lead.get("message", "")).strip()[:4000]
     note = _delivery_note(envelope.get("delivery"))
+    if envelope.get("canary") is True:
+        note = f"{CANARY_NOTE} {note}".strip()
     reference = envelope["submissionId"]
 
     text_lines = [
@@ -339,7 +355,7 @@ def guest_email(envelope):
     lead = envelope["lead"]
     name = _guest_greeting_name(lead)
     promise = response_promise()
-    subject = f"We have your inquiry, {name}" if name else "We have your inquiry"
+    subject = _canary_prefix(envelope) + (f"We have your inquiry, {name}" if name else "We have your inquiry")
     greeting = f"Hi {name}," if name else "Hello,"
     facts = _guest_facts(lead)
     steps = (
@@ -398,9 +414,10 @@ def teams_card(envelope):
     message = str(lead.get("message", "")).strip()[:1000]
     body = [
         {"type": "TextBlock", "size": "Large", "weight": "Bolder", "wrap": True,
-         "text": f"New stay inquiry: {_full_name(lead)}"},
+         "text": f"{_canary_prefix(envelope)}New stay inquiry: {_full_name(lead)}"},
         {"type": "TextBlock", "wrap": True, "isSubtle": True,
-         "text": "Contact within 1 minute. " + _delivery_note(envelope.get("delivery"))},
+         "text": (CANARY_NOTE + " " if envelope.get("canary") is True else "Contact within 1 minute. ")
+         + _delivery_note(envelope.get("delivery"))},
         {"type": "FactSet", "facts": facts},
     ]
     if message:
