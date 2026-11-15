@@ -19,6 +19,11 @@
     "manual": {
       "type": "Request",
       "kind": "Http",
+      "runtimeConfiguration": {
+        "secureData": {
+          "properties": ["outputs"]
+        }
+      },
       "inputs": {
         "method": "POST",
         "schema": {
@@ -157,6 +162,11 @@
             "Create_D365_Applicant_Lead": {
               "type": "ApiConnection",
               "runAfter": {},
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": ["inputs", "outputs"]
+                }
+              },
               "inputs": {
                 "host": {
                   "connection": {

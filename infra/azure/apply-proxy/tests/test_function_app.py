@@ -625,7 +625,7 @@ def _notify_message(channel, dequeue_count=1):
 def managed_identity(monkeypatch):
     monkeypatch.setenv("IDENTITY_ENDPOINT", "http://127.0.0.1:41000/msi/token")
     monkeypatch.setenv("IDENTITY_HEADER", "identity-header")
-    function_app.intake_notify._token_cache.update(value=None, expires_at=0.0)
+    function_app.managed_identity.reset_cache()
 
 
 @pytest.fixture
@@ -852,3 +852,74 @@ def test_deep_health_is_cached_against_bursts(deep):
     calls = len(deep.calls)
     _health()
     assert len(deep.calls) == calls
+
+
+# ---------------------------------------------------------------------------
+# Locked trigger and secured run data (#17)
+# ---------------------------------------------------------------------------
+
+def _identity_answer(request):
+    if "/msi/token" not in request.full_url:
+        return None
+    assert "resource=https%3A%2F%2Fmanagement.core.windows.net%2F" in request.full_url
+    return CallbackResponse(body=json.dumps({"access_token": "mi-token", "expires_on": "4102444800"}).encode())
+
+
+def test_managed_identity_mode_sends_a_token_and_drops_the_sig(intake, managed_identity, monkeypatch):
+    monkeypatch.setenv("LOGICAPP_AUTH", "managed-identity")
+    monkeypatch.setenv(
+        "LOGICAPP_URL_APPLICATION",
+        "https://logic.example.test/workflows/x/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=secret",
+    )
+    seen = []
+    original = function_app.urllib.request.urlopen
+
+    def urlopen(request, timeout):
+        identity = _identity_answer(request)
+        if identity is not None:
+            return identity
+        seen.append(request.full_url)
+        return original(request, timeout)
+
+    monkeypatch.setattr(function_app.urllib.request, "urlopen", urlopen)
+    response = _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.60")))
+    assert response.status_code == 200
+    assert intake.calls[0]["headers"]["Authorization"] == "Bearer mi-token"
+    assert "sig=" not in seen[0]
+    assert "sp=%2Ftriggers%2Fmanual%2Frun" in seen[0] and "api-version=2016-10-01" in seen[0]
+
+
+def test_sas_mode_is_the_default_and_keeps_the_url(intake):
+    _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.61")))
+    assert "Authorization" not in intake.calls[0]["headers"]
+
+
+def test_missing_identity_queues_the_lead_instead_of_dropping_it(intake, monkeypatch):
+    monkeypatch.setenv("LOGICAPP_AUTH", "managed-identity")
+    monkeypatch.delenv("IDENTITY_ENDPOINT", raising=False)
+    function_app.managed_identity.reset_cache()
+    queue = QueueOut()
+    response = _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.62")), queue)
+    assert response.status_code == 202
+    assert json.loads(queue.messages[0])["reason"] == "auth-identity_endpoint_missing"
+    assert intake.calls == []
+
+
+def test_deep_health_reports_an_identity_failure(deep, monkeypatch):
+    monkeypatch.setenv("LOGICAPP_AUTH", "managed-identity")
+    monkeypatch.delenv("IDENTITY_ENDPOINT", raising=False)
+    function_app.managed_identity.reset_cache()
+    response, body = _health()
+    assert response.status_code == 503
+    assert body["upstream"]["LOGICAPP_URL_APPLICATION"] == "auth_identity_endpoint_missing"
+
+
+def test_run_history_does_not_keep_lead_data():
+    definition = json.loads((FUNCTION_PATH.parents[1] / "mtcottages-intake.definition.json").read_text(encoding="utf-8"))
+    trigger = definition["triggers"]["manual"]
+    assert trigger["runtimeConfiguration"]["secureData"]["properties"] == ["outputs"]
+    lead = (
+        definition["actions"]["Require_MtCottages_Business_Unit"]["actions"]["Require_MtCottages_Owner_Team"]
+        ["actions"]["Create_D365_Applicant_Lead"]
+    )
+    assert sorted(lead["runtimeConfiguration"]["secureData"]["properties"]) == ["inputs", "outputs"]

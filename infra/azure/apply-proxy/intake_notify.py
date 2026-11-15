@@ -36,13 +36,13 @@ import json
 import logging
 import os
 import re
-import threading
-import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
 from datetime import datetime, timezone
+
+import managed_identity
 
 logger = logging.getLogger(__name__)
 
@@ -55,13 +55,11 @@ CHANNELS = (CHANNEL_STAFF_EMAIL, CHANNEL_TEAMS, CHANNEL_GUEST_EMAIL)
 
 ACS_EMAIL_API_VERSION = "2023-03-31"
 ACS_TOKEN_RESOURCE = "https://communication.azure.com"
-MANAGED_IDENTITY_API_VERSION = "2019-08-01"
 DEFAULT_REPLY_TO = "stay@mtcottages.com"
 DEFAULT_RESPONSE_PROMISE = "within 2 business hours"
 SEND_TIMEOUT_SECONDS = 15
 MAX_RESPONSE_BYTES = 64 * 1_024
 MAX_RECIPIENTS = 10
-TOKEN_REFRESH_MARGIN_SECONDS = 300
 ADDRESS_PATTERN = re.compile(r"[^\s@<>,;\"]+@[^\s@<>,;\"]+\.[^\s@<>,;\"]+")
 # Idempotent per (submission, channel): a retried ACS send with the same
 # repeatability id is accepted once.
@@ -103,9 +101,6 @@ HOME_NAMES = {
     "henrietta": "Henrietta Cottage",
     "virginia": "Virginia Cottage",
 }
-
-_token_lock = threading.Lock()
-_token_cache = {"value": None, "expires_at": 0.0}
 
 
 class NotificationError(RuntimeError):
@@ -465,36 +460,13 @@ def _post_json(url, payload, headers, label):
 
 
 def _managed_identity_token():
-    """A bearer token for ACS from the Function App's managed identity, cached until near expiry."""
-    now = time.time()
-    with _token_lock:
-        if _token_cache["value"] and now < _token_cache["expires_at"] - TOKEN_REFRESH_MARGIN_SECONDS:
-            return _token_cache["value"]
-    endpoint = os.environ.get("IDENTITY_ENDPOINT", "")
-    identity_header = os.environ.get("IDENTITY_HEADER", "")
-    if not endpoint or not identity_header:
-        raise NotificationConfigError("managed identity is not available to the Function App")
-    query = urllib.parse.urlencode({"resource": ACS_TOKEN_RESOURCE, "api-version": MANAGED_IDENTITY_API_VERSION})
-    request = urllib.request.Request(f"{endpoint}?{query}", headers={"X-IDENTITY-HEADER": identity_header})
+    """A bearer token for ACS from the Function App's managed identity."""
     try:
-        with urllib.request.urlopen(request, timeout=SEND_TIMEOUT_SECONDS) as response:
-            token_response = json.loads(response.read(MAX_RESPONSE_BYTES).decode("utf-8"))
-    except urllib.error.HTTPError as error:
-        error.close()
-        raise NotificationError(f"managed identity answered HTTP {error.code}") from None
-    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as error:
-        raise NotificationError(f"managed identity token failed: {type(error).__name__}") from None
-    token = token_response.get("access_token") if isinstance(token_response, dict) else None
-    if not isinstance(token, str) or not token:
-        raise NotificationError("managed identity returned no token")
-    try:
-        expires_at = float(token_response.get("expires_on", 0))
-    except (TypeError, ValueError):
-        expires_at = 0.0
-    with _token_lock:
-        _token_cache["value"] = token
-        _token_cache["expires_at"] = expires_at or now + 600
-    return token
+        return managed_identity.get_token(ACS_TOKEN_RESOURCE)
+    except managed_identity.ManagedIdentityError as error:
+        if error.reason == "identity_endpoint_missing":
+            raise NotificationConfigError("managed identity is not available to the Function App") from None
+        raise NotificationError(f"managed identity token failed: {error.reason}") from None
 
 
 def _send_email(envelope, recipients, subject, text, markup, reply_to):
