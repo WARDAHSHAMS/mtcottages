@@ -245,6 +245,31 @@ test("header inquiry clicks are counted with their source and audience links wit
   await expectNothingStored(page, context);
 });
 
+// GitHub Pages run #112 went red because the live-host branch of the analytics script (send,
+// do not queue) only ever ran in the post-publish live smoke. This serves the build under test
+// as https://mtcottages.com so every MR runs that branch. The collector is always answered
+// here, so no beacon from this test reaches production counts.
+test("on the live host the beacon goes to the collector as test traffic and stays readable", async ({ page, context, baseURL }) => {
+  const liveOrigin = "https://mtcottages.com";
+  if (!/^https:\/\/(www\.)?mtcottages\.com\/?$/.test(baseURL ?? "")) {
+    await page.route(`${liveOrigin}/**`, async (route) => {
+      const url = new URL(route.request().url());
+      const response = await route.fetch({ url: new URL(url.pathname + url.search, baseURL).href });
+      await route.fulfill({ response });
+    });
+  }
+  const collected = [];
+  await page.route("https://stay.mtcottages.com/api/collect", async (route) => {
+    collected.push(JSON.parse(route.request().postData() ?? "{}"));
+    await route.fulfill({ status: 204 });
+  });
+  await page.goto(`${liveOrigin}/marietta/frederick/index.html`);
+  const pageview = expect.objectContaining({ e: "pageview", p: "/marietta/frederick/index.html", h: "frederick", t: "webdriver" });
+  await expect.poll(() => collected).toContainEqual(pageview);
+  await expect.poll(() => beacons(page)).toContainEqual(pageview);
+  await expectNothingStored(page, context);
+});
+
 test("the privacy notice explains the cookieless visit counts", async ({ page }) => {
   await page.goto("/privacy.html");
   await expect(page.locator("main")).toContainText("Visit counts without cookies");

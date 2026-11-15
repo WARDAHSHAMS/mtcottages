@@ -4,7 +4,8 @@
 // inquiry link to the first-party collector on stay.mtcottages.com. It stores
 // nothing in the browser: no cookie, no localStorage, no identifier. Off the
 // live hosts (local preview, CI) the beacons are kept in window.__mtcAnalytics
-// instead of being sent, so tests can read them.
+// instead of being sent, so tests can read them. A webdriver browser on the
+// live hosts both sends them (labelled as test traffic) and keeps the record.
 ---
 
 <script>
@@ -28,10 +29,12 @@
     if (optedOut) return;
     const payload: Beacon = { ...beacon };
     if (testLabel) payload.t = testLabel;
-    if (!LIVE_HOSTS.has(location.hostname)) {
-      (analyticsWindow.__mtcAnalytics ??= []).push(payload);
-      return;
-    }
+    const live = LIVE_HOSTS.has(location.hostname);
+    // Tests read the record: off the live hosts it replaces sending, and on
+    // them (the post-publish live smoke) it sits beside the labelled beacon.
+    // A real visitor's browser never gets the record.
+    if (testLabel || !live) (analyticsWindow.__mtcAnalytics ??= []).push(payload);
+    if (!live) return;
     const body = JSON.stringify(payload);
     try {
       // text/plain keeps this a simple cross-origin request: no preflight, no credentials.
