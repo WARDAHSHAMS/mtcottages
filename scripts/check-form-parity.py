@@ -8,6 +8,7 @@ the Logic App request schema instead of maintaining two public copies of the
 form.
 """
 
+import ast
 import json
 import sys
 from html.parser import HTMLParser
@@ -17,11 +18,13 @@ ROOT = Path(__file__).resolve().parent.parent
 LEGACY_HTML = ROOT / "dist" / "apply.html"
 PROXY_HTML = ROOT / "infra" / "azure" / "apply-proxy" / "index.html"
 LOGIC_APP = ROOT / "infra" / "azure" / "mtcottages-intake.definition.json"
+FUNCTION_APP = ROOT / "infra" / "azure" / "apply-proxy" / "function_app.py"
 FIELD_TAGS = {"input", "select", "textarea"}
 
 EXPECTED_SELECTS = {
     "duration": ["", "One to three months", "Three to twelve months", "A year or more", "Flexible / not sure"],
-    "preferredLocation": ["", "Marietta, OH", "Parkersburg, WV", "Ravenswood, WV", "Grantsville, WV", "Racine, OH", "Athens, OH", "Open to options"],
+    # Only towns with a listed home, plus "Open to options" (#71).
+    "preferredLocation": ["", "Marietta, OH", "Parkersburg, WV", "Ravenswood, WV", "Open to options"],
     "homeSize": ["", "Studio or one-bedroom", "Two-bedroom", "Three-bedroom", "Four-bedroom", "Open to options"],
     "stayType": ["", "Travel or healthcare assignment", "Work or relocation", "Insurance housing", "Family or furnished stay", "Research or fellowship", "Personal transition", "Something else"],
     "pets": ["", "No pets", "Yes — I’ll share details below", "Prefer to discuss"],
@@ -90,6 +93,26 @@ class ApplicationFormExtractor(HTMLParser):
             self._current_option_text.append(data)
 
 
+def _literal_strings(node: ast.AST) -> set:
+    """Strings in a frozenset({...}) call, or a union (|) of such calls."""
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+        return _literal_strings(node.left) | _literal_strings(node.right)
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "frozenset" and len(node.args) == 1:
+        return set(ast.literal_eval(node.args[0]))
+    raise ValueError(f"unsupported CHOICE_FIELDS value at line {getattr(node, 'lineno', '?')}")
+
+
+def function_choice_fields(path: Path) -> dict:
+    """Read CHOICE_FIELDS from function_app.py without importing it (it needs the Azure SDK)."""
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    for statement in tree.body:
+        if isinstance(statement, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "CHOICE_FIELDS" for target in statement.targets):
+            if not isinstance(statement.value, ast.Dict):
+                raise ValueError("CHOICE_FIELDS is not a dict literal")
+            return {ast.literal_eval(key): _literal_strings(value) for key, value in zip(statement.value.keys, statement.value.values)}
+    raise ValueError("CHOICE_FIELDS not found")
+
+
 def extract(path: Path) -> ApplicationFormExtractor:
     parser = ApplicationFormExtractor()
     parser.feed(path.read_text(encoding="utf-8"))
@@ -135,6 +158,21 @@ def main() -> int:
         errors.append(f"required fields differ: form={sorted(form_required)} schema={sorted(schema.get('required', []))}")
     if form.select_options != EXPECTED_SELECTS:
         errors.append(f"select options differ from the canonical stay contract: {form.select_options}")
+
+    # Every option the form offers must pass the function's server-side check,
+    # or a guest who picks it gets a rejected inquiry.
+    try:
+        server_choices = function_choice_fields(FUNCTION_APP)
+    except (OSError, SyntaxError, ValueError) as error:
+        errors.append(f"could not read CHOICE_FIELDS from {FUNCTION_APP}: {error}")
+        server_choices = {}
+    for name, options in form.select_options.items():
+        if name not in server_choices:
+            errors.append(f"select '{name}' has no CHOICE_FIELDS entry in function_app.py")
+            continue
+        rejected = [option for option in options if option and option not in server_choices[name]]
+        if rejected:
+            errors.append(f"select '{name}' offers options the function rejects: {rejected}")
 
     if errors:
         print("Canonical stay application contract FAILED:\n", file=sys.stderr)

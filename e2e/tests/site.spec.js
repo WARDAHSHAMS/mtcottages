@@ -8,10 +8,14 @@ const otherMicrosites = [
   "/ravenswood/virginia-cottage/", "/ravenswood/henrietta-cottage/",
 ];
 const homeMicrosites = [frederickBase, ...otherMicrosites];
-// Yellow and Walnut have no microsite (CEO decision 2026-11-14); they keep their single property pages.
-const singlePropertyPages = ["/parkersburg/yellow-cottage.html", "/ravenswood/walnut-cottage.html"];
+// Yellow and Walnut are parked (CEO decision 2026-11-14): not listed anywhere, and their old pages
+// send guests to the town page.
+const parkedHomePages = [
+  ["/parkersburg/yellow-cottage.html", "/parkersburg/index.html"],
+  ["/ravenswood/walnut-cottage.html", "/ravenswood/index.html"],
+];
 // The live homes on the home page, by town, and where each one links (Frederick keeps its long-standing
-// index.html URL). Yellow is not ready and Walnut has no microsite, so neither is on the home page (#21).
+// index.html URL). cottages.html lists the same homes, one card each.
 const listedHomes = [
   ["marietta", "Frederick Cottage", "/marietta/frederick/index.html"],
   ["parkersburg", "Broad Cottage", "/parkersburg/broad-cottage/"],
@@ -20,6 +24,8 @@ const listedHomes = [
   ["ravenswood", "Virginia Cottage", "/ravenswood/virginia-cottage/"],
   ["ravenswood", "Henrietta Cottage", "/ravenswood/henrietta-cottage/"],
 ];
+// Developer and planning language that must never reach a guest (#71).
+const developerCopy = /\bLevel \d\b|\bmicrosite\b|\bpublic (homes?|cottages?|portfolio|options|image|site)\b|photo need|\bis sourced\b|\bdrill (down|deeper)\b/i;
 
 const publicPages = [
   "/index.html", "/cottages.html", "/available.html", "/locations.html", "/room-to-settle.html",
@@ -31,7 +37,6 @@ const publicPages = [
   "/resident-portal.html", "/maintenance.html", "/emergency-maintenance.html",
   "/marietta/index.html", "/parkersburg/index.html", "/ravenswood/index.html",
   "/grantsville/index.html", "/racine/index.html",
-  ...singlePropertyPages,
   ...homeMicrosites.flatMap((base) => [base, ...["tour", "plan", "amenities", "location"].map((page) => `${base}${page}.html`)]),
   "/marietta/frederick/index.html", `${frederickBase}guide.html`,
   "/404.html"
@@ -69,6 +74,13 @@ test("every public route is reachable and privacy-safe", async ({ page, request 
     await page.goto(path);
     await expect(page.locator('link[rel="stylesheet"]'), `${path} lost native stylesheet`).not.toHaveCount(0);
     await expect(page.locator("body"), `${path} needs visible content`).not.toBeEmpty();
+    // #71: parked homes are never offered, and no developer language is visible or in alt/caption text.
+    const text = await page.locator("body").innerText();
+    expect(text, `${path} mentions a parked home`).not.toMatch(/Yellow Cottage|Walnut Cottage/);
+    expect(html, `${path} links a parked home`).not.toMatch(/yellow-cottage|walnut-cottage|property=(yellow|walnut)\b/);
+    expect(text.match(developerCopy)?.[0], `${path} shows developer copy`).toBeUndefined();
+    const attributes = await page.locator("img[alt], [data-caption], [aria-label]").evaluateAll((nodes) => nodes.map((node) => [node.getAttribute("alt"), node.getAttribute("data-caption"), node.getAttribute("aria-label")].join(" ")));
+    expect(attributes.join(" ").match(developerCopy)?.[0], `${path} has developer copy in alt, caption or label text`).toBeUndefined();
     if (path !== "/404.html") {
       await expect(page.locator(".skip-link"), `${path} lost the skip link`).toHaveAttribute("href", "#main-content");
       await expect(page.locator("#main-content"), `${path} lost the main content target`).toHaveCount(1);
@@ -113,7 +125,15 @@ test("property inquiry CTAs go directly to stay with cottage context", async ({ 
 
 test("the cottages and locations indexes expose useful property details", async ({ page }) => {
   await page.goto("/cottages.html");
-  await expect(page.locator(".property-card")).toHaveCount(8);
+  await expect(page.locator(".property-card")).toHaveCount(listedHomes.length);
+  // #71: prices change only with the owner's answer (see "Price drift" in notes/owner-decisions.md).
+  const shownPrices = {
+    "Frederick Cottage": "$2,575/month", "Broad Cottage": "$1,895/month", "Buck Cottage": "$1,895/month",
+    "Oak Cottage": "$2,575/month", "Virginia Cottage": "$2,295/month", "Henrietta Cottage": "$2,295/month",
+  };
+  for (const [name, price] of Object.entries(shownPrices)) {
+    await expect(page.locator(".property-card").filter({ has: page.locator("h2", { hasText: name }) }).locator(".property-price")).toHaveText(price);
+  }
   await expect(page.locator(".comparison-table")).toHaveCount(0);
   await expect(page.getByText("Compare at a glance")).toHaveCount(0);
   await expect(page.locator(".property-card").filter({ hasText: "$2,575/month" }).first()).toBeVisible();
@@ -122,14 +142,29 @@ test("the cottages and locations indexes expose useful property details", async 
   await page.goto("/locations.html");
   await expect(page.locator(".location-row")).toHaveCount(5);
   await expect(page.locator(".location-row").nth(3)).toContainText("Planning guide");
+  // The lede names exactly the towns whose rows list homes.
+  const listedTowns = await page.locator(".location-row").filter({ hasText: /cottages? listed/ }).locator("h2").allInnerTexts();
+  expect(listedTowns.length).toBeGreaterThan(0);
+  for (const town of listedTowns) await expect(page.getByTestId("locations-lede")).toContainText(`${town.split(",")[0]}`);
+  await expect(page.getByTestId("locations-lede")).toContainText("have furnished homes listed today");
 });
 
-test("Walnut's property page and Buck's microsite lead with interior photography", async ({ page }) => {
-  await page.goto("/ravenswood/walnut-cottage.html");
-  await expect(page.locator("h1")).toHaveText("Walnut Cottage");
-  await expect(page.locator("main img").first()).toHaveAttribute("alt", /Walnut Cottage.*bedroom/i);
-  await expect(page.locator('main img[alt*="exterior"]')).toHaveCount(0);
+test("parked homes' old pages send guests to the town page and stay out of search", async ({ page, request }) => {
+  const sitemap = await (await request.get("/sitemap.xml")).text();
+  for (const [oldPath, townPath] of parkedHomePages) {
+    const response = await request.get(oldPath);
+    expect(response.status(), oldPath).toBe(200);
+    const html = await response.text();
+    expect(html).toContain('<meta name="robots" content="noindex">');
+    expect(html).toContain(`http-equiv="refresh" content="0;url=${townPath}"`);
+    expect(html).not.toMatch(/Yellow|Walnut/);
+    expect(sitemap, `${oldPath} is not in the sitemap`).not.toContain(oldPath);
+    await page.goto(oldPath);
+    await expect(page).toHaveURL(new RegExp(`${townPath.replace(/[.]/g, "\\.")}$`));
+  }
+});
 
+test("Buck's microsite leads with interior photography", async ({ page }) => {
   await page.goto("/parkersburg/buck-cottage/");
   await expect(page.locator("h1")).toHaveText("Buck Cottage");
   await expect(page.locator("main img").first()).toHaveAttribute("alt", /^Living room/);

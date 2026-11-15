@@ -5,8 +5,6 @@ import { cardTerms } from "../data/terms";
 const { cottage } = Astro.props as { cottage: Cottage };
 const terms = cardTerms(cottage.id);
 const mainHref = `/${cottage.path}`;
-// A microsite path is a folder ("town/home/" or Frederick's "…/index.html"); a single property page is "town/home.html".
-const hasMicrosite = cottage.path.endsWith("/") || cottage.path.endsWith("/index.html");
 ---
 
 <article class="property-card">
@@ -27,6 +25,6 @@ const hasMicrosite = cottage.path.endsWith("/") || cottage.path.endsWith("/index
       <div><dt>Move-in</dt><dd data-term="available">{terms.available}</dd></div>
       {terms.minimumStay && <div><dt>Stay</dt><dd data-term="minimum-stay">{terms.minimumStay}</dd></div>}
     </dl>
-    <a class="property-link" href={mainHref}>{hasMicrosite ? "Explore the home site" : "View property"} <span aria-hidden="true">↗</span></a>
+    <a class="property-link" href={mainHref}>Explore the home site <span aria-hidden="true">↗</span></a>
   </div>
 </article>

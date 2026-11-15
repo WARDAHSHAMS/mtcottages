@@ -10,7 +10,7 @@ const micrositeRoots = [
   "/marietta/frederick/", "/parkersburg/broad-cottage/", "/parkersburg/buck-cottage/",
   "/parkersburg/oak-cottage/", "/ravenswood/henrietta-cottage/", "/ravenswood/virginia-cottage/",
 ];
-// Parked homes (CEO decision 2026-11-14) stay reachable but out of search.
+// Parked homes (CEO decision 2026-11-14): their old URLs redirect to the town page, out of search.
 const parkedPages = ["/parkersburg/yellow-cottage.html", "/ravenswood/walnut-cottage.html"];
 
 const canonicalHrefs = (html) => [...html.matchAll(/<link[^>]+rel="canonical"[^>]*>/gi)].map((tag) => tag[0].match(/href="([^"]+)"/i)?.[1]);
@@ -94,13 +94,15 @@ test("every sitemap page answers 200 with exactly one self-referencing canonical
   }
 });
 
-test("parked homes stay reachable but are kept out of search", async ({ request }) => {
+test("parked homes' old URLs answer, stay out of search and point at the town page", async ({ request }) => {
   for (const path of parkedPages) {
     const response = await request.get(path);
     expect(response.status(), `${path} status`).toBe(200);
     const html = await response.text();
     expect(isNoindex(html), `${path} noindex`).toBe(true);
-    expect(canonicalHrefs(html)).toEqual([`${origin}${path}`]);
+    // #71: the page is a redirect to the town's listed homes, so its canonical is the town page.
+    const town = path.split("/")[1];
+    expect(canonicalHrefs(html)).toEqual([`${origin}/${town}/index.html`]);
   }
 });
 

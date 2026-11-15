@@ -10,13 +10,14 @@ interface Props {
   up: RailLink;
   prev: RailLink;
   next: RailLink;
+  label: string;
 }
 
-const { up, prev, next } = Astro.props as Props;
+const { up, prev, next, label } = Astro.props as Props;
 const links = [prev, up, next];
 ---
 
-<nav class="drill-rail-wrap" aria-label="Drill deeper">
+<nav class="drill-rail-wrap" aria-label={label}>
   <div class="drill-rail stagger">
     {links.map((link) => (
       <a href={link.href}>

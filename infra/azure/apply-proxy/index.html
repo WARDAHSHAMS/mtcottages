@@ -39,7 +39,7 @@
           <label>Preferred move-in date <input type="date" name="moveInDate" required></label>
           <label>How long might you stay?<select name="duration" required><option value="">What timing fits your stay?</option><option>One to three months</option><option>Three to twelve months</option><option>A year or more</option><option>Flexible / not sure</option></select></label>
           <label>Number of occupants <input type="number" name="occupants" min="1" max="20" required></label>
-          <label>Preferred community<select name="preferredLocation" required><option value="">Preferred community</option><option>Marietta, OH</option><option>Parkersburg, WV</option><option>Ravenswood, WV</option><option>Grantsville, WV</option><option>Racine, OH</option><option>Athens, OH</option><option>Open to options</option></select></label>
+          <label>Preferred community<select name="preferredLocation" required><option value="">Preferred community</option><option>Marietta, OH</option><option>Parkersburg, WV</option><option>Ravenswood, WV</option><option>Open to options</option></select></label>
           <label>What kind of place feels right?<select name="homeSize"><option value="">What kind of place feels right?</option><option>Studio or one-bedroom</option><option>Two-bedroom</option><option>Three-bedroom</option><option>Four-bedroom</option><option>Open to options</option></select></label>
           <label>What brings you here?<select name="stayType" required><option value="">What brings you here?</option><option>Travel or healthcare assignment</option><option>Work or relocation</option><option>Insurance housing</option><option>Family or furnished stay</option><option>Research or fellowship</option><option>Personal transition</option><option>Something else</option></select></label>
         </div></fieldset>
@@ -63,17 +63,15 @@
       </form>
     </div></section>
   </main>
-  <footer class="site-footer"><div class="wrap">Mt Cottages · Marietta · Parkersburg · Ravenswood · Racine</div></footer>
+  <footer class="site-footer"><div class="wrap">Mt Cottages · Marietta · Parkersburg · Ravenswood</div></footer>
   <script nonce="__INLINE_SCRIPT_NONCE__">
     const form = document.querySelector("[data-application-form]");
     const params = new URLSearchParams(window.location.search);
     const properties = {
-      frederick: { name: "Frederick Cottage", path: "marietta/frederick/index.html", town: "marietta" },
+      frederick: { name: "Frederick Cottage", path: "marietta/frederick/", town: "marietta" },
       broad: { name: "Broad Cottage", path: "parkersburg/broad-cottage/", town: "parkersburg" },
       buck: { name: "Buck Cottage", path: "parkersburg/buck-cottage/", town: "parkersburg" },
-      yellow: { name: "Yellow Cottage", path: "parkersburg/yellow-cottage.html", town: "parkersburg" },
       oak: { name: "Oak Cottage", path: "parkersburg/oak-cottage/", town: "parkersburg" },
-      walnut: { name: "Walnut Cottage", path: "ravenswood/walnut-cottage.html", town: "ravenswood" },
       virginia: { name: "Virginia Cottage", path: "ravenswood/virginia-cottage/", town: "ravenswood" },
       henrietta: { name: "Henrietta Cottage", path: "ravenswood/henrietta-cottage/", town: "ravenswood" },
     };
@@ -103,9 +101,10 @@
         marietta: "Marietta, OH",
         parkersburg: "Parkersburg, WV",
         ravenswood: "Ravenswood, WV",
-        grantsville: "Grantsville, WV",
-        racine: "Racine, OH",
-        athens: "Athens, OH",
+        // No home is listed in these towns; the guest is open to nearby options.
+        grantsville: "Open to options",
+        racine: "Open to options",
+        athens: "Open to options",
       },
     };
 

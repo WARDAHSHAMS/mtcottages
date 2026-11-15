@@ -39,11 +39,8 @@ const microsites = [
   ["virginia", "Virginia Cottage", "/ravenswood/virginia-cottage/", "ravenswood", "Ravenswood, WV", ["tour", "plan", "amenities", "location"]],
   ["henrietta", "Henrietta Cottage", "/ravenswood/henrietta-cottage/", "ravenswood", "Ravenswood, WV", ["tour", "plan", "amenities", "location"]],
 ];
-// Yellow and Walnut keep single property pages (no microsite).
-const propertyPages = [
-  ["yellow", "Yellow Cottage", "/parkersburg/yellow-cottage.html"],
-  ["walnut", "Walnut Cottage", "/ravenswood/walnut-cottage.html"],
-];
+// Yellow and Walnut are parked (CEO decision 2026-11-14, #71): their old URLs are
+// noindex redirects to the town page, checked in site.spec.js, with no inquiry links.
 
 const stayHrefs = (page) =>
   page.locator(`a[href^="${STAY}"]`).evaluateAll((links) => links.map((link) => link.getAttribute("href")));
@@ -71,10 +68,6 @@ test("every inquiry link on every home page carries that home and its source pag
       await page.goto(pathname);
       await expectEveryStayLink(page, pathname, { property: id });
     }
-  }
-  for (const [id, , pathname] of propertyPages) {
-    await page.goto(pathname);
-    await expectEveryStayLink(page, pathname, { property: id });
   }
 });
 
