@@ -71,6 +71,13 @@ test("the application API is healthy and safely rejects a bot probe", async ({ r
         { timeout: 180_000, intervals: [5_000, 10_000] }
       )
       .toBe(expectedCommit);
+
+    // #23: the staff dashboard must be its own key-protected route. When the
+    // catch-all form route shadowed it, /api/stats answered the form page with
+    // HTTP 200. Checked against the commit just deployed, so the GitHub Pages
+    // run (no EXPECTED_COMMIT) never races a GitLab deploy here.
+    const stats = await request.get("/api/stats?format=json");
+    expect(stats.status(), "GET /api/stats without a key").toBe(401);
   }
 
   const rejected = await request.post("/api/apply", {

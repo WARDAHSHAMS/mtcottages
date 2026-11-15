@@ -725,46 +725,6 @@ def _retry_envelope(submission_id, outbound, reason, canary=False):
     })
 
 
-@app.route(route="{*route}", methods=["GET"])
-def application_form(req: func.HttpRequest) -> func.HttpResponse:
-    requested_path = urllib.parse.urlparse(req.url).path.rstrip("/")
-    # The Front Door origin probe (infrastructure#510) calls the origin by its
-    # azurewebsites.net host with no X-Forwarded-Host, so liveness must answer
-    # before the canonical-host check. The body is constant and the site is
-    # reachable only through Front Door (x-azure-fdid access restriction); every
-    # other path still requires the canonical hostname.
-    if requested_path == "/api/health":
-        return _health_response(req)
-    if not _canonical_host(req):
-        return func.HttpResponse("Not found", status_code=404, headers=SECURITY_HEADERS)
-    if requested_path.endswith("/health"):
-        return _health_response(req)
-    form_path = Path(__file__).with_name("index.html")
-    try:
-        markup = form_path.read_text(encoding="utf-8")
-    except OSError:
-        return func.HttpResponse("Application form unavailable", status_code=503, headers=SECURITY_HEADERS)
-
-    if not _turnstile_is_configured():
-        logger.error("Turnstile validation is not configured")
-        return func.HttpResponse("Application form unavailable", status_code=503, headers=SECURITY_HEADERS)
-    turnstile_site_key = _turnstile_site_key()
-    script_nonce = secrets.token_urlsafe(18)
-    turnstile_script = (
-        f'<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" '
-        f'nonce="{script_nonce}" async defer></script>'
-    )
-    markup = markup.replace("<!-- TURNSTILE_SCRIPT -->", turnstile_script)
-    markup = markup.replace("__TURNSTILE_SITE_KEY__", html.escape(turnstile_site_key, quote=True))
-    markup = markup.replace('nonce="__INLINE_SCRIPT_NONCE__"', f'nonce="{script_nonce}"')
-    return func.HttpResponse(
-        markup,
-        status_code=200,
-        mimetype="text/html",
-        headers={**_page_security_headers(markup, script_nonce), "Cache-Control": "no-store"},
-    )
-
-
 def _queue_notifications(notify, submission_id, outbound, delivery, canary=False):
     """Queue the staff alert, Teams card and guest acknowledgment (#14).
 
@@ -1008,3 +968,57 @@ def purge_analytics(timer: func.TimerRequest) -> None:
     except analytics.StorageError as error:
         raise RuntimeError(f"analytics retention failed: {error.reason}") from None
     logger.info("Analytics retention deleted %d monthly tables: %s", len(deleted), ", ".join(deleted) or "none")
+
+
+# ---------------------------------------------------------------------------
+# The catch-all GET route. Keep it LAST, both in this file and by name.
+# ---------------------------------------------------------------------------
+# On this Functions host, `{*route}` is matched ahead of literal GET routes:
+# the Front Door probe's GET /api/health landed here (082387f), and so did
+# GET /api/stats. That returned the form page with HTTP 200 even with a valid
+# function key, and verify:analytics in gh-pages pipeline 146130 failed on it
+# (#23). Registering it last under a name that sorts after every other function
+# lets the literal routes win. tests/test_function_app.py enforces both, and
+# the live smoke checks that /api/stats answers 401 without a key.
+CATCH_ALL_FUNCTION_NAME = "zz_application_form"
+
+
+@app.function_name(name=CATCH_ALL_FUNCTION_NAME)
+@app.route(route="{*route}", methods=["GET"])
+def application_form(req: func.HttpRequest) -> func.HttpResponse:
+    requested_path = urllib.parse.urlparse(req.url).path.rstrip("/")
+    # The Front Door origin probe (infrastructure#510) calls the origin by its
+    # azurewebsites.net host with no X-Forwarded-Host, so liveness must answer
+    # before the canonical-host check. The body is constant and the site is
+    # reachable only through Front Door (x-azure-fdid access restriction); every
+    # other path still requires the canonical hostname.
+    if requested_path == "/api/health":
+        return _health_response(req)
+    if not _canonical_host(req):
+        return func.HttpResponse("Not found", status_code=404, headers=SECURITY_HEADERS)
+    if requested_path.endswith("/health"):
+        return _health_response(req)
+    form_path = Path(__file__).with_name("index.html")
+    try:
+        markup = form_path.read_text(encoding="utf-8")
+    except OSError:
+        return func.HttpResponse("Application form unavailable", status_code=503, headers=SECURITY_HEADERS)
+
+    if not _turnstile_is_configured():
+        logger.error("Turnstile validation is not configured")
+        return func.HttpResponse("Application form unavailable", status_code=503, headers=SECURITY_HEADERS)
+    turnstile_site_key = _turnstile_site_key()
+    script_nonce = secrets.token_urlsafe(18)
+    turnstile_script = (
+        f'<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" '
+        f'nonce="{script_nonce}" async defer></script>'
+    )
+    markup = markup.replace("<!-- TURNSTILE_SCRIPT -->", turnstile_script)
+    markup = markup.replace("__TURNSTILE_SITE_KEY__", html.escape(turnstile_site_key, quote=True))
+    markup = markup.replace('nonce="__INLINE_SCRIPT_NONCE__"', f'nonce="{script_nonce}"')
+    return func.HttpResponse(
+        markup,
+        status_code=200,
+        mimetype="text/html",
+        headers={**_page_security_headers(markup, script_nonce), "Cache-Control": "no-store"},
+    )
