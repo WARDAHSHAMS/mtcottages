@@ -143,7 +143,7 @@ test("audience hubs and town pages carry their audience or town on every inquiry
     ["/work-relocation.html", { audience: "crew" }],
     ["/insurance-housing.html", { audience: "insurance" }],
     ["/family-stays.html", { audience: "visiting-family" }],
-    ["/marietta/index.html", { location: "marietta" }],
+    ["/marietta/index.html", { location: "marietta" }, ["frederick"]],
     ["/parkersburg/index.html", { location: "parkersburg" }, ["broad", "buck", "oak"]],
     ["/ravenswood/index.html", { location: "ravenswood" }],
     ["/racine/index.html", { location: "racine" }],
