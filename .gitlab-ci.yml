@@ -123,6 +123,9 @@ site-check:
       if [ "$ready" != yes ]; then cat astro-preview.log; exit 1; fi
     # Playwright covers behaviour, privacy and axe (WCAG 2.1 AA) on every public page.
     - npm --prefix e2e test
+    # The post-deploy microsite smoke (tests/live.spec.js), against this build: it otherwise first runs
+    # after publish, where a failure can only be fixed forward from a red live site.
+    - (cd e2e && MARKETING_URL="$BASE_URL" npx playwright test tests/live.spec.js --grep "microsite index loads")
     # Mobile Lighthouse on the home page and every microsite overview and tour (pages come from the sitemap).
     - LH_REPORT="$CI_PROJECT_DIR/lighthouse-scores.json" npm --prefix e2e run perf
     # Structured data (#22): `npm run check` above type-checks every JSON-LD builder against

@@ -175,22 +175,26 @@ test("the canonical stay host redirects HTTP to HTTPS", async ({ request }) => {
 // They live on the marketing host, whatever BASE_URL the rest of this file targets.
 const marketingUrl = (process.env.MARKETING_URL || "https://mtcottages.com").replace(/\/+$/, "");
 const microsites = [
-  ["/marietta/frederick/index.html", "Frederick Cottage"],
-  ["/parkersburg/broad-cottage/", "Broad Cottage"],
-  ["/parkersburg/buck-cottage/", "Buck Cottage"],
-  ["/parkersburg/oak-cottage/", "Oak Cottage"],
-  ["/ravenswood/virginia-cottage/", "Virginia Cottage"],
-  ["/ravenswood/henrietta-cottage/", "Henrietta Cottage"],
+  ["/marietta/frederick/index.html", "Frederick Cottage", "frederick"],
+  ["/parkersburg/broad-cottage/", "Broad Cottage", "broad"],
+  ["/parkersburg/buck-cottage/", "Buck Cottage", "buck"],
+  ["/parkersburg/oak-cottage/", "Oak Cottage", "oak"],
+  ["/ravenswood/virginia-cottage/", "Virginia Cottage", "virginia"],
+  ["/ravenswood/henrietta-cottage/", "Henrietta Cottage", "henrietta"],
 ];
 
-for (const [route, name] of microsites) {
+// The test name contains "microsite index loads": GitLab site-check runs exactly these against the
+// local build (MARKETING_URL=$BASE_URL), so a regression fails in the MR, not after deploy.
+for (const [route, name, id] of microsites) {
   test(`the ${name} microsite index loads with its address, family switcher and inquiry link`, async ({ page }) => {
     const response = await page.goto(`${marketingUrl}${route}`);
     expect(response.ok()).toBeTruthy();
     await expect(page.locator("h1")).toContainText(/Cottage|home/i);
     await expect(page.locator(".hm-chip")).not.toHaveCount(0);
     await expect(page.locator(".hm-family-card")).toHaveCount(microsites.length);
-    await expect(page.locator('a[href^="https://stay.mtcottages.com/?property="]').first()).toBeVisible();
+    // Since #20 every stay link on the page carries the home, including the ones in the closed
+    // header panels, so the first match in the DOM can be hidden. A guest needs one they can see.
+    await expect(page.locator(`a[href^="https://stay.mtcottages.com/?property=${id}&"]`).filter({ visible: true }).first()).toBeVisible();
     await expect(page.locator("main img").first()).toBeVisible();
   });
 }
