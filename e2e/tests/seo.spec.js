@@ -50,8 +50,15 @@ test("the sitemap lists every live page, with lastmod, and nothing parked", asyn
     expect(paths.has(pathname), `${pathname} listed once`).toBe(false);
     paths.add(pathname);
   }
-  for (const path of ["/", "/cottages.html", "/marietta/index.html", "/parkersburg/index.html", "/ravenswood/index.html", "/parkersburg/broad-cottage/amenities.html"]) {
+  for (const path of ["/", "/cottages.html", "/parkersburg/broad-cottage/amenities.html"]) {
     expect(paths.has(path), `${path} is in the sitemap`).toBe(true);
+  }
+  // A town guide is listed once, under whichever form its canonical uses
+  // (Astro writes the directory form, /marietta/); the next test checks that
+  // the listed URL is the page's own canonical.
+  for (const town of ["marietta", "parkersburg", "ravenswood"]) {
+    const forms = [`/${town}/`, `/${town}/index.html`].filter((form) => paths.has(form));
+    expect(forms, `/${town}/ is in the sitemap exactly once`).toHaveLength(1);
   }
   for (const root of micrositeRoots) {
     expect(paths.has(root), `${root} is in the sitemap`).toBe(true);
