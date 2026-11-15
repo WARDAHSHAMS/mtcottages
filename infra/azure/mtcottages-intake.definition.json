@@ -43,7 +43,8 @@
             "termsAccepted": {"type": "string"},
             "website": {"type": "string"},
             "sourceUrl": {"type": "string"},
-            "propertyId": {"type": "string"}
+            "propertyId": {"type": "string"},
+            "submissionId": {"type": "string"}
           },
           "required": ["firstName", "lastName", "email", "phone", "stayType", "preferredLocation", "moveInDate", "duration", "occupants", "message", "termsAccepted"]
         }

@@ -57,6 +57,7 @@
         <div class="trap" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
         <input type="hidden" name="sourceUrl" value="https://stay.mtcottages.com/">
         <input type="hidden" name="propertyId" value="">
+        <input type="hidden" name="submissionId" value="">
         <p class="form-status" data-form-status role="status" aria-live="polite"></p>
         <button class="button" type="submit" data-requires-turnstile>Send inquiry <span aria-hidden="true">↗</span></button>
       </form>
@@ -124,6 +125,19 @@
       const sourceUrl = new URL(window.location.href);
       form.querySelector('[name="sourceUrl"]').value = `${sourceUrl.origin}${sourceUrl.pathname}`.slice(0, 500);
 
+      // One idempotency key per inquiry. It survives a failed send so a retry
+      // never creates a second lead; it is replaced only after a success.
+      const newSubmissionId = () => {
+        if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+        const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      };
+      const submissionField = form.querySelector('[name="submissionId"]');
+      submissionField.value = newSubmissionId();
+
       const status = form.querySelector("[data-form-status]");
       const submit = form.querySelector('[type="submit"]');
       form.addEventListener("submit", async (event) => {
@@ -144,6 +158,7 @@
           status.dataset.state = "success";
           status.textContent = "Thanks — your inquiry is on its way. Mt Cottages will follow up about availability and next steps.";
           submit.textContent = "Inquiry sent";
+          submissionField.value = newSubmissionId();
         } catch (error) {
           status.dataset.state = "error";
           status.textContent = error instanceof Error ? error.message : "Application intake unavailable. Please try again shortly.";

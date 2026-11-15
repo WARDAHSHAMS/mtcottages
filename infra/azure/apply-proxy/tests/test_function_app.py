@@ -1,10 +1,15 @@
 import importlib.util
+import io
 import json
 import re
 import sys
+import urllib.error
 import urllib.parse
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
+from typing import Generic, TypeVar
+
+import pytest
 
 FUNCTION_PATH = Path(__file__).resolve().parents[1] / "function_app.py"
 
@@ -29,8 +34,21 @@ def _load_function_app():
             def route(self, **_kwargs):
                 return lambda handler: handler
 
+            def queue_output(self, **_kwargs):
+                return lambda handler: handler
+
+            def queue_trigger(self, **_kwargs):
+                return lambda handler: handler
+
+        value_type = TypeVar("value_type")
+
+        class Out(Generic[value_type]):
+            pass
+
         functions.AuthLevel = SimpleNamespace(ANONYMOUS="anonymous")
         functions.FunctionApp = FunctionApp
+        functions.Out = Out
+        functions.QueueMessage = object
         functions.HttpRequest = object
         functions.HttpResponse = HttpResponse
         azure.functions = functions
@@ -82,6 +100,20 @@ def _valid_payload():
     }
 
 
+class QueueOut:
+    """Stands in for func.Out[str]: records what the handler queued."""
+
+    def __init__(self):
+        self.messages = []
+
+    def set(self, value):
+        self.messages.append(value)
+
+
+def _apply(request, queue=None):
+    return function_app.apply(request, queue if queue is not None else QueueOut())
+
+
 def _form_request(payload, **kwargs):
     body = urllib.parse.urlencode(payload).encode("utf-8")
     headers = {"Content-Type": "application/x-www-form-urlencoded", "Origin": "https://stay.mtcottages.com"}
@@ -110,7 +142,7 @@ def test_noncanonical_hosts_cannot_render_or_submit(monkeypatch):
     assert get_response.status_code == 404
     assert "data-application-form" not in get_response.body
 
-    post_response = function_app.apply(
+    post_response = _apply(
         _form_request({}, headers={"Host": "unexpected.example", "Origin": ""})
     )
     assert post_response.status_code == 404
@@ -263,7 +295,7 @@ def test_front_door_probe_gets_health_on_the_origin_host_but_nothing_else(monkey
 
 def test_malformed_probe_is_not_rate_limited_and_valid_repeat_gets_retry_after(monkeypatch):
     function_app._last_submission.clear()
-    bot_response = function_app.apply(_form_request({"website": "ci-probe"}))
+    bot_response = _apply(_form_request({"website": "ci-probe"}))
     assert bot_response.status_code == 400
     assert not function_app._last_submission
 
@@ -279,7 +311,7 @@ def test_malformed_probe_is_not_rate_limited_and_valid_repeat_gets_retry_after(m
         def __exit__(self, *_args):
             return False
 
-        def read(self):
+        def read(self, *_args):
             return b'{"success": true, "message": "Application received"}'
 
     callback_payload = {}
@@ -291,9 +323,212 @@ def test_malformed_probe_is_not_rate_limited_and_valid_repeat_gets_retry_after(m
 
     monkeypatch.setattr(function_app.urllib.request, "urlopen", callback)
     request_headers = {"X-Azure-ClientIP": "192.0.2.15"}
-    first = function_app.apply(_form_request(_valid_payload(), headers=request_headers))
-    second = function_app.apply(_form_request(_valid_payload(), headers=request_headers))
+    first = _apply(_form_request(_valid_payload(), headers=request_headers))
+    second = _apply(_form_request(_valid_payload(), headers=request_headers))
     assert first.status_code == 200
     assert second.status_code == 429
     assert int(second.headers["Retry-After"]) >= 1
     assert callback_payload["sourceUrl"] == "https://stay.mtcottages.com/"
+
+
+# ---------------------------------------------------------------------------
+# Durable, idempotent intake (WorldEnterpriseGroup/mtcottages#15)
+# ---------------------------------------------------------------------------
+
+SUBMISSION_ID = "3f2b8c1e-5d4a-4e6b-9c7d-1a2b3c4d5e6f"
+
+
+class CallbackResponse:
+    def __init__(self, status=200, body=b'{"success": true, "message": "Mt Cottages application accepted"}'):
+        self.status = status
+        self._body = body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def read(self, *_args):
+        return self._body
+
+
+@pytest.fixture
+def intake(monkeypatch):
+    """A configured proxy whose Logic App answer each test chooses."""
+    function_app._last_submission.clear()
+    function_app._accepted_submissions.clear()
+    monkeypatch.setenv("LOGICAPP_URL_APPLICATION", "https://logic.example.test/callback")
+    monkeypatch.setenv("RATE_LIMIT_WINDOW_SECONDS", "1")
+    monkeypatch.setattr(function_app, "_verify_turnstile", lambda _req, _payload: None)
+    state = SimpleNamespace(calls=[], answer=lambda: CallbackResponse())
+
+    def urlopen(request, timeout):
+        state.calls.append({
+            "payload": json.loads(request.data.decode("utf-8")),
+            "headers": dict(request.header_items()),
+            "timeout": timeout,
+        })
+        result = state.answer()
+        if isinstance(result, BaseException):
+            raise result
+        return result
+
+    monkeypatch.setattr(function_app.urllib.request, "urlopen", urlopen)
+    return state
+
+
+def _payload_with_id(submission_id=SUBMISSION_ID):
+    payload = _valid_payload()
+    payload["submissionId"] = submission_id
+    return payload
+
+
+def _request_from(ip):
+    return {"X-Azure-ClientIP": ip}
+
+
+def test_delivered_inquiry_forwards_the_idempotency_key(intake):
+    queue = QueueOut()
+    response = _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.30")), queue)
+    assert response.status_code == 200
+    assert json.loads(response.body)["success"] is True
+    assert queue.messages == []
+    call = intake.calls[0]
+    assert call["payload"]["submissionId"] == SUBMISSION_ID
+    assert call["headers"]["Idempotency-key"] == SUBMISSION_ID
+    assert call["timeout"] == function_app.DEFAULT_LOGICAPP_TIMEOUT_SECONDS
+
+
+def test_duplicate_submission_is_answered_without_a_second_lead(intake):
+    first = _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.31")))
+    # Same inquiry retried from another address: no rate limit, no second call.
+    second = _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.32")))
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert json.loads(second.body)["success"] is True
+    assert len(intake.calls) == 1
+
+
+def test_distinct_submissions_each_reach_intake(intake):
+    _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.33")))
+    _apply(_form_request(
+        _payload_with_id("9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"), headers=_request_from("192.0.2.34")
+    ))
+    assert len(intake.calls) == 2
+
+
+def test_missing_submission_id_gets_a_server_generated_key(intake):
+    _apply(_form_request(_valid_payload(), headers=_request_from("192.0.2.35")))
+    generated = intake.calls[0]["payload"]["submissionId"]
+    assert function_app.SUBMISSION_ID_PATTERN.fullmatch(generated)
+
+
+def test_malformed_submission_id_is_rejected_before_intake(intake):
+    response = _apply(_form_request(_payload_with_id("not-a-uuid"), headers=_request_from("192.0.2.36")))
+    assert response.status_code == 400
+    assert intake.calls == []
+
+
+@pytest.mark.parametrize(
+    ("failure", "reason"),
+    [
+        (TimeoutError("timed out"), "timeout"),
+        (urllib.error.URLError(TimeoutError("timed out")), "timeout"),
+        (urllib.error.URLError(ConnectionRefusedError("refused")), "connection-error"),
+        (ConnectionResetError("reset"), "ConnectionResetError"),
+    ],
+)
+def test_timeout_or_connection_failure_queues_the_lead(intake, failure, reason):
+    intake.answer = lambda: failure
+    queue = QueueOut()
+    response = _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.40")), queue)
+    assert response.status_code == 202
+    assert json.loads(response.body)["success"] is True
+    assert len(queue.messages) == 1
+    envelope = json.loads(queue.messages[0])
+    assert envelope["version"] == function_app.INTAKE_ENVELOPE_VERSION
+    assert envelope["submissionId"] == SUBMISSION_ID
+    assert envelope["reason"] == reason
+    assert envelope["payload"]["email"] == "ada@example.com"
+    assert envelope["payload"]["submissionId"] == SUBMISSION_ID
+    assert "cf-turnstile-response" not in envelope["payload"]
+
+
+@pytest.mark.parametrize("status", [400, 401, 404, 429, 500, 502, 503])
+def test_any_non_success_answer_queues_the_lead(intake, status):
+    def answer():
+        return urllib.error.HTTPError(
+            "https://logic.example.test/callback", status, "error", {}, io.BytesIO(b'{"success": false}')
+        )
+
+    intake.answer = answer
+    queue = QueueOut()
+    response = _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.41")), queue)
+    assert response.status_code == 202
+    assert json.loads(queue.messages[0])["reason"] == f"http-{status}"
+
+
+def test_queued_lead_is_not_remembered_so_a_failed_queue_write_can_be_retried(intake):
+    intake.answer = lambda: TimeoutError("timed out")
+    _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.42")))
+    intake.answer = lambda: CallbackResponse()
+    retry = _apply(_form_request(_payload_with_id(), headers=_request_from("192.0.2.43")))
+    assert retry.status_code == 200
+    assert len(intake.calls) == 2
+
+
+def test_logicapp_timeout_is_configurable_and_bounded(monkeypatch):
+    monkeypatch.setenv("LOGICAPP_TIMEOUT_SECONDS", "40")
+    assert function_app._logicapp_timeout() == 40
+    for invalid in ("1", "500", "nan", "soon"):
+        monkeypatch.setenv("LOGICAPP_TIMEOUT_SECONDS", invalid)
+        assert function_app._logicapp_timeout() == function_app.DEFAULT_LOGICAPP_TIMEOUT_SECONDS
+
+
+class QueueMessage:
+    def __init__(self, body, dequeue_count=1):
+        self._body = body if isinstance(body, bytes) else body.encode("utf-8")
+        self.dequeue_count = dequeue_count
+
+    def get_body(self):
+        return self._body
+
+
+def _queued_envelope():
+    return function_app._retry_envelope(
+        SUBMISSION_ID, {**_valid_payload(), "submissionId": SUBMISSION_ID}, "timeout"
+    )
+
+
+def test_redelivery_succeeds_and_keeps_the_key(intake):
+    function_app.redeliver_intake(QueueMessage(_queued_envelope(), dequeue_count=2))
+    assert intake.calls[0]["payload"]["submissionId"] == SUBMISSION_ID
+    assert intake.calls[0]["headers"]["Idempotency-key"] == SUBMISSION_ID
+
+
+def test_redelivery_failure_raises_so_the_runtime_retries_then_poisons(intake):
+    intake.answer = lambda: TimeoutError("timed out")
+    with pytest.raises(RuntimeError, match="timeout"):
+        function_app.redeliver_intake(QueueMessage(_queued_envelope()))
+
+
+def test_redelivery_without_configuration_keeps_the_message(intake, monkeypatch):
+    monkeypatch.delenv("LOGICAPP_URL_APPLICATION")
+    with pytest.raises(RuntimeError, match="not configured"):
+        function_app.redeliver_intake(QueueMessage(_queued_envelope()))
+    assert intake.calls == []
+
+
+@pytest.mark.parametrize("body", [b"\xff", b"not json", b'{"version": 99, "payload": {}}', b'{"version": 1}'])
+def test_redelivery_rejects_malformed_messages(intake, body):
+    with pytest.raises(ValueError):
+        function_app.redeliver_intake(QueueMessage(body))
+    assert intake.calls == []
+
+
+def test_retry_policy_is_bounded_in_host_json():
+    host = json.loads((FUNCTION_PATH.parent / "host.json").read_text(encoding="utf-8"))
+    queues = host["extensions"]["queues"]
+    assert 3 <= queues["maxDequeueCount"] <= 10
+    assert queues["batchSize"] == 1

@@ -34,6 +34,17 @@ The workflow first looks up that business unit, then finds its default owner tea
 
 The existing `dynamicscrmonline` connection and `d365Organization` parameter remain in use so this change fits the current Logic App deployment. No CRM secrets or connection IDs should be added to source control.
 
+## Durable, idempotent intake (#15)
+
+No inquiry that passed validation and Turnstile is dropped, and a retry never creates a second lead.
+
+- **Idempotency key.** The form sends `submissionId`, a UUID v4 generated in the browser. It is kept across a failed send and replaced only after a success. The proxy validates it (or generates one for an older cached page) and forwards it to the Logic App in the body and as the `Idempotency-Key` header. It is part of the trigger schema, so `check-form-parity.py` keeps the form and the definition aligned.
+- **Duplicates.** An instance that already delivered a `submissionId` answers a repeat with the same success and does not call the Logic App again (24 h, per instance). Cross-instance de-duplication belongs in the Logic App, keyed on `submissionId` (#13).
+- **Timeouts and failures.** The Logic App call has a bounded timeout (`LOGICAPP_TIMEOUT_SECONDS`, default 25, allowed 5–120). A timeout, a connection failure or any non-2xx answer, including a broken trigger URL, writes the lead to the Storage queue `intake-retry` in the Function App's own host storage account (`AzureWebJobsStorage`; no new resource). The guest gets HTTP 202, `success: true`, because the inquiry is durably held.
+- **Redelivery.** The queue-triggered function `redeliver_intake` retries with the same `submissionId`. `host.json` allows 8 attempts, 2 minutes apart at the least. After the last attempt the runtime moves the message to `intake-retry-poison`, where it waits for staff recovery. A non-empty poison queue is an alert condition (#16). Queue messages expire after 7 days, so the alert must page well within that.
+- **Logs** carry the `submissionId` and a reason label (`timeout`, `http-503`, …), never lead fields.
+- If the host cannot write the queue message, it answers 500. The submission is then not remembered, so the browser's retry with the same key is processed again.
+
 ## Live deployment / runbook
 
 The Function App `mtcottages-apply-proxy` (resource group `mtcottages`, Linux Consumption) is published by GitLab CI and by nothing else (WorldEnterpriseGroup/mtcottages#9). Nobody deploys it from a workstation: the hand-run `az functionapp deployment source config-zip` path is retired.

@@ -83,6 +83,35 @@ test("the application API is healthy and safely rejects a bot probe", async ({ r
   });
 });
 
+// #15: every inquiry carries a client idempotency key so a retry never creates
+// a second lead. Checked on the published page only; nothing is submitted.
+test("the inquiry form carries a fresh idempotency key", async ({ page, request }) => {
+  const expectedCommit = (process.env.EXPECTED_COMMIT || "").trim();
+  if (expectedCommit) {
+    await expect
+      .poll(
+        async () => {
+          try {
+            const response = await request.get("/api/health");
+            return response.ok() ? (await response.json()).commit || "" : "";
+          } catch {
+            return "";
+          }
+        },
+        { timeout: 180_000, intervals: [5_000, 10_000] }
+      )
+      .toBe(expectedCommit);
+  }
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+  await page.goto("/");
+  const first = await page.locator('input[name="submissionId"]').inputValue();
+  expect(first).toMatch(uuid);
+  await page.reload();
+  const second = await page.locator('input[name="submissionId"]').inputValue();
+  expect(second).toMatch(uuid);
+  expect(second).not.toBe(first);
+});
+
 test("the canonical stay host redirects HTTP to HTTPS", async ({ request }) => {
   const stayHttp = await request.get("http://stay.mtcottages.com/", { maxRedirects: 0 });
   expect(stayHttp.status()).toBe(307);

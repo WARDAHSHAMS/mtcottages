@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import html
+import http.client
 import ipaddress
 import json
 import logging
@@ -13,7 +14,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import date
+import uuid
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import azure.functions as func
@@ -22,6 +24,24 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 logger = logging.getLogger(__name__)
 _last_submission = {}
 _rate_limit_lock = threading.Lock()
+# submissionId -> monotonic time it was delivered or durably queued. Best-effort
+# per instance: it answers a browser retry without calling the Logic App twice.
+_accepted_submissions = {}
+_accepted_lock = threading.Lock()
+# Durable fallback (WorldEnterpriseGroup/mtcottages#15): a lead the Logic App did
+# not accept is written to this queue in the Function App's own host storage
+# account (AzureWebJobsStorage). redeliver_intake retries it; after host.json
+# maxDequeueCount attempts the runtime moves it to "intake-retry-poison", where
+# it stays for staff recovery and alerting (#16).
+INTAKE_RETRY_QUEUE = "intake-retry"
+INTAKE_QUEUE_CONNECTION = "AzureWebJobsStorage"
+INTAKE_ENVELOPE_VERSION = 1
+DEFAULT_LOGICAPP_TIMEOUT_SECONDS = 25.0
+MAX_LOGICAPP_RESPONSE_BYTES = 64 * 1_024
+ACCEPTED_SUBMISSION_TTL_SECONDS = 24 * 60 * 60
+MAX_ACCEPTED_SUBMISSIONS = 4_096
+SUBMISSION_ID_PATTERN = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
+ACCEPTED_MESSAGE = "Thanks — your inquiry is on its way. Mt Cottages will follow up about availability and next steps."
 TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 DEFAULT_ALLOWED_ORIGINS = "https://stay.mtcottages.com"
 CANONICAL_HOSTNAME = "stay.mtcottages.com"
@@ -46,7 +66,7 @@ ALLOWED_FIELDS = {
     "firstName", "lastName", "email", "phone", "moveInDate", "duration", "occupants",
     "preferredLocation", "homeSize", "stayType", "pets", "employment", "monthlyBudget",
     "furnishedNeeds", "message", "screeningConsent", "termsAccepted", "website", "sourceUrl",
-    "propertyId",
+    "propertyId", "submissionId",
 }
 FIELD_LIMITS = {
     "firstName": 100,
@@ -69,6 +89,7 @@ FIELD_LIMITS = {
     "sourceUrl": 500,
     "propertyId": 64,
     "furnishedNeeds": 1000,
+    "submissionId": 36,
 }
 CHOICE_FIELDS = {
     "duration": frozenset({
@@ -439,6 +460,9 @@ def _validate_submission(payload):
     occupants = payload.get("occupants", "")
     if not re.fullmatch(r"\d{1,2}", occupants) or not 1 <= int(occupants) <= 20:
         return "Please provide a valid occupant count"
+    submission_id = _text_value(payload, "submissionId")
+    if submission_id and not SUBMISSION_ID_PATTERN.fullmatch(submission_id.lower()):
+        return "Invalid submission"
     for field_name, limit in FIELD_LIMITS.items():
         if len(_text_value(payload, field_name)) > limit:
             return "One or more fields are too long"
@@ -523,6 +547,85 @@ def _record_submission(client_key):
     return None
 
 
+def _logicapp_timeout():
+    configured = os.environ.get("LOGICAPP_TIMEOUT_SECONDS", str(DEFAULT_LOGICAPP_TIMEOUT_SECONDS))
+    try:
+        value = float(configured)
+    except (TypeError, ValueError):
+        return DEFAULT_LOGICAPP_TIMEOUT_SECONDS
+    if not math.isfinite(value) or value < 5 or value > 120:
+        return DEFAULT_LOGICAPP_TIMEOUT_SECONDS
+    return value
+
+
+def _submission_id(payload):
+    """Return the client's idempotency key, or a new one for an older cached form."""
+    value = _text_value(payload, "submissionId").lower()
+    return value if SUBMISSION_ID_PATTERN.fullmatch(value) else str(uuid.uuid4())
+
+
+def _submission_already_accepted(submission_id):
+    now = time.monotonic()
+    with _accepted_lock:
+        accepted_at = _accepted_submissions.get(submission_id)
+        return accepted_at is not None and now - accepted_at < ACCEPTED_SUBMISSION_TTL_SECONDS
+
+
+def _remember_accepted_submission(submission_id):
+    now = time.monotonic()
+    with _accepted_lock:
+        _accepted_submissions[submission_id] = now
+        if len(_accepted_submissions) > MAX_ACCEPTED_SUBMISSIONS:
+            cutoff = now - ACCEPTED_SUBMISSION_TTL_SECONDS
+            for key in [key for key, accepted_at in _accepted_submissions.items() if accepted_at < cutoff]:
+                _accepted_submissions.pop(key, None)
+            while len(_accepted_submissions) > MAX_ACCEPTED_SUBMISSIONS:
+                _accepted_submissions.pop(min(_accepted_submissions, key=_accepted_submissions.get), None)
+
+
+def _deliver_to_intake(callback_url, outbound):
+    """POST one lead to the Logic App.
+
+    Returns (status, reason). status is the HTTP status, or None when no answer
+    arrived (timeout, connection failure, malformed response). reason is a short
+    non-identifying label for logs; it never contains lead data.
+    """
+    request = urllib.request.Request(
+        callback_url,
+        data=json.dumps(outbound).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Idempotency-Key": outbound.get("submissionId", ""),
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=_logicapp_timeout()) as response:
+            response.read(MAX_LOGICAPP_RESPONSE_BYTES)
+            return response.status, f"http-{response.status}"
+    except urllib.error.HTTPError as error:
+        error.close()
+        return error.code, f"http-{error.code}"
+    except TimeoutError:
+        return None, "timeout"
+    except urllib.error.URLError as error:
+        reason = "timeout" if isinstance(error.reason, TimeoutError) else "connection-error"
+        return None, reason
+    except (http.client.HTTPException, OSError, ValueError) as error:
+        return None, type(error).__name__
+
+
+def _retry_envelope(submission_id, outbound, reason):
+    return json.dumps({
+        "version": INTAKE_ENVELOPE_VERSION,
+        "submissionId": submission_id,
+        "reason": reason,
+        "queuedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "payload": outbound,
+    })
+
+
 @app.route(route="{*route}", methods=["GET"])
 def application_form(req: func.HttpRequest) -> func.HttpResponse:
     requested_path = urllib.parse.urlparse(req.url).path.rstrip("/")
@@ -564,7 +667,8 @@ def application_form(req: func.HttpRequest) -> func.HttpResponse:
 
 
 @app.route(route="api/apply", methods=["POST", "OPTIONS"])
-def apply(req: func.HttpRequest) -> func.HttpResponse:
+@app.queue_output(arg_name="retry", queue_name=INTAKE_RETRY_QUEUE, connection=INTAKE_QUEUE_CONNECTION)
+def apply(req: func.HttpRequest, retry: func.Out[str]) -> func.HttpResponse:
     origin = req.headers.get("Origin", "").strip()
     if not _canonical_host(req):
         return _response({"success": False, "message": "Not found"}, 404, origin)
@@ -597,6 +701,13 @@ def apply(req: func.HttpRequest) -> func.HttpResponse:
     if not callback_url:
         return _response({"success": False, "message": "Application intake is not configured"}, 503, origin)
 
+    submission_id = _submission_id(payload)
+    # A retry of an inquiry this instance already accepted (the guest's browser
+    # lost the first answer) gets the same answer without a second lead.
+    if _submission_already_accepted(submission_id):
+        logger.info("Duplicate inquiry answered without redelivery: %s", submission_id)
+        return _response({"success": True, "message": ACCEPTED_MESSAGE}, 200, origin)
+
     retry_after = _record_submission(_client_ip(req))
     if retry_after is not None:
         return _response(
@@ -607,29 +718,53 @@ def apply(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     outbound = _outbound_payload(payload)
-    request = urllib.request.Request(
-        callback_url,
-        data=json.dumps(outbound).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Accept": "application/json"},
-        method="POST",
-    )
+    outbound["submissionId"] = submission_id
+    status, reason = _deliver_to_intake(callback_url, outbound)
+    if status is not None and 200 <= status < 300:
+        _remember_accepted_submission(submission_id)
+        logger.info("Inquiry delivered to intake: %s", submission_id)
+        return _response({"success": True, "message": ACCEPTED_MESSAGE}, 200, origin)
+
+    # Anything else (timeout, connection failure, any non-2xx answer, including
+    # a misconfigured trigger URL) keeps the lead: it goes to the retry queue
+    # and the guest is told it was received, because it durably was.
+    # The host writes the queue message after this function returns. If that
+    # write fails the host answers 500, so the submission is deliberately not
+    # remembered here: the browser keeps the same submissionId and its retry is
+    # processed again instead of being told it was already received.
+    logger.warning("Inquiry not accepted by intake (%s); queueing %s for redelivery", reason, submission_id)
+    retry.set(_retry_envelope(submission_id, outbound, reason))
+    return _response({"success": True, "message": ACCEPTED_MESSAGE}, 202, origin)
+
+
+@app.queue_trigger(arg_name="message", queue_name=INTAKE_RETRY_QUEUE, connection=INTAKE_QUEUE_CONNECTION)
+def redeliver_intake(message: func.QueueMessage) -> None:
+    """Retry one queued lead. Raising leaves it on the queue for the next attempt.
+
+    host.json sets maxDequeueCount and the visibility timeout; after the last
+    attempt the runtime moves the message to intake-retry-poison.
+    """
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
-            response_body = response.read().decode("utf-8", errors="replace")
-            try:
-                result = json.loads(response_body)
-            except json.JSONDecodeError:
-                result = {"success": response.status < 300, "message": "Application received"}
-            return _response(result, response.status, origin)
-    except urllib.error.HTTPError as error:
-        response_body = error.read().decode("utf-8", errors="replace")
-        try:
-            result = json.loads(response_body)
-        except json.JSONDecodeError:
-            result = {"success": False, "message": "Application intake failed"}
-        return _response(result, error.code if error.code < 600 else 502, origin)
-    except (urllib.error.URLError, TimeoutError):
-        return _response({"success": False, "message": "Application intake unavailable"}, 502, origin)
+        envelope = json.loads(message.get_body().decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("intake-retry message is not JSON") from error
+    if not isinstance(envelope, dict) or envelope.get("version") != INTAKE_ENVELOPE_VERSION:
+        raise ValueError("intake-retry message has an unknown envelope version")
+    outbound = envelope.get("payload")
+    submission_id = envelope.get("submissionId", "")
+    if not isinstance(outbound, dict) or not isinstance(submission_id, str):
+        raise ValueError("intake-retry message has no payload")
+
+    callback_url = os.environ.get("LOGICAPP_URL_APPLICATION", "")
+    if not callback_url:
+        raise RuntimeError(f"intake is not configured; keeping {submission_id} queued")
+
+    status, reason = _deliver_to_intake(callback_url, outbound)
+    attempt = getattr(message, "dequeue_count", None)
+    if status is not None and 200 <= status < 300:
+        logger.info("Queued inquiry %s delivered on attempt %s", submission_id, attempt)
+        return
+    raise RuntimeError(f"redelivery of {submission_id} failed on attempt {attempt}: {reason}")
 
 
 @app.route(route="api/health", methods=["GET"])
