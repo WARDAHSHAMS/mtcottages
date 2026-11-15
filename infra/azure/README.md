@@ -69,6 +69,23 @@ Application settings (a channel whose settings are missing is simply not queued)
 | `GUEST_AUTOREPLY_ENABLED` | `true` to send the guest acknowledgment. |
 | `GUEST_RESPONSE_PROMISE` | Default `within 2 business hours`. The owner confirms it (brand decision D6). |
 
+## Locked trigger and secured run data (#17)
+
+Today the Logic App trigger accepts anyone holding its callback URL (`accessControl` is null), which bypasses Turnstile. The lock follows the platform precedent in FocusApiary/form-intake-proxy (`src/auth.js`, `scripts/logicapp-access.sh`): an Entra policy instead of an IP allow-list, because a Linux Consumption app has no fixed egress IP.
+
+- **Proxy (this repo).** `LOGICAPP_AUTH=managed-identity` makes every call to the trigger carry a token of the Function App's managed identity (audience `https://management.core.windows.net/`) and drop the URL's `sig`, because Logic Apps refuses a request that carries both. The default, `sas`, keeps today's behaviour. A token failure is treated like any failed delivery: the lead is queued and retried (#15). Deep health uses the same path and reads `auth_<reason>` when no token can be had. `AZURE_CLIENT_ID` selects a user-assigned identity if one is used.
+- **Run history (this repo).** The trigger's outputs and the `Create_D365_Applicant_Lead` inputs and outputs are `secureData`, so run history no longer shows lead fields. It ships with the definition (#13).
+- **Trigger policy (Azure).** `accessControl.triggers.openAuthenticationPolicies` holds one `AAD` policy with the claims `iss` = `https://sts.windows.net/<tenant>/`, `aud` = `https://management.core.windows.net/` and `oid` = the Function App identity's object id. Then `sasAuthenticationPolicy.state` = `Disabled`, so the URL alone no longer works. `intake-logicapp.sh` (#13) keeps the live `accessControl`, so it never undoes the lock.
+- **Secrets.** With SAS disabled, `LOGICAPP_URL_APPLICATION` is no longer a credential. `TURNSTILE_SECRET_KEY` (and the Teams webhook, #14) become Key Vault references `@Microsoft.KeyVault(SecretUri=...)` resolved by the Function App identity.
+
+Rollout order, so no step drops a lead:
+
+1. Merge this change. Nothing changes while `LOGICAPP_AUTH` is unset.
+2. Add the Entra policy to the trigger and keep SAS. Both kinds of call now work.
+3. Set `LOGICAPP_AUTH=managed-identity`. Confirm `/api/health?deep=1` reads `ok`.
+4. Disable SAS on the trigger. Confirm deep health is still `ok`, and that a GET on the bare callback URL is refused with 401.
+5. Rotation runbook: there is no shared secret left for the trigger. To rotate `TURNSTILE_SECRET_KEY`, write the new value to Key Vault, then change any app setting or redeploy so the reference re-resolves (a plain restart did not refresh it in infrastructure#536). Then confirm the form still accepts a Turnstile token in the smoke job.
+
 ## Live deployment / runbook
 
 The Function App `mtcottages-apply-proxy` (resource group `mtcottages`, Linux Consumption) is published by GitLab CI and by nothing else (WorldEnterpriseGroup/mtcottages#9). Nobody deploys it from a workstation: the hand-run `az functionapp deployment source config-zip` path is retired.

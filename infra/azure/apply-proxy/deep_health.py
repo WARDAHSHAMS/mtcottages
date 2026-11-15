@@ -30,6 +30,8 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
+import managed_identity
+
 UPSTREAM_SETTING = "LOGICAPP_URL_APPLICATION"
 STORAGE_SETTING = "AzureWebJobsStorage"
 RETRY_QUEUE = "intake-retry"
@@ -58,15 +60,23 @@ def _is_authorised(status, code):
     return status == 405 or 200 <= status <= 299 or (status == 400 and code == "TriggerRequestMethodNotValid")
 
 
-def check_upstream(callback_url):
-    """``ok``, ``not_configured``, ``status_<http>[_<code>]`` or ``unreachable_<error>``."""
+def check_upstream(callback_url, prepare=None):
+    """``ok``, ``not_configured``, ``auth_<reason>``, ``status_<http>[_<code>]`` or ``unreachable_<error>``.
+
+    ``prepare(url) -> (url, headers)`` applies the caller authentication the
+    real delivery uses (#17), so the check proves exactly that path.
+    """
     try:
         parsed = urllib.parse.urlsplit(callback_url or "")
     except ValueError:
         return "not_configured"
     if parsed.scheme != "https" or not parsed.hostname:
         return "not_configured"
-    request = urllib.request.Request(callback_url, headers={"Accept": "application/json"}, method="GET")
+    try:
+        url, headers = prepare(callback_url) if prepare else (callback_url, {})
+    except managed_identity.ManagedIdentityError as error:
+        return f"auth_{error.reason}"
+    request = urllib.request.Request(url, headers={"Accept": "application/json", **headers}, method="GET")
     try:
         with urllib.request.urlopen(request, timeout=CHECK_TIMEOUT_SECONDS) as response:
             status, body = response.status, response.read(MAX_ERROR_BYTES)
@@ -161,21 +171,21 @@ def check_queues(connection_string):
     return depths
 
 
-def evaluate(environ):
+def evaluate(environ, prepare=None):
     """(healthy, details) for the current settings. Not cached."""
-    upstream = {UPSTREAM_SETTING: check_upstream(environ.get(UPSTREAM_SETTING, ""))}
+    upstream = {UPSTREAM_SETTING: check_upstream(environ.get(UPSTREAM_SETTING, ""), prepare)}
     queues = check_queues(environ.get(STORAGE_SETTING, ""))
     poisoned = any(isinstance(queues.get(queue), int) and queues[queue] > 0 for queue in POISON_QUEUES)
     healthy = all(value == "ok" for value in upstream.values()) and not poisoned
     return healthy, {"upstream": upstream, "queues": queues}
 
 
-def cached_evaluate(environ, now=None):
+def cached_evaluate(environ, prepare=None, now=None):
     now = time.monotonic() if now is None else now
     with _cache_lock:
         if _cache["result"] is not None and now < _cache["expires_at"]:
             return _cache["result"]
-    result = evaluate(environ)
+    result = evaluate(environ, prepare)
     with _cache_lock:
         _cache["result"] = result
         _cache["expires_at"] = now + CACHE_SECONDS

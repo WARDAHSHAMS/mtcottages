@@ -23,6 +23,7 @@ import azure.functions as func
 
 import deep_health
 import intake_notify
+import managed_identity
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 logger = logging.getLogger(__name__)
@@ -41,6 +42,10 @@ INTAKE_RETRY_QUEUE = "intake-retry"
 INTAKE_QUEUE_CONNECTION = "AzureWebJobsStorage"
 INTAKE_ENVELOPE_VERSION = 1
 DEFAULT_LOGICAPP_TIMEOUT_SECONDS = 25.0
+LOGICAPP_AUTH_MANAGED_IDENTITY = "managed-identity"
+# The audience a Consumption Request trigger's Entra policy validates
+# (same as FocusApiary/form-intake-proxy).
+LOGICAPP_TOKEN_AUDIENCE = "https://management.core.windows.net/"
 MAX_LOGICAPP_RESPONSE_BYTES = 64 * 1_024
 ACCEPTED_SUBMISSION_TTL_SECONDS = 24 * 60 * 60
 MAX_ACCEPTED_SUBMISSIONS = 4_096
@@ -270,7 +275,7 @@ def _health_response(req):
     payload = {"status": "ok", "service": "mtcottages-apply-proxy", "commit": BUILD_COMMIT}
     if not _deep_health_requested(req):
         return _response(payload, 200, req.headers.get("Origin", ""))
-    healthy, details = deep_health.cached_evaluate(os.environ)
+    healthy, details = deep_health.cached_evaluate(os.environ, _intake_target)
     payload.update(details)
     if not healthy:
         payload["status"] = "degraded"
@@ -606,20 +611,46 @@ def _remember_accepted_submission(submission_id):
                 _accepted_submissions.pop(min(_accepted_submissions, key=_accepted_submissions.get), None)
 
 
+def _intake_target(callback_url):
+    """(url, headers) for a call to the Logic App trigger (#17).
+
+    ``LOGICAPP_AUTH=managed-identity``: the trigger's Entra policy accepts only
+    this app's managed identity, so the call carries its token and the URL's
+    ``sig`` is removed (Logic Apps refuses a request carrying both). Otherwise
+    the stored callback URL, with its ``sig``, is the credential.
+    Raises ManagedIdentityError when no token can be had.
+    """
+    if os.environ.get("LOGICAPP_AUTH", "sas").strip().lower() != LOGICAPP_AUTH_MANAGED_IDENTITY:
+        return callback_url, {}
+    parts = urllib.parse.urlsplit(callback_url)
+    query = [(key, value) for key, value in urllib.parse.parse_qsl(parts.query, keep_blank_values=True) if key != "sig"]
+    url = urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(query)))
+    token = managed_identity.get_token(LOGICAPP_TOKEN_AUDIENCE)
+    return url, {"Authorization": f"Bearer {token}"}
+
+
 def _deliver_to_intake(callback_url, outbound):
     """POST one lead to the Logic App.
 
     Returns (status, reason). status is the HTTP status, or None when no answer
-    arrived (timeout, connection failure, malformed response). reason is a short
-    non-identifying label for logs; it never contains lead data.
+    arrived (timeout, connection failure, malformed response, no identity
+    token). reason is a short non-identifying label for logs; it never
+    contains lead data.
     """
+    try:
+        url, auth_headers = _intake_target(callback_url)
+    except managed_identity.ManagedIdentityError as error:
+        return None, f"auth-{error.reason}"
+    except ValueError:
+        return None, "invalid-trigger-url"
     request = urllib.request.Request(
-        callback_url,
+        url,
         data=json.dumps(outbound).encode("utf-8"),
         headers={
             "Content-Type": "application/json",
             "Accept": "application/json",
             "Idempotency-Key": outbound.get("submissionId", ""),
+            **auth_headers,
         },
         method="POST",
     )
