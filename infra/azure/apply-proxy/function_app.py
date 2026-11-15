@@ -21,6 +21,7 @@ from pathlib import Path
 
 import azure.functions as func
 
+import deep_health
 import intake_notify
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
@@ -252,9 +253,28 @@ def _build_commit():
 BUILD_COMMIT = _build_commit()
 
 
+def _deep_health_requested(req):
+    try:
+        query = urllib.parse.parse_qs(urllib.parse.urlsplit(req.url).query)
+    except ValueError:
+        return False
+    return query.get("deep", [""])[0] == "1"
+
+
 def _health_response(req):
+    """Liveness, or with ?deep=1 the upstream and queue checks (#16).
+
+    The plain answer stays constant: Front Door's origin probe and the deploy
+    gate use it. Only the deep form makes outbound calls, and those are cached.
+    """
     payload = {"status": "ok", "service": "mtcottages-apply-proxy", "commit": BUILD_COMMIT}
-    return _response(payload, 200, req.headers.get("Origin", ""))
+    if not _deep_health_requested(req):
+        return _response(payload, 200, req.headers.get("Origin", ""))
+    healthy, details = deep_health.cached_evaluate(os.environ)
+    payload.update(details)
+    if not healthy:
+        payload["status"] = "degraded"
+    return _response(payload, 200 if healthy else 503, req.headers.get("Origin", ""), {"Cache-Control": "no-store"})
 
 
 def _style_csp_source(markup):

@@ -84,7 +84,18 @@ A push to `gh-pages` that changes `infra/azure/apply-proxy/` or `.gitlab-ci.yml`
 | `deploy:apply-proxy` | Publishes the zip with the launch-sequence `.deploy:azure-function` template (Kudu remote build), then waits for `https://stay.mtcottages.com/api/health` to return HTTP 200. |
 | `smoke:apply-proxy` | Runs the stay tests in `e2e/tests/live.spec.js` against the live host. It waits for `/api/health` to report the published commit, loads the form and posts one honeypot probe that the proxy rejects with HTTP 400. It never submits a valid application. |
 
-`/api/health` returns `{"status": "ok", "service": "mtcottages-apply-proxy", "commit": "<sha>"}`. `commit` is the `BUILD_COMMIT` from the package; a package not built by the pipeline reports `unknown`.
+`/api/health` returns `{"status": "ok", "service": "mtcottages-apply-proxy", "commit": "<sha>"}`. `commit` is the `BUILD_COMMIT` from the package; a package not built by the pipeline reports `unknown`. This plain answer is constant and makes no outbound call: the Front Door origin probe and the deploy gate use it.
+
+### Deep health (#16)
+
+`GET /api/health?deep=1` follows the platform's `upstream-health` contract (FocusApiary/infrastructure `docs/runbooks/intake-synthetic-checks.md`). It answers 200 when every check passes and 503 with `"status": "degraded"` otherwise, and caches its result for 30 seconds:
+
+- `upstream.LOGICAPP_URL_APPLICATION`: a GET on the trigger, with no payload, so no workflow runs. `ok` means Logic Apps refused the method (400 `TriggerRequestMethodNotValid`), which proves that the URL, signature and caller IP are accepted. `status_401_AuthorizationFailed` means a rotated key or a caller-IP restriction. `status_404` means the workflow or trigger is gone. `unreachable_*` means a network failure, and `not_configured` means the setting is missing.
+- `queues`: the approximate depth of `intake-retry` (informational) and of the two poison queues. Any message in `intake-retry-poison` or `intake-notify-poison` fails the check: a lead or a notification has run out of retries and needs staff (below). It reads the depth with the host storage connection string. If that setting is not key-based, the depths read `unknown` and do not fail the check.
+
+The body holds labels and counts only, never a URL, key or lead field. The hourly in-cluster blackbox probe (`check=upstream-health`, FocusApiary/monitoring-k8s) is what turns a 503 into an alert.
+
+**Recovering a poisoned message.** Do not copy lead data into a ticket or chat. In the Storage account's `intake-retry-poison` queue, fix the cause (look up the reason in the Function logs by `submissionId`), then move the message back to `intake-retry`, where `redeliver_intake` sends it again with the same `submissionId`. For `intake-notify-poison`, move it back to `intake-notify`. A poison message expires 7 days after it lands there, so recovery has to happen within that window.
 
 To publish the current commit again without a code change, start a pipeline on `gh-pages` from the GitLab UI ("Run pipeline").
 

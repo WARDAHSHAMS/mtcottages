@@ -728,3 +728,127 @@ def test_malformed_notification_is_rejected(body, outbound):
     with pytest.raises(ValueError):
         function_app.send_intake_notification(QueueMessage(body))
     assert outbound.calls == []
+
+
+# ---------------------------------------------------------------------------
+# Deep health (#16): GET /api/health?deep=1
+# ---------------------------------------------------------------------------
+
+STORAGE_KEY = "a2V5LWZvci10ZXN0cy1vbmx5"  # base64 of a dummy key, not a credential
+
+
+@pytest.fixture
+def deep(monkeypatch):
+    """A configured host whose Logic App GET and queue metadata answers each test chooses."""
+    function_app.deep_health.reset_cache()
+    monkeypatch.setenv("LOGICAPP_URL_APPLICATION", "https://logic.example.test/callback?sig=secret")
+    monkeypatch.setenv(
+        "AzureWebJobsStorage",
+        f"DefaultEndpointsProtocol=https;AccountName=mtcproxy;AccountKey={STORAGE_KEY};EndpointSuffix=core.windows.net",
+    )
+    state = SimpleNamespace(
+        calls=[],
+        upstream=lambda: urllib.error.HTTPError(
+            "https://logic.example.test/callback", 400, "Bad Request", {},
+            io.BytesIO(b'{"error": {"code": "TriggerRequestMethodNotValid", "message": "x"}}'),
+        ),
+        depths={},
+    )
+
+    def urlopen(request, timeout):
+        state.calls.append(request)
+        if "logic.example.test" in request.full_url:
+            result = state.upstream()
+            if isinstance(result, BaseException):
+                raise result
+            return result
+        queue = urllib.parse.urlsplit(request.full_url).path.strip("/")
+        depth = state.depths.get(queue, 0)
+        if isinstance(depth, BaseException):
+            raise depth
+        response = CallbackResponse(body=b"")
+        response.headers = {"x-ms-approximate-messages-count": str(depth)}
+        return response
+
+    monkeypatch.setattr(function_app.deep_health.urllib.request, "urlopen", urlopen)
+    return state
+
+
+def _health(url="https://stay.mtcottages.com/api/health?deep=1"):
+    response = function_app.health(Request(method="GET", url=url, headers={"Host": "stay.mtcottages.com"}))
+    return response, json.loads(response.body)
+
+
+def test_plain_health_makes_no_outbound_call(deep):
+    response, body = _health("https://stay.mtcottages.com/api/health")
+    assert response.status_code == 200
+    assert body["status"] == "ok"
+    assert "upstream" not in body
+    assert deep.calls == []
+
+
+def test_deep_health_is_ok_when_the_trigger_refuses_a_get_and_no_queue_is_poisoned(deep):
+    deep.depths = {"intake-retry": 2}
+    response, body = _health()
+    assert response.status_code == 200
+    assert body["status"] == "ok"
+    assert body["upstream"] == {"LOGICAPP_URL_APPLICATION": "ok"}
+    assert body["queues"] == {"intake-retry": 2, "intake-retry-poison": 0, "intake-notify-poison": 0}
+    assert "sig=secret" not in response.body and STORAGE_KEY not in response.body
+    upstream_call = deep.calls[0]
+    assert upstream_call.get_method() == "GET" and upstream_call.data is None
+
+
+@pytest.mark.parametrize(
+    ("answer", "label"),
+    [
+        (lambda: urllib.error.HTTPError(
+            "u", 401, "Unauthorized", {}, io.BytesIO(b'{"error": {"code": "AuthorizationFailed"}}')
+        ), "status_401_AuthorizationFailed"),
+        (lambda: urllib.error.HTTPError("u", 404, "Not Found", {}, io.BytesIO(b"not json")), "status_404"),
+        (lambda: urllib.error.URLError(ConnectionRefusedError("refused")), "unreachable_ConnectionRefusedError"),
+        (lambda: TimeoutError("timed out"), "unreachable_TimeoutError"),
+    ],
+)
+def test_deep_health_fails_when_the_logic_app_rejects_the_proxy(deep, answer, label):
+    deep.upstream = answer
+    response, body = _health()
+    assert response.status_code == 503
+    assert body["status"] == "degraded"
+    assert body["upstream"]["LOGICAPP_URL_APPLICATION"] == label
+
+
+def test_deep_health_without_a_trigger_url_is_not_configured(deep, monkeypatch):
+    monkeypatch.delenv("LOGICAPP_URL_APPLICATION")
+    response, body = _health()
+    assert response.status_code == 503
+    assert body["upstream"]["LOGICAPP_URL_APPLICATION"] == "not_configured"
+
+
+@pytest.mark.parametrize("queue", ["intake-retry-poison", "intake-notify-poison"])
+def test_a_poisoned_queue_fails_deep_health(deep, queue):
+    deep.depths = {queue: 1}
+    response, body = _health()
+    assert response.status_code == 503
+    assert body["queues"][queue] == 1
+
+
+def test_queue_depth_signs_with_shared_key(deep):
+    _health()
+    queue_call = next(call for call in deep.calls if "queue.core.windows.net" in call.full_url)
+    assert queue_call.full_url == "https://mtcproxy.queue.core.windows.net/intake-retry?comp=metadata"
+    assert queue_call.headers["Authorization"].startswith("SharedKey mtcproxy:")
+
+
+def test_unreadable_storage_is_reported_but_does_not_page(deep, monkeypatch):
+    monkeypatch.setenv("AzureWebJobsStorage", "")
+    response, body = _health()
+    assert response.status_code == 200
+    assert set(body["queues"].values()) == {"unknown"}
+
+
+def test_deep_health_is_cached_against_bursts(deep):
+    _health()
+    calls = len(deep.calls)
+    _health()
+    assert len(deep.calls) == calls

@@ -159,7 +159,7 @@ test:apply-proxy:
   image: "harbor.focuscell.org/dockerhub-proxy/library/python:3.14-slim"
   script:
     - python3 -m pip install --disable-pip-version-check --no-input --quiet "pytest>=8,<9"
-    - python3 -m py_compile infra/azure/apply-proxy/function_app.py infra/azure/apply-proxy/intake_notify.py
+    - python3 -m py_compile infra/azure/apply-proxy/function_app.py infra/azure/apply-proxy/intake_notify.py infra/azure/apply-proxy/deep_health.py
     - python3 -m pytest -q infra/azure/apply-proxy/tests
 
 # Builds the zip the Function App runs: the app files at the archive root plus
@@ -176,7 +176,7 @@ package:apply-proxy:
   script:
     - cd infra/azure/apply-proxy
     - printf '%s\n' "$CI_COMMIT_SHA" > BUILD_COMMIT
-    - python3 -I -m zipfile -c "$CI_PROJECT_DIR/apply-proxy.zip" function_app.py intake_notify.py host.json requirements.txt index.html BUILD_COMMIT
+    - python3 -I -m zipfile -c "$CI_PROJECT_DIR/apply-proxy.zip" function_app.py intake_notify.py deep_health.py host.json requirements.txt index.html BUILD_COMMIT
     - python3 -I -m zipfile -l "$CI_PROJECT_DIR/apply-proxy.zip"
   artifacts:
     paths:
