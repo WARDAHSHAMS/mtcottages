@@ -5,6 +5,7 @@ import SiteFooter from "../components/SiteFooter.astro";
 import SiteLightbox from "../components/SiteLightbox.astro";
 import Analytics from "../components/Analytics.astro";
 import { checkDatesLabel, homeName, isAudience, isHomeId, stayLink, type StayTown } from "../data/stay-link";
+import { breadcrumbSchema, businessSchema, type Crumb, type SchemaNode } from "../data/schema";
 import type { ImageMetadata } from "astro";
 import { getImage } from "astro:assets";
 import favicon from "../../assets/images/fav-icon/icon.png";
@@ -15,7 +16,8 @@ interface Props {
   description: string;
   canonical?: string;
   noindex?: boolean;
-  schema?: Record<string, unknown> | Record<string, unknown>[];
+  /** The page's own JSON-LD (built with the typed helpers in src/data/schema.ts). */
+  schema?: SchemaNode | SchemaNode[];
   socialImage?: ImageMetadata;
   socialImageAlt?: string;
   /** Opaque house id of the home this page is about. Every "Check dates" link on the page carries it (#20), and it is counted with page views and inquiry clicks (#23). */
@@ -24,8 +26,10 @@ interface Props {
   audience?: string;
   /** Town a town page is about; its "Check dates" links pre-select it when no home is known. */
   town?: StayTown;
+  /** Visible breadcrumb trail to publish as a BreadcrumbList (first crumb is Home). */
+  breadcrumbs?: Crumb[];
 }
-const { title, description, canonical, noindex = false, schema, socialImage: pageSocialImage, socialImageAlt, home: homeProp, audience: audienceProp, town } = Astro.props;
+const { title, description, canonical, noindex = false, schema, socialImage: pageSocialImage, socialImageAlt, home: homeProp, audience: audienceProp, town, breadcrumbs } = Astro.props;
 const home = isHomeId(homeProp) ? homeProp : undefined;
 const audience = isAudience(audienceProp) ? audienceProp : undefined;
 // One context for the header, mega panels, mobile bar and footer, so the home and
@@ -45,16 +49,14 @@ const speculationRules = {
     eagerness: "moderate",
   }],
 };
-const organizationSchema = {
-  "@context": "https://schema.org",
-  "@type": "LodgingBusiness",
-  name: "Mt Cottages",
-  url: "https://mtcottages.com/",
-  email: "stay@mtcottages.com",
-  image: socialUrl,
-  areaServed: ["Marietta, Ohio", "Parkersburg, West Virginia", "Ravenswood, West Virginia", "Racine, Ohio"],
-};
-const schemas = [organizationSchema, ...(schema ? (Array.isArray(schema) ? schema : [schema]) : [])];
+// The one business node (stable @id, identical on every page, so it always
+// uses the site's default image), plus the page's own schema and breadcrumbs.
+const businessJpeg = pageSocialImage ? await getImage({ src: socialImage, format: "jpg", width: Math.min(1200, socialImage.width), quality: 82 }) : socialJpeg;
+const schemas = [
+  businessSchema(new URL(businessJpeg.src, "https://mtcottages.com").toString()),
+  ...(schema ? (Array.isArray(schema) ? schema : [schema]) : []),
+  ...(breadcrumbs ? [breadcrumbSchema(breadcrumbs)] : []),
+];
 // Google Search Console HTML-tag verification. The token is public (it is
 // printed in the page), so it comes from a PUBLIC_ build variable that the
 // owner sets once; with no token the tag is simply left out.

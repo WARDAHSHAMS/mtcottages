@@ -1,11 +1,13 @@
 ---
 import GuidePage from "./GuidePage.astro";
 import type { Guide, Cottage } from "../data/site";
+import type { Crumb } from "../data/schema";
 
 interface Props {
   guide: Guide & { town: string; cottages?: Cottage[] };
+  crumbs?: Crumb[];
 }
 
-const { guide } = Astro.props;
+const { guide, crumbs } = Astro.props;
 ---
-<GuidePage guide={guide} cottages={guide.cottages} />
+<GuidePage guide={guide} cottages={guide.cottages} crumbs={crumbs} />
