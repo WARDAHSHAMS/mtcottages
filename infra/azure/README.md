@@ -147,6 +147,16 @@ The body holds labels and counts only, never a URL, key or lead field. The hourl
 
 **Recovering a poisoned message.** Do not copy lead data into a ticket or chat. In the Storage account's `intake-retry-poison` queue, fix the cause (look up the reason in the Function logs by `submissionId`), then move the message back to `intake-retry`, where `redeliver_intake` sends it again with the same `submissionId`. For `intake-notify-poison`, move it back to `intake-notify`. A poison message expires 7 days after it lands there, so recovery has to happen within that window.
 
+### Lost-inquiry count (#12)
+
+`count:intake-loss` (`infra/azure/intake-loss-count.sh`) is read-only and prints aggregates only. It covers:
+- `POST /api/apply` attempts on `stay.mtcottages.com` per day and HTTP status, from the Front Door access log in `TLIMainAnalytics`, with the workspace's retention and earliest record so the covered window is explicit;
+- the `mtcottages-intake` runs per day and status.
+
+Run it with "Run pipeline" on `gh-pages` and `INTAKE_LOSS_COUNT=true`; add `INTAKE_LOSS_SINCE` to change the default window start of `2026-07-01`. A manual pipeline also republishes the current proxy commit, which is harmless.
+
+The runner's certificate SP needs Log Analytics Reader on the workspace (or resource-context Reader on the Front Door profile) and Logic App Operator on the workflow (note_379524 on #12). Without a role, the job names the one it is missing and fails. Post only the aggregates on #12.
+
 ### End-to-end canary (#16)
 
 The scheduled `canary:intake` job (`infra/azure/intake-canary.sh`) sends one synthetic inquiry through the real path: Front Door, the proxy, the Logic App and Dynamics 365. It passes only when all three hold:
