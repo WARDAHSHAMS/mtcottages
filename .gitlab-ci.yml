@@ -45,6 +45,7 @@ variables:
   PREFLIGHT_COMMANDS: |
     python3 -I scripts/check-form-parity.py
     jq empty infra/azure/*.json
+    bash -n infra/azure/intake-logicapp.sh
     test -f .nojekyll
     grep -qx 'mtcottages.com' CNAME
 
@@ -234,3 +235,65 @@ smoke:apply-proxy:
     paths:
       - e2e/playwright-report
     expire_in: 1 week
+
+# ---------------------------------------------------------------------------
+# Intake Logic App (mtcottages/mtcottages-intake), WorldEnterpriseGroup/mtcottages#13
+# ---------------------------------------------------------------------------
+# infra/azure/mtcottages-intake.definition.json and .parameters.json are the
+# source of truth. deploy:intake-logicapp PUTs them on a protected gh-pages push
+# that changes them; drift:intake-logicapp runs on the nightly schedule and fails
+# when live differs from git. Both sign in exactly like deploy:apply-proxy: the
+# certificate service principal mounted by the scoped azure-deploy runner, never
+# a CI variable. See infra/azure/README.md, "Intake Logic App from git".
+#
+# INTAKE_LOGICAPP_DEPLOY_ENABLED and INTAKE_LOGICAPP_DRIFT are switches, not
+# credentials. They stay unset until the deploy identity holds Logic App
+# Contributor on the workflow and may join its D365 connection, so no pipeline
+# waits on a permission that is not there.
+.intake-logicapp:paths: &intake_logicapp_paths
+  - infra/azure/mtcottages-intake.definition.json
+  - infra/azure/mtcottages-intake.parameters.json
+  - infra/azure/intake-logicapp.sh
+  - .gitlab-ci.yml
+
+.intake-logicapp:azure:
+  tags:
+    - azure-deploy
+  # renovate: datasource=docker depName=azure-cli registryUrl=https://mcr.microsoft.com
+  image:
+    name: harbor.focuscell.org/mcr-proxy/azure-cli:2.85.0
+    entrypoint: [""]
+  # One writer or reader of the workflow at a time, across pipelines.
+  resource_group: logicapp-mtcottages-intake
+  interruptible: false
+  retry:
+    max: 1
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+      - scheduler_failure
+  timeout: 15m
+
+deploy:intake-logicapp:
+  extends: .intake-logicapp:azure
+  stage: deploy
+  needs: []
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $INTAKE_LOGICAPP_DEPLOY_ENABLED == "true" && $CI_PIPELINE_SOURCE != "schedule"'
+      changes: *intake_logicapp_paths
+    - when: never
+  script:
+    - bash infra/azure/intake-logicapp.sh deploy
+  environment:
+    name: intake-logic-app
+
+drift:intake-logicapp:
+  extends: .intake-logicapp:azure
+  stage: smoke
+  needs: []
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "schedule" && $INTAKE_LOGICAPP_DRIFT == "true"'
+    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "web" && $INTAKE_LOGICAPP_DRIFT == "true"'
+    - when: never
+  script:
+    - bash infra/azure/intake-logicapp.sh drift
