@@ -123,6 +123,8 @@ site-check:
     - npm --prefix e2e test
     # Mobile Lighthouse on the home page and every microsite overview and tour (pages come from the sitemap).
     - LH_REPORT="$CI_PROJECT_DIR/lighthouse-scores.json" npm --prefix e2e run perf
+    # validator.schema.org on each JSON-LD page type (the built HTML is posted, so no deploy is needed).
+    - SCHEMA_REPORT="$CI_PROJECT_DIR/schema-validation.json" npm --prefix e2e run schema
   artifacts:
     when: always
     expire_in: 14 days
@@ -131,6 +133,7 @@ site-check:
       - e2e/test-results/
       - astro-preview.log
       - lighthouse-scores.json
+      - schema-validation.json
 
 # ---------------------------------------------------------------------------
 # Stay application host (infra/azure/apply-proxy)

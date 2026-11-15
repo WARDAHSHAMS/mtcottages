@@ -2,8 +2,10 @@
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import LocationPage from "../../components/LocationPage.astro";
 import { locationData } from "../../data/site";
+import { locationCrumbs } from "../../data/schema";
 const guide = locationData.grantsville;
+const crumbs = locationCrumbs(guide);
 ---
-<SiteLayout title={`${guide.town} Furnished Living | Mt Cottages`} description={guide.description} town={guide.stayTown}>
-  <LocationPage guide={guide} />
+<SiteLayout title={`${guide.town} Furnished Living | Mt Cottages`} description={guide.description} town={guide.stayTown} breadcrumbs={crumbs}>
+  <LocationPage guide={guide} crumbs={crumbs} />
 </SiteLayout>
