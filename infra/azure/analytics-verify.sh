@@ -73,6 +73,8 @@ while :; do
     --user-agent "mtcottages-analytics-verify" \
     --max-time 30 --header "@${WORK}/key-header" "${STATS_URL}")" || status="000"
   if [ "${status}" = "200" ]; then
+    jq -e 'type == "object"' "${WORK}/stats.json" >/dev/null 2>&1 \
+      || fail "/api/stats answered HTTP 200 without a JSON object (another route, such as the catch-all form page, answered it)"
     views="$(jq --arg label "${LABEL}" '.test_traffic[$label].form_view // 0' "${WORK}/stats.json")"
     starts="$(jq --arg label "${LABEL}" '.test_traffic[$label].form_start // 0' "${WORK}/stats.json")"
     echo "attempt ${attempt}: ${LABEL} form_view=${views} form_start=${starts}"

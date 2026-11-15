@@ -31,20 +31,34 @@ def _load_function_app():
                 self.mimetype = mimetype
 
         class FunctionApp:
-            def __init__(self, **_kwargs):
-                pass
+            """Records each function in registration order, like the real app's get_functions()."""
 
-            def route(self, **_kwargs):
-                return lambda handler: handler
+            def __init__(self, **_kwargs):
+                self.registered = []  # [(handler, http route or None)]
+
+            def _register(self, route=None):
+                def wrap(handler):
+                    self.registered.append((handler, route))
+                    return handler
+                return wrap
+
+            def function_name(self, name, **_kwargs):
+                def wrap(handler):
+                    handler.function_name = name
+                    return handler
+                return wrap
+
+            def route(self, route=None, **_kwargs):
+                return self._register(route)
 
             def queue_output(self, **_kwargs):
                 return lambda handler: handler
 
             def queue_trigger(self, **_kwargs):
-                return lambda handler: handler
+                return self._register()
 
             def timer_trigger(self, **_kwargs):
-                return lambda handler: handler
+                return self._register()
 
         value_type = TypeVar("value_type")
 
@@ -70,6 +84,22 @@ def _load_function_app():
 
 
 function_app = _load_function_app()
+
+
+def test_the_catch_all_get_route_is_registered_last_and_sorts_last():
+    """#23: `{*route}` shadowed GET /api/stats (and /api/health, 082387f) on the live host.
+
+    The catch-all must come after every literal route both in registration order and
+    by function name, so a new GET endpoint cannot be swallowed by the form page again.
+    """
+    registered = function_app.app.registered
+    names = [getattr(handler, "function_name", handler.__name__) for handler, _route in registered]
+    catch_all = [name for name, (_handler, route) in zip(names, registered) if route and route.startswith("{*")]
+    assert catch_all == [function_app.CATCH_ALL_FUNCTION_NAME]
+    assert registered[-1][1] == "{*route}", "the catch-all must be the last function registered"
+    assert max(names) == function_app.CATCH_ALL_FUNCTION_NAME, "the catch-all's name must sort after every other function"
+    literal_routes = {route for _handler, route in registered if route and not route.startswith("{*")}
+    assert {"api/health", "api/apply", "api/collect", "api/stats"} <= literal_routes
 
 
 class Request:
