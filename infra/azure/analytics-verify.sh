@@ -67,7 +67,10 @@ unset KEY
 
 attempt=1
 while :; do
+  # A named user agent: the Front Door WAF rule BlockBadBots (FocusApiary/infrastructure#506)
+  # answers 403 on /api/ to any agent containing "curl", which is curl's default.
   status="$(curl --silent --show-error --output "${WORK}/stats.json" --write-out '%{http_code}' \
+    --user-agent "mtcottages-analytics-verify" \
     --max-time 30 --header "@${WORK}/key-header" "${STATS_URL}")" || status="000"
   if [ "${status}" = "200" ]; then
     views="$(jq --arg label "${LABEL}" '.test_traffic[$label].form_view // 0' "${WORK}/stats.json")"
@@ -83,6 +86,11 @@ while :; do
     fi
   else
     echo "attempt ${attempt}: /api/stats answered HTTP ${status}"
+    # 401/403 do not heal with time: a wrong key or an edge block. Fail at once with the reason.
+    case "${status}" in
+      401) fail "/api/stats refused the function key (HTTP 401)" ;;
+      403) fail "/api/stats was blocked at the edge (HTTP 403): check the Front Door WAF rules for this user agent" ;;
+    esac
     [ "${status}" = "503" ] && jq -c '.' "${WORK}/stats.json" 2>/dev/null || true
   fi
   [ "${attempt}" -ge "${ATTEMPTS}" ] && fail "the dashboard never counted ${LABEL}'s form_view and form_start"

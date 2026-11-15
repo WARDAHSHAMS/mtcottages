@@ -49,6 +49,7 @@ variables:
     bash -n infra/azure/intake-canary.sh
     bash -n infra/azure/analytics-verify.sh
     yq -o=json 'explode(.)' .gitlab-ci.yml | python3 -I scripts/check-ci-runner-contract.py
+    python3 -I scripts/check-edge-clients.py infra/azure/*.sh
     test -f .nojekyll
     grep -qx 'mtcottages.com' CNAME
 
@@ -141,6 +142,8 @@ site-check:
 # commit is published again.
 .apply-proxy:paths: &apply_proxy_paths
   - infra/azure/apply-proxy/**/*
+  # verify:analytics proves each deploy, so a change to it re-runs the chain.
+  - infra/azure/analytics-verify.sh
   - .gitlab-ci.yml
 
 # A scheduled pipeline (the #13 drift gate, the #16 canary) has no push either,
