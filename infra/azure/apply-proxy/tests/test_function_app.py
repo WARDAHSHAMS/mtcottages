@@ -239,11 +239,15 @@ def test_form_offers_only_towns_with_a_listed_home_and_still_accepts_older_towns
 def test_form_property_links_are_live_canonical_home_urls():
     block = re.search(r"const properties = \{(.*?)\n    \};", FORM_HTML, re.S)
     assert block, "the form lost its property map"
-    entries = dict(re.findall(r'(\w+): \{ name: "[^"]+", path: "([^"]+)" \}', block.group(1)))
+    rows = re.findall(r'(\w+): \{ name: "[^"]+", path: "([^"]+)", town: "([a-z]+)" \}', block.group(1))
+    entries = {home: path for home, path, _town in rows}
+    towns = {home: town for home, _path, town in rows}
     # Parked homes (CEO decision 2026-11-14) are not offered, and every link is a microsite root.
     assert set(entries) == {"frederick", "broad", "buck", "oak", "virginia", "henrietta"}
     for home, path in entries.items():
         assert re.fullmatch(r"[a-z]+/[a-z-]+/", path), f"{home} links to {path}, not a microsite root"
+        # The home's town pre-selects the preferred community, so it must be the town in its path.
+        assert path.split("/")[0] == towns[home], f"{home} is in {towns[home]} but links to {path}"
     assert entries["frederick"] == "marietta/frederick/"
 
 

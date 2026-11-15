@@ -111,13 +111,21 @@
     const chooseOption = (name, values) => {
       const field = form?.querySelector(`[name="${name}"]`);
       if (!(field instanceof HTMLSelectElement)) return;
-      const normalized = values.filter(Boolean).map((value) => value.trim().toLowerCase());
-      const aliases = normalized.map((value) => (optionAliases[name]?.[value] || value).trim().toLowerCase());
-      const option = Array.from(field.options).find((candidate) => {
-        const candidateValues = [candidate.value, candidate.textContent].map((value) => value.trim().toLowerCase());
-        return aliases.some((value) => candidateValues.includes(value));
-      });
-      if (option) field.value = option.value;
+      // Values arrive in priority order (explicit choice first), so the first value
+      // that names an option wins, whatever order the options are listed in.
+      const options = Array.from(field.options).map((candidate) => ({
+        value: candidate.value,
+        names: [candidate.value, candidate.textContent].map((text) => text.trim().toLowerCase()),
+      }));
+      for (const raw of values.filter(Boolean)) {
+        const normalized = raw.trim().toLowerCase();
+        const alias = (Object.prototype.hasOwnProperty.call(optionAliases[name] || {}, normalized) ? optionAliases[name][normalized] : normalized).trim().toLowerCase();
+        const option = options.find((candidate) => alias && candidate.names.includes(alias));
+        if (option) {
+          field.value = option.value;
+          return;
+        }
+      }
     };
 
     if (form) {
