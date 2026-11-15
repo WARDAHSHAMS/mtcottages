@@ -123,6 +123,65 @@ site-check:
       - astro-preview.log
       - lighthouse-scores.json
 
+# Brand-system options for the CEO's pick (WorldEnterpriseGroup/mtcottages#27).
+# Checks every option's contrast, then renders each one on the home page and
+# Frederick Cottage (desktop and 390px phone) by injecting its tokens, fonts and
+# wordmark in the browser. Nothing here changes the published site. Fonts are
+# free (OFL) Fontsource packages, installed outside the repo for this job only.
+brand:capture:
+  stage: preflight
+  image: "harbor.focuscell.org/mcr-proxy/playwright:v1.62.1-noble"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        paths:
+          - docs/marketing/brand-options/**/*
+          - e2e/brand/**/*
+          - scripts/tests/brand-options.test.mjs
+  timeout: 90 minutes
+  variables:
+    BASE_URL: "http://127.0.0.1:4173"
+    BRAND_FONT_DIR: "/tmp/brand-fonts"
+    BRAND_SHOT_DIR: "$CI_PROJECT_DIR/brand-screenshots"
+    npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  cache:
+    - key:
+        files: [package-lock.json, e2e/package-lock.json]
+      paths: [.npm/]
+      policy: pull
+    - key: astro-images
+      paths: [.cache/astro/]
+      policy: pull
+  script:
+    - set -eu
+    - node --test scripts/tests/brand-options.test.mjs
+    - npm ci --no-audit --no-fund
+    - npm run build
+    - npm --prefix e2e ci --no-audit --no-fund
+    - mkdir -p "$BRAND_FONT_DIR" "$BRAND_SHOT_DIR"
+    - npm install --no-save --no-audit --no-fund --prefix "$BRAND_FONT_DIR" "@fontsource/source-serif-4@5" "@fontsource/source-sans-3@5" "@fontsource/fraunces@5" "@fontsource/figtree@5" "@fontsource/newsreader@5" "@fontsource/inter@5"
+    - npm ls --prefix "$BRAND_FONT_DIR" --depth=0 | tee "$BRAND_SHOT_DIR/font-versions.txt"
+    - nohup npx astro preview --host 127.0.0.1 --port 4173 > astro-preview.log 2>&1 &
+    - |
+      ready=no
+      attempt=0
+      while [ "$attempt" -lt 30 ]; do
+        if node -e 'fetch(process.argv[1]).then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))' "$BASE_URL/index.html"; then
+          ready=yes
+          break
+        fi
+        attempt=$((attempt + 1))
+        sleep 1
+      done
+      if [ "$ready" != yes ]; then cat astro-preview.log; exit 1; fi
+    - cd e2e && npx playwright test --config brand/playwright.config.js
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - brand-screenshots/
+      - astro-preview.log
+
 # ---------------------------------------------------------------------------
 # Stay application host (infra/azure/apply-proxy)
 # ---------------------------------------------------------------------------
