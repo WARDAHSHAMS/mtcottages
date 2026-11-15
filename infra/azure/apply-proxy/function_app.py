@@ -22,6 +22,7 @@ from pathlib import Path
 
 import azure.functions as func
 
+import analytics
 import deep_health
 import intake_notify
 import managed_identity
@@ -908,3 +909,102 @@ def send_intake_notification(message: func.QueueMessage) -> None:
 @app.route(route="api/health", methods=["GET"])
 def health(req: func.HttpRequest) -> func.HttpResponse:
     return _health_response(req)
+
+
+# ---------------------------------------------------------------------------
+# Cookieless analytics (#23): see analytics.py and docs/marketing/analytics-adr.md
+# ---------------------------------------------------------------------------
+
+def _collect_headers(origin):
+    headers = {**SECURITY_HEADERS, "Cache-Control": "no-store", "Vary": "Origin", "Content-Type": "text/plain"}
+    if origin in analytics.COLLECT_ORIGINS:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return headers
+
+
+@app.route(route="api/collect", methods=["POST", "OPTIONS"])
+def collect(req: func.HttpRequest) -> func.HttpResponse:
+    """Store one beacon from the marketing site or the stay form.
+
+    202 stored, 204 dropped on purpose (a crawler), 400 not a valid beacon or
+    not from our sites, 429 throttled, 503 storage unavailable. The browser
+    ignores the answer; the codes are for the smoke tests and the logs.
+    """
+    origin = _normalize_origin(req.headers.get("Origin", "")) or ""
+    headers = _collect_headers(origin)
+    if not _canonical_host(req):
+        return func.HttpResponse("Not found", status_code=404, headers=headers)
+    if req.method == "OPTIONS":
+        return func.HttpResponse("OK", status_code=200, headers=headers)
+    fields = analytics.parse_beacon(req.get_body(), origin)
+    if fields is None:
+        return func.HttpResponse("Invalid beacon", status_code=400, headers=headers)
+    if not fields["test"] and analytics.is_bot(req.headers.get("User-Agent", "")):
+        return func.HttpResponse("", status_code=204, headers=headers)
+    # Test traffic is throttled per label, so a labelled smoke run is not starved
+    # by the rest of the suite sharing its runner's address.
+    if not analytics.allow(f"{_client_ip(req)}|{fields['test']}"):
+        return func.HttpResponse("Slow down", status_code=429, headers={**headers, "Retry-After": "60"})
+    try:
+        analytics.store(os.environ.get(analytics.STORAGE_SETTING, ""), fields)
+    except analytics.StorageError as error:
+        logger.warning("Analytics event not stored: %s", error.reason)
+        return func.HttpResponse("Unavailable", status_code=503, headers=headers)
+    return func.HttpResponse("Accepted", status_code=202, headers=headers)
+
+
+@app.route(route="api/stats", methods=["GET"], auth_level=func.AuthLevel.FUNCTION)
+def stats(req: func.HttpRequest) -> func.HttpResponse:
+    """The staff dashboard: aggregated counts only. Requires a function key.
+
+    ``?days=N`` (1-400, default 30) and ``?format=json`` for machines (the CI
+    verify job). Real and automated-test traffic are counted apart.
+    """
+    if not _canonical_host(req):
+        return func.HttpResponse("Not found", status_code=404, headers=SECURITY_HEADERS)
+    try:
+        query = urllib.parse.parse_qs(urllib.parse.urlsplit(req.url).query)
+    except ValueError:
+        query = {}
+    start, end = analytics.stats_window(query.get("days", [""])[0])
+    connection_string = os.environ.get(analytics.STORAGE_SETTING, "")
+    try:
+        rows, truncated = analytics.query_rows(connection_string, start, end)
+        test_rows, _test_truncated = analytics.query_rows(connection_string, start, end, test=True)
+    except analytics.StorageError as error:
+        logger.warning("Analytics dashboard could not read storage: %s", error.reason)
+        return func.HttpResponse(
+            json.dumps({"status": "unavailable", "reason": error.reason}),
+            status_code=503,
+            headers={**SECURITY_HEADERS, "Content-Type": "application/json", "Cache-Control": "no-store"},
+        )
+    model = analytics.summarise(rows, start, end, test_rows, truncated)
+    private = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow"}
+    if query.get("format", [""])[0] == "json":
+        return func.HttpResponse(
+            json.dumps(model),
+            status_code=200,
+            headers={**SECURITY_HEADERS, **private, "Content-Type": "application/json"},
+        )
+    csp = (
+        "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; "
+        f"style-src {analytics.dashboard_style_source()}"
+    )
+    return func.HttpResponse(
+        analytics.render_html(model),
+        status_code=200,
+        mimetype="text/html",
+        headers={**SECURITY_HEADERS, **private, "Content-Security-Policy": csp},
+    )
+
+
+@app.timer_trigger(schedule="0 15 4 2 * *", arg_name="timer", run_on_startup=False)
+def purge_analytics(timer: func.TimerRequest) -> None:
+    """Monthly retention: drop event tables older than analytics.RETENTION_MONTHS."""
+    try:
+        deleted = analytics.purge(os.environ.get(analytics.STORAGE_SETTING, ""))
+    except analytics.StorageError as error:
+        raise RuntimeError(f"analytics retention failed: {error.reason}") from None
+    logger.info("Analytics retention deleted %d monthly tables: %s", len(deleted), ", ".join(deleted) or "none")

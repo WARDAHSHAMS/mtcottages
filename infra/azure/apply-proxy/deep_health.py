@@ -101,8 +101,11 @@ def check_upstream(callback_url, prepare=None):
     return f"status_{status}_{code}" if code else f"status_{status}"
 
 
-def _storage_account(connection_string):
-    """(account, key, queue endpoint) from a key-based connection string, or None."""
+def _storage_account(connection_string, service="queue"):
+    """(account, key, <service> endpoint) from a key-based connection string, or None.
+
+    ``service`` is ``queue`` (deep health) or ``table`` (analytics, #23).
+    """
     fields = {}
     for part in (connection_string or "").split(";"):
         name, separator, value = part.partition("=")
@@ -115,12 +118,12 @@ def _storage_account(connection_string):
         decoded_key = base64.b64decode(key, validate=True)
     except ValueError:
         return None
-    endpoint = fields.get("QueueEndpoint", "").rstrip("/")
+    endpoint = fields.get(f"{service.capitalize()}Endpoint", "").rstrip("/")
     if not endpoint:
         suffix = fields.get("EndpointSuffix", "core.windows.net")
         if not re.fullmatch(r"[a-z0-9.-]{3,100}", suffix):
             return None
-        endpoint = f"https://{account}.queue.{suffix}"
+        endpoint = f"https://{account}.{service}.{suffix}"
     if not endpoint.startswith("https://"):
         return None
     return account, decoded_key, endpoint

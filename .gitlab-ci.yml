@@ -47,6 +47,7 @@ variables:
     jq empty infra/azure/*.json
     bash -n infra/azure/intake-logicapp.sh
     bash -n infra/azure/intake-canary.sh
+    bash -n infra/azure/analytics-verify.sh
     test -f .nojekyll
     grep -qx 'mtcottages.com' CNAME
 
@@ -168,7 +169,7 @@ test:apply-proxy:
   image: "harbor.focuscell.org/dockerhub-proxy/library/python:3.14-slim"
   script:
     - python3 -m pip install --disable-pip-version-check --no-input --quiet "pytest>=8,<9"
-    - python3 -m py_compile infra/azure/apply-proxy/function_app.py infra/azure/apply-proxy/intake_notify.py infra/azure/apply-proxy/deep_health.py infra/azure/apply-proxy/managed_identity.py
+    - python3 -m py_compile infra/azure/apply-proxy/function_app.py infra/azure/apply-proxy/intake_notify.py infra/azure/apply-proxy/deep_health.py infra/azure/apply-proxy/managed_identity.py infra/azure/apply-proxy/analytics.py
     - python3 -m pytest -q infra/azure/apply-proxy/tests
 
 # Builds the zip the Function App runs: the app files at the archive root plus
@@ -185,7 +186,7 @@ package:apply-proxy:
   script:
     - cd infra/azure/apply-proxy
     - printf '%s\n' "$CI_COMMIT_SHA" > BUILD_COMMIT
-    - python3 -I -m zipfile -c "$CI_PROJECT_DIR/apply-proxy.zip" function_app.py intake_notify.py deep_health.py managed_identity.py host.json requirements.txt index.html BUILD_COMMIT
+    - python3 -I -m zipfile -c "$CI_PROJECT_DIR/apply-proxy.zip" function_app.py intake_notify.py deep_health.py managed_identity.py analytics.py host.json requirements.txt index.html BUILD_COMMIT
     - python3 -I -m zipfile -l "$CI_PROJECT_DIR/apply-proxy.zip"
   artifacts:
     paths:
@@ -243,6 +244,32 @@ smoke:apply-proxy:
     paths:
       - e2e/playwright-report
     expire_in: 1 week
+
+# Cookieless analytics (#23, docs/marketing/analytics-adr.md). smoke:apply-proxy
+# opened the stay form in a webdriver browser labelled ci-<sha8> and typed into
+# it (never submitting), so the collector stored a form_view and a form_start
+# in the test partition. This job reads the staff dashboard (/api/stats) with
+# the Function App's default function key and fails unless both are counted,
+# which proves the beacon -> storage -> dashboard path end to end. The key is
+# fetched with the deploy identity, kept in a 0600 file and never printed.
+verify:analytics:
+  extends: .apply-proxy:deploy-rules
+  stage: smoke
+  tags:
+    - azure-deploy
+  # renovate: datasource=docker depName=azure-cli registryUrl=https://mcr.microsoft.com
+  image:
+    name: harbor.focuscell.org/mcr-proxy/azure-cli:2.85.0
+    entrypoint: [""]
+  needs:
+    - job: smoke:apply-proxy
+      artifacts: false
+  interruptible: false
+  timeout: 15m
+  variables:
+    ANALYTICS_TEST_LABEL: "ci-${CI_COMMIT_SHORT_SHA}"
+  script:
+    - bash infra/azure/analytics-verify.sh
 
 # ---------------------------------------------------------------------------
 # Intake Logic App (mtcottages/mtcottages-intake), WorldEnterpriseGroup/mtcottages#13

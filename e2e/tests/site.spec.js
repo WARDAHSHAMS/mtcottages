@@ -205,6 +205,52 @@ test("key decision routes have no automatically detectable accessibility violati
   }
 });
 
+// #23: cookieless counts. Off the live hosts the beacons are queued in window.__mtcAnalytics
+// instead of being sent, so these tests read exactly what production would send.
+const beacons = (page) => page.evaluate(() => window.__mtcAnalytics ?? []);
+const expectNothingStored = async (page, context) => {
+  const stored = await page.evaluate(async () => ({
+    cookie: document.cookie,
+    local: localStorage.length,
+    session: sessionStorage.length,
+    databases: (await indexedDB.databases()).length,
+  }));
+  expect(stored).toEqual({ cookie: "", local: 0, session: 0, databases: 0 });
+  expect(await context.cookies()).toEqual([]);
+};
+
+test("a microsite visit counts a page view and an inquiry click, and stores nothing in the browser", async ({ page, context }) => {
+  await page.goto("/marietta/frederick/index.html");
+  await expect.poll(() => beacons(page)).toContainEqual(expect.objectContaining({ e: "pageview", p: "/marietta/frederick/index.html", h: "frederick", t: "webdriver" }));
+  // Keep the click on this page: the beacon is what is under test, not the stay host.
+  await page.evaluate(() => document.addEventListener("click", (event) => event.preventDefault()));
+  await page.locator('.hm-hero [data-cta="hero"] a[href^="https://stay.mtcottages.com/?property=frederick"]').click();
+  await expect.poll(() => beacons(page)).toContainEqual(expect.objectContaining({ e: "cta_click", h: "frederick", s: "hero", p: "/marietta/frederick/index.html" }));
+  for (const beacon of await beacons(page)) {
+    expect(Object.keys(beacon).every((key) => ["e", "p", "h", "a", "s", "r", "t"].includes(key)), JSON.stringify(beacon)).toBe(true);
+  }
+  await expectNothingStored(page, context);
+});
+
+test("header inquiry clicks are counted with their source and audience links with their audience", async ({ page, context }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/index.html");
+  await page.evaluate(() => document.addEventListener("click", (event) => event.preventDefault()));
+  await page.locator(".site-header a.header-cta").click();
+  await expect.poll(() => beacons(page)).toContainEqual(expect.objectContaining({ e: "cta_click", s: "header", p: "/index.html" }));
+  await page.goto("/health-professionals.html");
+  await page.evaluate(() => document.addEventListener("click", (event) => event.preventDefault()));
+  await page.locator('main a[href*="stayType=healthcare"]').first().click();
+  await expect.poll(() => beacons(page)).toContainEqual(expect.objectContaining({ e: "cta_click", a: "healthcare" }));
+  await expectNothingStored(page, context);
+});
+
+test("the privacy notice explains the cookieless visit counts", async ({ page }) => {
+  await page.goto("/privacy.html");
+  await expect(page.locator("main")).toContainText("Visit counts without cookies");
+  await expect(page.locator("main")).toContainText("no cookie");
+});
+
 test("the homepage hero links to the cottage it showcases", async ({ page }) => {
   await page.goto("/index.html");
   const link = page.locator(".hero-media a.hero-media__link");

@@ -112,6 +112,59 @@ test("the inquiry form carries a fresh idempotency key", async ({ page, request 
   expect(second).not.toBe(first);
 });
 
+// #23: cookieless analytics. The beacons of this webdriver browser carry a test label
+// (ci-<sha8>), so the collector keeps them out of the real counts, and the GitLab job
+// verify:analytics then finds this run's form_view and form_start on the dashboard.
+// Nothing is ever submitted.
+const analyticsLabel = `ci-${(process.env.EXPECTED_COMMIT || process.env.GITHUB_SHA || "manual").trim().slice(0, 8)}`;
+const collectorStatuses = (page) => {
+  const statuses = [];
+  page.on("response", (response) => {
+    if (new URL(response.url()).pathname === "/api/collect") {
+      statuses.push({ status: response.status(), cookie: response.headers()["set-cookie"] || "" });
+    }
+  });
+  return statuses;
+};
+
+test("the stay form counts a view and a first input, without a cookie or a submission", async ({ page, request }) => {
+  const expectedCommit = (process.env.EXPECTED_COMMIT || "").trim();
+  if (expectedCommit) {
+    await expect
+      .poll(async () => {
+        try {
+          const response = await request.get("/api/health");
+          return response.ok() ? (await response.json()).commit || "" : "";
+        } catch {
+          return "";
+        }
+      }, { timeout: 180_000, intervals: [5_000, 10_000] })
+      .toBe(expectedCommit);
+  }
+  const statuses = collectorStatuses(page);
+  await page.goto(`/?property=frederick&stayType=healthcare&src=smoke&mtc_test=${analyticsLabel}`);
+  await expect.poll(() => statuses.length, { timeout: 20_000 }).toBeGreaterThanOrEqual(1);
+  await page.locator('input[name="firstName"]').fill("Smoke");
+  await expect.poll(() => statuses.length, { timeout: 20_000 }).toBeGreaterThanOrEqual(2);
+  expect(statuses, "the collector stores every beacon and sets no cookie").toEqual(
+    statuses.map(() => ({ status: 202, cookie: "" }))
+  );
+});
+
+test("a microsite visit and its inquiry click reach the collector, and the marketing site stores nothing", async ({ page, context }) => {
+  const statuses = collectorStatuses(page);
+  await page.goto(`${marketingUrl}/marietta/frederick/index.html?mtc_test=${analyticsLabel}`);
+  await expect.poll(() => statuses.length, { timeout: 20_000 }).toBeGreaterThanOrEqual(1);
+  const stored = await page.evaluate(() => ({ cookie: document.cookie, local: localStorage.length, session: sessionStorage.length }));
+  expect(stored).toEqual({ cookie: "", local: 0, session: 0 });
+  expect((await context.cookies()).filter((cookie) => cookie.domain.endsWith("mtcottages.com") && !cookie.domain.startsWith("stay"))).toEqual([]);
+  // Stay on the page so the click's beacon response is observed here, not lost to the navigation.
+  await page.evaluate(() => document.addEventListener("click", (event) => event.preventDefault()));
+  await page.locator('.hm-hero [data-cta="hero"] a[href^="https://stay.mtcottages.com/?property=frederick"]').click();
+  await expect.poll(() => statuses.length, { timeout: 20_000 }).toBeGreaterThanOrEqual(2);
+  expect(statuses.every(({ status, cookie }) => status === 202 && !cookie), JSON.stringify(statuses)).toBe(true);
+});
+
 test("the canonical stay host redirects HTTP to HTTPS", async ({ request }) => {
   const stayHttp = await request.get("http://stay.mtcottages.com/", { maxRedirects: 0 });
   expect(stayHttp.status()).toBe(307);

@@ -107,6 +107,18 @@ Then set the project variables `INTAKE_LOGICAPP_DEPLOY_ENABLED=true` and `INTAKE
 
 The first deploy changes behaviour: live has 4 actions; git adds the `MtCottages` business-unit and owner-team lookups. If either lookup finds nothing, the Logic App answers 503. Since #15 the proxy queues such a lead for redelivery instead of losing it.
 
+## Cookieless analytics (#23)
+
+The Function App also hosts the site's visit counter. The decision and the privacy rules are in `docs/marketing/analytics-adr.md`.
+
+| Route | Auth | What it does |
+|---|---|---|
+| `POST /api/collect` | anonymous, Origin must be mtcottages.com, www.mtcottages.com or stay.mtcottages.com | Validates one beacon and stores it as a row in Table Storage in the host storage account (`mtcevents<yyyymm>`). 202 stored, 204 crawler dropped, 400 invalid, 429 throttled, 503 storage unavailable. |
+| `GET /api/stats` | function key (`x-functions-key` header or `?code=`) | Staff dashboard; `?format=json`, `?days=N`. |
+| timer `purge_analytics` | n/a | On the 2nd of each month, deletes event tables older than 13 months. |
+
+It reuses `AzureWebJobsStorage` (key-based connection string, the same one deep health reads), so it adds no resource and no setting. `verify:analytics` (protected `gh-pages`, after `smoke:apply-proxy`) reads the dashboard with the default function key through the deploy identity and fails unless the smoke run's labelled form view and start are counted.
+
 ## Live deployment / runbook
 
 The Function App `mtcottages-apply-proxy` (resource group `mtcottages`, Linux Consumption) is published by GitLab CI and by nothing else (WorldEnterpriseGroup/mtcottages#9). Nobody deploys it from a workstation: the hand-run `az functionapp deployment source config-zip` path is retired.
