@@ -48,6 +48,7 @@ variables:
     bash -n infra/azure/intake-logicapp.sh
     bash -n infra/azure/intake-canary.sh
     bash -n infra/azure/analytics-verify.sh
+    bash -n infra/azure/intake-loss-count.sh
     yq -o=json 'explode(.)' .gitlab-ci.yml | python3 -I scripts/check-ci-runner-contract.py
     python3 -I scripts/check-edge-clients.py infra/azure/*.sh
     test -f .nojekyll
@@ -383,3 +384,19 @@ canary:intake:
   timeout: 10m
   script:
     - bash infra/azure/intake-canary.sh
+
+# Lost-inquiry count (#12): read-only, aggregates only (Front Door POST
+# /api/apply attempts per day and status, Logic App runs per day and status).
+# Run by hand: "Run pipeline" on gh-pages with INTAKE_LOSS_COUNT=true, and
+# optionally INTAKE_LOSS_SINCE=YYYY-MM-DD (default 2026-07-01).
+count:intake-loss:
+  extends: .intake-logicapp:azure
+  stage: smoke
+  needs: []
+  resource_group: intake-loss-count-mtcottages
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "web" && $INTAKE_LOSS_COUNT == "true"'
+    - when: never
+  timeout: 10m
+  script:
+    - bash infra/azure/intake-loss-count.sh
