@@ -193,6 +193,9 @@ package:apply-proxy:
   artifacts:
     paths:
       - apply-proxy.zip
+      # verify:analytics runs on the azure-deploy runner, which cannot clone
+      # (GIT_STRATEGY none), so its script travels as an artifact.
+      - infra/azure/analytics-verify.sh
     expire_in: 1 week
 
 # Publishes the zip. The job runs on the scoped `azure-deploy` runner, which
@@ -264,12 +267,18 @@ verify:analytics:
     name: harbor.focuscell.org/mcr-proxy/azure-cli:2.85.0
     entrypoint: [""]
   needs:
+    - job: package:apply-proxy
+      artifacts: true
     - job: smoke:apply-proxy
       artifacts: false
   interruptible: false
   timeout: 15m
   variables:
     ANALYTICS_TEST_LABEL: "ci-${CI_COMMIT_SHORT_SHA}"
+    # Like the launch-sequence deploy template: the azure-deploy runner cannot
+    # write a git config (HOME is /), so the job takes no checkout and runs the
+    # script from package:apply-proxy's artifact.
+    GIT_STRATEGY: none
   script:
     - bash infra/azure/analytics-verify.sh
 
