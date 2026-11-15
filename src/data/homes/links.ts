@@ -1,4 +1,3 @@
-import { stayApplicationUrl } from "../site";
 import type { HomeMicrosite, FactStatus, NearbyKind, PlanRoomKind } from "./types";
 
 /** True only for homes whose street address the owner approved for publication. */
@@ -25,8 +24,6 @@ export const homePages = (home: HomeMicrosite): HomePage[] =>
 /** Directory URL for the index page, .html files for the rest (build.format "preserve"). */
 export const homeHref = (home: HomeMicrosite, page: "index" | HomePage = "index") =>
   page === "index" ? homeBase(home) : `${homeBase(home)}${page}.html`;
-
-export const inquiryUrl = (id: string) => `${stayApplicationUrl}?property=${encodeURIComponent(id)}`;
 
 export const googleDirectionsTo = (address: string) =>
   `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;

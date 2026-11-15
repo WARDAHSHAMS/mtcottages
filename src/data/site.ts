@@ -1,4 +1,5 @@
 import type { ImageMetadata } from "astro";
+import type { Audience, StayTown } from "./stay-link";
 
 import mariettaExterior from "../../assets/images/cottages/marietta-01/frederick-exterior-full-safe.avif";
 import mariettaBackyard from "../../assets/images/cottages/marietta-01/frederick-backyard-cover.jpg";
@@ -302,8 +303,13 @@ export type Guide = {
   sections: { title: string; body: string; bullets?: string[] }[];
   photo?: Photo;
   cta?: string;
+  /** A page on this site for the hero action. Without it the hero action opens the stay form with this guide's context. */
   actionHref?: string;
   inquiryCta?: boolean;
+  /** The persona this guide speaks to; its stay links pre-select the matching reason for the stay. */
+  audience?: Audience;
+  /** The town its stay links pre-select. */
+  stayTown?: StayTown;
 };
 
 const guidePhotos: Record<string, Photo> = {
@@ -344,7 +350,7 @@ export const guides: Record<string, Guide> = {
       { title: "Plan for the actual household", body: "Tell us who is coming, how long you may stay, and what the home needs to make the arrangement fit.", bullets: ["Bedrooms and sleeping arrangements", "Kitchen and laundry needs", "Pets and accessibility questions", "A realistic timing window"] },
     ],
     cta: "Plan a family stay",
-    actionHref: `${stayApplicationUrl}?stayType=family`,
+    audience: "visiting-family",
   },
   health: {
     path: "health-professionals.html",
@@ -359,7 +365,7 @@ export const guides: Record<string, Guide> = {
       { title: "Share the variables early", body: "Dates, facility, household, pets, and budget help us identify the homes worth considering." },
     ],
     cta: "Start a healthcare housing inquiry",
-    actionHref: `${stayApplicationUrl}?stayType=healthcare`,
+    audience: "healthcare",
   },
   work: {
     path: "work-relocation.html",
@@ -374,7 +380,7 @@ export const guides: Record<string, Guide> = {
       { title: "For employers and coordinators", body: "We can discuss partner-led housing, timing, furnishing needs, and the information needed to make a placement workable." },
     ],
     cta: "Plan a work stay",
-    actionHref: `${stayApplicationUrl}?stayType=work`,
+    audience: "crew",
   },
   insurance: {
     path: "insurance-housing.html",
@@ -389,7 +395,7 @@ export const guides: Record<string, Guide> = {
       { title: "Make the bridge feel livable", body: "A kitchen, laundry, bedrooms, and living space help a temporary arrangement support a household while the next home is repaired." },
     ],
     cta: "Discuss temporary housing",
-    actionHref: `${stayApplicationUrl}?stayType=insurance`,
+    audience: "insurance",
   },
 };
 
@@ -410,6 +416,7 @@ export const locationData: Record<string, Guide & { town: string; cottages?: Cot
     ],
     cta: "Explore the Frederick home site",
     actionHref: "/marietta/frederick/index.html",
+    stayTown: "marietta",
   },
   parkersburg: {
     path: "parkersburg/index.html",
@@ -427,6 +434,7 @@ export const locationData: Record<string, Guide & { town: string; cottages?: Cot
     ],
     cta: "Compare Parkersburg cottages",
     actionHref: "/cottages.html#parkersburg",
+    stayTown: "parkersburg",
   },
   ravenswood: {
     path: "ravenswood/index.html",
@@ -444,6 +452,7 @@ export const locationData: Record<string, Guide & { town: string; cottages?: Cot
     ],
     cta: "Compare Ravenswood cottages",
     actionHref: "/cottages.html#ravenswood",
+    stayTown: "ravenswood",
   },
   racine: {
     path: "racine/index.html",
@@ -458,7 +467,7 @@ export const locationData: Record<string, Guide & { town: string; cottages?: Cot
       { title: "Ask for current options", body: "Availability and property coverage change. Tell us the timing and community need so we can confirm what is possible." },
     ],
     cta: "Ask about Racine availability",
-    actionHref: `${stayApplicationUrl}?location=Racine`,
+    stayTown: "racine",
   },
   grantsville: {
     path: "grantsville/index.html",
@@ -473,7 +482,7 @@ export const locationData: Record<string, Guide & { town: string; cottages?: Cot
       { title: "Availability changes", body: "We keep this guide useful by separating location planning from current home availability. Start a conversation for the latest answer." },
     ],
     cta: "Ask about Grantsville planning",
-    actionHref: `${stayApplicationUrl}?location=Grantsville`,
+    stayTown: "grantsville",
   },
 };
 

@@ -1,5 +1,6 @@
 ---
 import type { HomeShell } from "./shell";
+import CheckDates from "../CheckDates.astro";
 
 interface Props {
   shell: HomeShell;
@@ -8,17 +9,14 @@ interface Props {
 const { shell, extra } = Astro.props as Props;
 ---
 <section class="section section--dark hm-inquiry" aria-labelledby="hm-inquiry-title">
-  <div class="site-width split" data-cta="inquiry-panel">
+  <div class="site-width split">
     <div>
       <p class="eyebrow" style="color:#e4b482">{shell.name}</p>
       <h2 id="hm-inquiry-title">Ask about {shell.name}.</h2>
     </div>
     <div>
-      <p class="lede lede--light">Share timing, household, and what you need from a place. We confirm availability, pricing, and the right next step.</p>
-      <div class="cluster mt-3">
-        <a class="button button--light" href={shell.inquiryUrl}>Start a stay inquiry <span aria-hidden="true">↗</span></a>
-        {extra && <a class="text-link" style="color:#fff" href={extra.href}>{extra.label}</a>}
-      </div>
+      <p class="lede lede--light">Tell us your dates, who is coming, and what you need from a place. We confirm availability, the monthly rate, and the next step.</p>
+      <CheckDates class="mt-3" placement="inquiry-panel" home={shell.id} tone="light" secondary={extra} />
     </div>
   </div>
 </section>

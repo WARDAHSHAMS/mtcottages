@@ -1,5 +1,5 @@
 import type { HomeMicrosite } from "../../data/homes/types";
-import { homeBase, homeHref, homePages, inquiryUrl } from "../../data/homes/links";
+import { homeBase, homeHref, homePages } from "../../data/homes/links";
 
 export type HomeNavItem = { label: string; href: string; description: string };
 
@@ -12,7 +12,8 @@ export type HomeShell = {
   baseHref: string;
   brandSub: string;
   nav: HomeNavItem[];
-  inquiryUrl: string;
+  /** The "See distances" target: nearby places with drive and walk times. */
+  distancesHref: string;
 };
 
 export const homeShell = (home: HomeMicrosite): HomeShell => ({
@@ -32,5 +33,5 @@ export const homeShell = (home: HomeMicrosite): HomeShell => ({
       ? [{ label: "Guide", href: homeHref(home, "guide"), description: "Utilities, arrival and how living here works." }]
       : []),
   ],
-  inquiryUrl: inquiryUrl(home.id),
+  distancesHref: `${homeHref(home, "location")}#nearby`,
 });

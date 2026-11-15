@@ -4,7 +4,8 @@ import ResponsivePhoto from "../../../components/ResponsivePhoto.astro";
 import FactGrid from "../../../components/home/FactGrid.astro";
 import { homeShell } from "../../../components/home/shell";
 import { homes } from "../../../data/homes";
-import { fullAddress, hasStreetAddress, homeHref, inquiryUrl } from "../../../data/homes/links";
+import CheckDates from "../../../components/CheckDates.astro";
+import { fullAddress, hasStreetAddress, homeHref } from "../../../data/homes/links";
 import { homePageSchema } from "../../../data/homes/schema";
 import type { HomeMicrosite } from "../../../data/homes/types";
 
@@ -39,7 +40,7 @@ const bedLabel = `${home.bedrooms} ${home.bedrooms === 1 ? "bedroom" : "bedrooms
       <div class="details-panel reveal">
         <FactGrid facts={home.facts} label={`${home.name} key facts`} />
         {home.priceGuide && <p class="hm-price"><span>Monthly guide</span> <strong>{home.priceGuide}</strong> <small>Confirm the current rate and your dates when you ask.</small></p>}
-        <div class="cluster"><a class="button" href={inquiryUrl(home.id)}>Ask about this home ↗</a><a class="button button--ghost" href={homeHref(home, "location")}>Directions and nearby</a></div>
+        <CheckDates placement="facts" home={home.id} secondary={{ label: "Directions and nearby", href: homeHref(home, "location") }} />
       </div>
     </div>
   </section>

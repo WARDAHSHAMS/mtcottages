@@ -105,7 +105,7 @@ for (const home of homes) {
     test("the inquiry link carries the property", async ({ page }) => {
       for (const path of pagesOf(home)) {
         await page.goto(path);
-        const links = page.locator(`a[href="https://stay.mtcottages.com/?property=${home.id}"]`);
+        const links = page.locator(`a[href^="https://stay.mtcottages.com/?property=${home.id}&"]`);
         expect(await links.count(), `${path} inquiry links`).toBeGreaterThanOrEqual(2);
         await expect(page.locator('a[href*="/apply.html"]')).toHaveCount(0);
       }

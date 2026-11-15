@@ -119,6 +119,8 @@
   .mega-intro p, .mega-feature p, .mega-group-label { color: var(--accent-deep); font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; }
   .mega-intro span, .mega-feature span { display: block; color: var(--muted); font-size: .95rem; }
   .inline-link, .text-link { display: inline-flex; align-items: center; gap: .4rem; margin-top: 1rem; color: var(--accent-deep); font-weight: 700; }
+  .text-link--light { color: #fff; }
+  .check-dates .text-link { margin-top: 0; }
   .mega-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
   .mega-group ul { display: grid; gap: .25rem; margin-top: .55rem; }
   .mega-group a { display: block; padding: .35rem 0; text-decoration: none; }
@@ -334,7 +336,8 @@
   .trust-strip__grid { grid-template-columns: 1fr 1fr; }
   .trust-strip__grid > div { min-height: 6rem; padding: .9rem; }
   .trust-strip strong { font-size: 1.08rem; }
-  .mobile-action { position: sticky; z-index: 8; inset-block-end: 0; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .65rem .75rem; background: color-mix(in srgb, var(--forest) 95%, transparent); color: white; box-shadow: 0 -.5rem 2rem rgb(18 37 34 / .14); }
+  /* Sticky, not fixed: the bar keeps its own place at the end of the page, so it never hides the last content, and it clears the home indicator. */
+  .mobile-action { position: sticky; z-index: 8; inset-block-end: 0; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .65rem max(.75rem, env(safe-area-inset-right)) max(.65rem, env(safe-area-inset-bottom)) max(.75rem, env(safe-area-inset-left)); background: color-mix(in srgb, var(--forest) 95%, transparent); color: white; box-shadow: 0 -.5rem 2rem rgb(18 37 34 / .14); }
   .mobile-action span { display: grid; }
   .mobile-action strong { font-size: .76rem; }
   .mobile-action small { color: rgb(255 255 255 / .7); font-size: .66rem; }
