@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://mtcottages.com/sitemap-index.xml
+Sitemap: https://mtcottages.com/sitemap.xml

@@ -55,7 +55,11 @@ const pageGuide: Guide | undefined = guideKey ? guides[guideKey] : undefined;
 const pageLocation = locationKey ? locationData[locationKey] : undefined;
 const title = cottage ? `${cottage.name} | Furnished Stay in ${cottage.town}` : pageGuide ? `${pageGuide.title} | Mt Cottages` : pageLocation ? `${pageLocation.town} Furnished Living | Mt Cottages` : utilityPage ? `${utilityPage.title} | Mt Cottages` : routePath.replace(/\.html$/, "").replaceAll("-", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) + " | Mt Cottages";
 const description = cottage?.summary || pageGuide?.description || pageLocation?.description || utilityPage?.description || "Furnished living and practical support across the Mid-Ohio Valley.";
-const noindex = ["resident-portal.html", "pay-rent.html", "maintenance.html", "emergency-maintenance.html"].includes(routePath);
+// Resident tools are not search landing pages. Yellow and Walnut are parked
+// (CEO decision 2026-11-14): their pages stay reachable but out of search and
+// the sitemap until the CEO lists them again.
+const parkedHomePages = ["parkersburg/yellow-cottage.html", "ravenswood/walnut-cottage.html"];
+const noindex = ["resident-portal.html", "pay-rent.html", "maintenance.html", "emergency-maintenance.html", ...parkedHomePages].includes(routePath);
 ---
 
 <SiteLayout title={title} description={description} schema={propertySchema} noindex={noindex} home={cottage?.id} audience={pageGuide?.audience}>

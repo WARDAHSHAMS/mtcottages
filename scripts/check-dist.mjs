@@ -50,33 +50,61 @@ if (!existsSync(cnamePath) || read(cnamePath).trim() !== "mtcottages.com") {
 }
 if (!existsSync(join(dist, ".nojekyll"))) errors.push(".nojekyll is missing");
 if (existsSync(join(dist, "apply.html"))) errors.push(`${dist}/apply.html is a removed legacy application route`);
-for (const sitemap of files.filter((file) => /\/sitemap-[^/]*\.xml$/.test(file))) {
-  if (read(sitemap).includes("apply.html")) errors.push(`${sitemap} advertises the removed apply route`);
-}
 // The sitemap feeds search engines and the Lighthouse gate, which finds each home microsite there.
-// It must list every microsite index as a directory URL and nothing that is a redirect or noindex.
+// integrations/canonical-sitemap.mjs writes it; this re-checks the result independently: every URL
+// is built, indexable, carries lastmod, and is exactly that page's canonical; every microsite index
+// is listed as a directory URL; robots.txt points crawlers at it.
 const isNoindex = (markup) => /<meta[^>]+name="robots"[^>]+noindex/i.test(markup);
+const canonicalsOf = (markup) => [...markup.matchAll(/<link[^>]+rel="canonical"[^>]*>/gi)].map((tag) => tag[0].match(/href="([^"]+)"/i)?.[1]);
 const sitemapPaths = new Set();
-for (const sitemap of files.filter((file) => /\/sitemap-\d+\.xml$/.test(file))) {
-  for (const match of read(sitemap).matchAll(/<loc>([^<]+)<\/loc>/g)) {
-    let pathname;
-    try {
-      pathname = decodeURIComponent(new URL(match[1]).pathname);
-    } catch (error) {
-      errors.push(`${sitemap} lists an invalid URL ${match[1]}: ${error instanceof Error ? error.message : String(error)}`);
+const sitemapFile = join(dist, "sitemap.xml");
+if (!existsSync(sitemapFile)) {
+  errors.push("dist/sitemap.xml is missing");
+} else {
+  const xml = read(sitemapFile);
+  if (!xml.includes('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')) errors.push("sitemap.xml is not a sitemaps.org urlset");
+  if (xml.includes("apply.html")) errors.push("sitemap.xml advertises the removed apply route");
+  for (const entry of xml.matchAll(/<url>([\s\S]*?)<\/url>/g)) {
+    const loc = entry[1].match(/<loc>([^<]+)<\/loc>/)?.[1];
+    if (!loc) {
+      errors.push("sitemap.xml has a <url> without <loc>");
       continue;
     }
+    if (!/<lastmod>\d{4}-\d{2}-\d{2}T[^<]+<\/lastmod>/.test(entry[1])) errors.push(`sitemap.xml lists ${loc} without a W3C lastmod`);
+    let pathname;
+    try {
+      const url = new URL(loc);
+      if (url.origin !== "https://mtcottages.com") errors.push(`sitemap.xml lists ${loc}, which is not on https://mtcottages.com`);
+      pathname = decodeURIComponent(url.pathname);
+    } catch (error) {
+      errors.push(`sitemap.xml lists an invalid URL ${loc}: ${error instanceof Error ? error.message : String(error)}`);
+      continue;
+    }
+    if (sitemapPaths.has(pathname)) errors.push(`sitemap.xml lists ${pathname} twice`);
     sitemapPaths.add(pathname);
     const file = join(dist, pathname.endsWith("/") ? `${pathname}index.html` : pathname);
-    if (!existsSync(file)) errors.push(`${sitemap} lists ${pathname}, which was not built`);
-    else if (isNoindex(read(file))) errors.push(`${sitemap} lists ${pathname}, a redirect or noindex page`);
+    if (!existsSync(file)) {
+      errors.push(`sitemap.xml lists ${pathname}, which was not built`);
+      continue;
+    }
+    const markup = read(file);
+    if (isNoindex(markup)) errors.push(`sitemap.xml lists ${pathname}, a redirect or noindex page`);
+    const canonicals = canonicalsOf(markup);
+    if (canonicals.length !== 1 || canonicals[0] !== loc) errors.push(`sitemap.xml lists ${loc}, but the page's canonical is ${JSON.stringify(canonicals)}`);
   }
 }
-if (sitemapPaths.size === 0) errors.push("no sitemap-N.xml lists any page");
+if (sitemapPaths.size === 0) errors.push("sitemap.xml lists no page");
+const robotsFile = join(dist, "robots.txt");
+if (!existsSync(robotsFile)) errors.push("dist/robots.txt is missing");
+else {
+  const robots = read(robotsFile);
+  if (!/^Sitemap: https:\/\/mtcottages\.com\/sitemap\.xml$/m.test(robots)) errors.push("robots.txt must reference https://mtcottages.com/sitemap.xml");
+  if (/^Disallow:\s*\/\s*$/m.test(robots)) errors.push("robots.txt blocks the whole site");
+}
 for (const page of pages) {
   const microsite = relative(dist, page).split(sep).join("/").match(/^([a-z0-9-]+\/[a-z0-9-]+)\/index\.html$/);
   if (microsite && !isNoindex(read(page)) && !sitemapPaths.has(`/${microsite[1]}/`)) {
-    errors.push(`the sitemap does not list the /${microsite[1]}/ microsite; add it to micrositeRoots in astro.config.mjs`);
+    errors.push(`the sitemap does not list the /${microsite[1]}/ microsite; its canonical must be the directory URL`);
   }
 }
 
@@ -95,7 +123,8 @@ for (const page of pages) {
     errors.push(`${page} shows an AI concept image without an AI-generated concept label`);
   }
   if (LEGACY_MARKERS.some((marker) => markup.includes(marker))) errors.push(`${page} contains a legacy runtime marker`);
-  if (!markup.includes('<link rel="canonical"')) errors.push(`${page} is missing a canonical URL`);
+  const canonicalCount = (markup.match(/<link[^>]+rel="canonical"/g) ?? []).length;
+  if (canonicalCount !== 1) errors.push(`${page} has ${canonicalCount} canonical links; every page needs exactly one`);
   const sources = [...markup.matchAll(/<img[^>]+src="([^"]+)"/g)].map((match) => match[1]);
   if (sources.some((source) => !source.includes("/_astro/logo-mtcottages")) && !markup.includes("srcset=")) {
     errors.push(`${page} contains an unresponsive content image`);

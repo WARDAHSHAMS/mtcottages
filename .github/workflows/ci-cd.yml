@@ -152,6 +152,9 @@ jobs:
           cache: npm
 
       - name: Build the verified Astro artifact
+        env:
+          # Public Search Console HTML-tag token (repository variable; empty until the owner sets it).
+          PUBLIC_GOOGLE_SITE_VERIFICATION: ${{ vars.GOOGLE_SITE_VERIFICATION }}
         run: npm ci && npm run check && npm run build
 
       - name: Configure Pages
