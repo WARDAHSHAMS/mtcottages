@@ -19,6 +19,7 @@
     "three": "^0.160.1"
   },
   "devDependencies": {
+    "schema-dts": "^2.1.0",
     "typescript": "^7.0.2"
   }
 }

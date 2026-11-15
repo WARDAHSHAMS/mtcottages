@@ -1,7 +1,7 @@
+import type { AccommodationLeaf, LocationFeatureSpecificationLeaf, WithContext } from "schema-dts";
 import type { HomeMicrosite } from "./types";
 import { homeBase, homeHref, type HomePage } from "./links";
-
-const origin = "https://mtcottages.com";
+import { breadcrumbSchema, businessId, cityPlace, homeNodeId, origin } from "../schema";
 
 const pageTitle: Record<HomePage, string> = {
   tour: "Tour",
@@ -15,47 +15,51 @@ const pageTitle: Record<HomePage, string> = {
  * Accommodation structured data. Owner-approved homes carry a full postal
  * address and geo point; town-level homes carry only locality and region, with
  * no street, postcode or coordinates. No Offer: prices are not confirmed.
+ * Amenities are listed only when their status is known (never "confirm"), and
+ * there is no numberOfRooms: the room plans are illustrative concepts, so the
+ * only room counts published are the listed bedrooms and bathrooms.
+ * Optional values are left undefined, which JSON.stringify omits.
  */
-export const homeSchema = (home: HomeMicrosite) => {
+export const homeSchema = (home: HomeMicrosite): WithContext<AccommodationLeaf> => {
   const url = new URL(homeBase(home), origin).toString();
   const a = home.address;
+  const street = a.kind === "street" ? a : undefined;
+  const amenityFeature = home.amenities
+    .flatMap((group) => group.items)
+    .filter((item) => item.status !== "confirm")
+    .map((item): LocationFeatureSpecificationLeaf => ({ "@type": "LocationFeatureSpecification", name: item.name, value: true }));
   return {
     "@context": "https://schema.org",
     "@type": "Accommodation",
-    "@id": `${url}#home`,
+    "@id": homeNodeId(homeBase(home)),
     name: home.name,
     description: home.summary,
     url,
     numberOfBedrooms: home.bedrooms,
-    ...(home.bathrooms !== undefined && { numberOfBathroomsTotal: home.bathrooms }),
-    ...(home.sleeps !== undefined && { occupancy: { "@type": "QuantitativeValue", maxValue: home.sleeps } }),
+    numberOfBathroomsTotal: home.bathrooms,
+    occupancy: home.sleeps === undefined ? undefined : { "@type": "QuantitativeValue", maxValue: home.sleeps },
+    amenityFeature: amenityFeature.length > 0 ? amenityFeature : undefined,
     address: {
       "@type": "PostalAddress",
-      ...(a.kind === "street" && { streetAddress: a.streetAddress }),
+      streetAddress: street?.streetAddress,
       addressLocality: a.locality,
       addressRegion: a.region,
-      ...(a.kind === "street" && { postalCode: a.postalCode }),
+      postalCode: street?.postalCode,
       addressCountry: "US",
     },
-    ...(a.kind === "street" && { geo: { "@type": "GeoCoordinates", latitude: a.lat, longitude: a.lng } }),
-    containedInPlace: { "@type": "Place", name: "Mid-Ohio Valley" },
+    geo: street ? { "@type": "GeoCoordinates", latitude: street.lat, longitude: street.lng } : undefined,
+    containedInPlace: [cityPlace(home.town.name, home.town.state), { "@id": businessId }],
   };
 };
 
 /** Breadcrumbs matching the visible trail: Home / Town / Home name / Page. */
-export const homeBreadcrumbs = (home: HomeMicrosite, page?: HomePage) => {
-  const trail = [
-    { name: "Home", url: `${origin}/` },
-    { name: home.town.name, url: `${origin}/${home.town.slug}/index.html` },
-    { name: home.name, url: new URL(homeBase(home), origin).toString() },
-    ...(page ? [{ name: pageTitle[page], url: new URL(homeHref(home, page), origin).toString() }] : []),
-  ];
-  return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: trail.map((crumb, index) => ({ "@type": "ListItem", position: index + 1, name: crumb.name, item: crumb.url })),
-  };
-};
+export const homeBreadcrumbs = (home: HomeMicrosite, page?: HomePage) =>
+  breadcrumbSchema([
+    { name: "Home", href: "/" },
+    { name: home.town.name, href: `/${home.town.slug}/index.html` },
+    { name: home.name, href: homeBase(home) },
+    ...(page ? [{ name: pageTitle[page], href: homeHref(home, page) }] : []),
+  ]);
 
 /** Everything a home page publishes as JSON-LD. */
 export const homePageSchema = (home: HomeMicrosite, page?: HomePage) => [homeSchema(home), homeBreadcrumbs(home, page)];
