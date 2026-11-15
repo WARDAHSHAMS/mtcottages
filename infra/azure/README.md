@@ -34,6 +34,79 @@ The workflow first looks up that business unit, then finds its default owner tea
 
 The existing `dynamicscrmonline` connection and `d365Organization` parameter remain in use so this change fits the current Logic App deployment. No CRM secrets or connection IDs should be added to source control.
 
+## Durable, idempotent intake (#15)
+
+No inquiry that passed validation and Turnstile is dropped, and a retry never creates a second lead.
+
+- **Idempotency key.** The form sends `submissionId`, a UUID v4 generated in the browser. It is kept across a failed send and replaced only after a success. The proxy validates it (or generates one for an older cached page) and forwards it to the Logic App in the body and as the `Idempotency-Key` header. It is part of the trigger schema, so `check-form-parity.py` keeps the form and the definition aligned.
+- **Duplicates.** An instance that already delivered a `submissionId` answers a repeat with the same success and does not call the Logic App again (24 h, per instance). Cross-instance de-duplication belongs in the Logic App, keyed on `submissionId` (#13).
+- **Timeouts and failures.** The Logic App call has a bounded timeout (`LOGICAPP_TIMEOUT_SECONDS`, default 25, allowed 5–120). A timeout, a connection failure or any non-2xx answer, including a broken trigger URL, writes the lead to the Storage queue `intake-retry` in the Function App's own host storage account (`AzureWebJobsStorage`; no new resource). The guest gets HTTP 202, `success: true`, because the inquiry is durably held.
+- **Redelivery.** The queue-triggered function `redeliver_intake` retries with the same `submissionId`. `host.json` allows 8 attempts, 2 minutes apart at the least. After the last attempt the runtime moves the message to `intake-retry-poison`, where it waits for staff recovery. A non-empty poison queue is an alert condition (#16). Queue messages expire after 7 days, so the alert must page well within that.
+- **Logs** carry the `submissionId` and a reason label (`timeout`, `http-503`, …), never lead fields.
+- If the host cannot write the queue message, it answers 500. The submission is then not remembered, so the browser's retry with the same key is processed again.
+
+## Staff alert and guest acknowledgment (#14)
+
+Every accepted inquiry, whether delivered or queued for redelivery, puts one message per configured channel on the Storage queue `intake-notify`. A duplicate `submissionId` or a rejected submission notifies nobody. The queue-triggered function `send_intake_notification` sends each channel on its own, so a mail outage never delays the guest's answer or the other channels:
+
+| Channel | What staff or the guest get |
+|---|---|
+| `staff-email` | "New stay inquiry: <name>, <home or town>, move-in <date>" to `STAFF_ALERT_RECIPIENTS`, with every form fact and the message. Reply-To is the guest. |
+| `teams` | An Adaptive Card in the Mt Cottages channel, with the same facts and "Email the guest" / "Call the guest" buttons. |
+| `guest-email` | "We have your inquiry, <first name>": the response promise, the three next steps and the move-in, length, town and home they chose. It never echoes their phone, message or free text, and Reply-To is `stay@mtcottages.com`. Voice follows `docs/marketing/brand-and-positioning.md` (#11): warm, plain, no exclamation marks. |
+
+`host.json` polls idle queues at least every 10 seconds, so the staff alert lands well inside the SOP's 1 minute. A failed channel is retried up to 8 times, 2 minutes apart, then moved to `intake-notify-poison` (an alert condition, #16). ACS sends carry a `repeatability-request-id` derived from the `submissionId` and channel, so a retried email is sent once. Logs carry the `submissionId` and channel only.
+
+Application settings (a channel whose settings are missing is simply not queued):
+
+| Setting | Value |
+|---|---|
+| `ACS_EMAIL_ENDPOINT` | `https://<resource>.communication.azure.com`. Auth is the Function App's managed identity (needs a role on the ACS resource that allows `emails:send`); no access key. |
+| `NOTIFY_SENDER_ADDRESS` | The verified ACS sender, `stay@mtcottages.com` once the domain is verified in ACS. |
+| `NOTIFY_REPLY_TO` | Optional; default `stay@mtcottages.com`. |
+| `STAFF_ALERT_RECIPIENTS` | Comma-separated staff addresses. |
+| `TEAMS_INTAKE_WEBHOOK_URL` | A Key Vault reference (`@Microsoft.KeyVault(...)`) to the Teams Workflows webhook URL. The URL is a credential; never put it in git or a plain setting. |
+| `GUEST_AUTOREPLY_ENABLED` | `true` to send the guest acknowledgment. |
+| `GUEST_RESPONSE_PROMISE` | Default `within 2 business hours`. The owner confirms it (brand decision D6). |
+
+## Locked trigger and secured run data (#17)
+
+Today the Logic App trigger accepts anyone holding its callback URL (`accessControl` is null), which bypasses Turnstile. The lock follows the platform precedent in FocusApiary/form-intake-proxy (`src/auth.js`, `scripts/logicapp-access.sh`): an Entra policy instead of an IP allow-list, because a Linux Consumption app has no fixed egress IP.
+
+- **Proxy (this repo).** `LOGICAPP_AUTH=managed-identity` makes every call to the trigger carry a token of the Function App's managed identity (audience `https://management.core.windows.net/`) and drop the URL's `sig`, because Logic Apps refuses a request that carries both. The default, `sas`, keeps today's behaviour. A token failure is treated like any failed delivery: the lead is queued and retried (#15). Deep health uses the same path and reads `auth_<reason>` when no token can be had. `AZURE_CLIENT_ID` selects a user-assigned identity if one is used.
+- **Run history (this repo).** The trigger's outputs and the `Create_D365_Applicant_Lead` inputs and outputs are `secureData`, so run history no longer shows lead fields. It ships with the definition (#13).
+- **Trigger policy (Azure).** `accessControl.triggers.openAuthenticationPolicies` holds one `AAD` policy with the claims `iss` = `https://sts.windows.net/<tenant>/`, `aud` = `https://management.core.windows.net/` and `oid` = the Function App identity's object id. Then `sasAuthenticationPolicy.state` = `Disabled`, so the URL alone no longer works. `intake-logicapp.sh` (#13) keeps the live `accessControl`, so it never undoes the lock.
+- **Secrets.** With SAS disabled, `LOGICAPP_URL_APPLICATION` is no longer a credential. `TURNSTILE_SECRET_KEY` (and the Teams webhook, #14) become Key Vault references `@Microsoft.KeyVault(SecretUri=...)` resolved by the Function App identity.
+
+Rollout order, so no step drops a lead:
+
+1. Merge this change. Nothing changes while `LOGICAPP_AUTH` is unset.
+2. Add the Entra policy to the trigger and keep SAS. Both kinds of call now work.
+3. Set `LOGICAPP_AUTH=managed-identity`. Confirm `/api/health?deep=1` reads `ok`.
+4. Disable SAS on the trigger. Confirm deep health is still `ok`, and that a GET on the bare callback URL is refused with 401.
+5. Rotation runbook: there is no shared secret left for the trigger. To rotate `TURNSTILE_SECRET_KEY`, write the new value to Key Vault, then change any app setting or redeploy so the reference re-resolves (a plain restart did not refresh it in infrastructure#536). Then confirm the form still accepts a Turnstile token in the smoke job.
+
+## Intake Logic App from git (#13)
+
+`mtcottages-intake.definition.json` and `mtcottages-intake.parameters.json` are the source of truth for the Logic App `mtcottages/mtcottages-intake`. Nobody edits it in the portal. `infra/azure/intake-logicapp.sh` is the only deploy path:
+
+| Job | When | What |
+|---|---|---|
+| `deploy:intake-logicapp` | protected `gh-pages` push that changes the definition, parameters, script or `.gitlab-ci.yml`, with `INTAKE_LOGICAPP_DEPLOY_ENABLED=true` | `deploy`: GET live, PUT the git definition and parameters, read back and fail unless live equals git. Keeps live `location`, `state`, `tags`, `identity`, `accessControl` and `integrationAccount`, so a deploy never re-opens a locked trigger or re-enables a disabled workflow. No-op when already equal. |
+| `drift:intake-logicapp` | nightly pipeline schedule on `gh-pages` (or "Run pipeline"), with `INTAKE_LOGICAPP_DRIFT=true` | `drift`: fails when the live definition or parameters differ from git, and prints the action names that differ plus a bounded diff. |
+
+Both run on the scoped `azure-deploy` runner as `sp-mtcottages-proxy-deploy` (certificate from `omlab-secrets`, mounted by the runner) and never print a token or the trigger callback URL. The comparison ignores key order and the empty `outputs` object ARM adds.
+
+**Prerequisites (FocusApiary/infrastructure `terraform/environments/mtcottages-deploy-identity`, Admiral apply):**
+
+- `Logic App Contributor` for `sp-mtcottages-proxy-deploy` on the workflow `mtcottages/mtcottages-intake` only (read for drift, write for deploy).
+- `Microsoft.Web/connections/join/action` on the D365 connection bound in the parameters (today `tli_interest/dynamicscrmonline`; #18 replaces it), so the PUT may reference it. `Logic App Contributor` scoped to that one connection grants it.
+- infra#822 keeps `mtcottages-intake` ("keep (on-demand endpoint, $0 idle)"); it is not in `logicapps/estate/retirements.json`.
+
+Then set the project variables `INTAKE_LOGICAPP_DEPLOY_ENABLED=true` and `INTAKE_LOGICAPP_DRIFT=true` (protected), and create a nightly schedule on `gh-pages`.
+
+The first deploy changes behaviour: live has 4 actions; git adds the `MtCottages` business-unit and owner-team lookups. If either lookup finds nothing, the Logic App answers 503. Since #15 the proxy queues such a lead for redelivery instead of losing it.
+
 ## Live deployment / runbook
 
 The Function App `mtcottages-apply-proxy` (resource group `mtcottages`, Linux Consumption) is published by GitLab CI and by nothing else (WorldEnterpriseGroup/mtcottages#9). Nobody deploys it from a workstation: the hand-run `az functionapp deployment source config-zip` path is retired.
@@ -49,7 +122,18 @@ A push to `gh-pages` that changes `infra/azure/apply-proxy/` or `.gitlab-ci.yml`
 | `deploy:apply-proxy` | Publishes the zip with the launch-sequence `.deploy:azure-function` template (Kudu remote build), then waits for `https://stay.mtcottages.com/api/health` to return HTTP 200. |
 | `smoke:apply-proxy` | Runs the stay tests in `e2e/tests/live.spec.js` against the live host. It waits for `/api/health` to report the published commit, loads the form and posts one honeypot probe that the proxy rejects with HTTP 400. It never submits a valid application. |
 
-`/api/health` returns `{"status": "ok", "service": "mtcottages-apply-proxy", "commit": "<sha>"}`. `commit` is the `BUILD_COMMIT` from the package; a package not built by the pipeline reports `unknown`.
+`/api/health` returns `{"status": "ok", "service": "mtcottages-apply-proxy", "commit": "<sha>"}`. `commit` is the `BUILD_COMMIT` from the package; a package not built by the pipeline reports `unknown`. This plain answer is constant and makes no outbound call: the Front Door origin probe and the deploy gate use it.
+
+### Deep health (#16)
+
+`GET /api/health?deep=1` follows the platform's `upstream-health` contract (FocusApiary/infrastructure `docs/runbooks/intake-synthetic-checks.md`). It answers 200 when every check passes and 503 with `"status": "degraded"` otherwise, and caches its result for 30 seconds:
+
+- `upstream.LOGICAPP_URL_APPLICATION`: a GET on the trigger, with no payload, so no workflow runs. `ok` means Logic Apps refused the method (400 `TriggerRequestMethodNotValid`), which proves that the URL, signature and caller IP are accepted. `status_401_AuthorizationFailed` means a rotated key or a caller-IP restriction. `status_404` means the workflow or trigger is gone. `unreachable_*` means a network failure, and `not_configured` means the setting is missing.
+- `queues`: the approximate depth of `intake-retry` (informational) and of the two poison queues. Any message in `intake-retry-poison` or `intake-notify-poison` fails the check: a lead or a notification has run out of retries and needs staff (below). It reads the depth with the host storage connection string. If that setting is not key-based, the depths read `unknown` and do not fail the check.
+
+The body holds labels and counts only, never a URL, key or lead field. The hourly in-cluster blackbox probe (`check=upstream-health`, FocusApiary/monitoring-k8s) is what turns a 503 into an alert.
+
+**Recovering a poisoned message.** Do not copy lead data into a ticket or chat. In the Storage account's `intake-retry-poison` queue, fix the cause (look up the reason in the Function logs by `submissionId`), then move the message back to `intake-retry`, where `redeliver_intake` sends it again with the same `submissionId`. For `intake-notify-poison`, move it back to `intake-notify`. A poison message expires 7 days after it lands there, so recovery has to happen within that window.
 
 To publish the current commit again without a code change, start a pipeline on `gh-pages` from the GitLab UI ("Run pipeline").
 
