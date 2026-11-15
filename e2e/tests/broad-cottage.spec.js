@@ -134,7 +134,8 @@ test.describe("Broad Cottage", () => {
     await page.goto(BASE);
     const inquiryLinks = page.locator('a[href^="https://stay.mtcottages.com/"][href*="property=broad"]');
     expect(await inquiryLinks.count()).toBeGreaterThanOrEqual(2);
-    await expect(inquiryLinks.filter({ hasText: /Check dates for Broad Cottage/i }).first()).toBeVisible();
+    // The first match in document order is the closed header mega panel, so look at the visible ones.
+    await expect(inquiryLinks.filter({ hasText: /Check dates for Broad Cottage/i, visible: true }).first()).toBeVisible();
     await expect(page.locator('a[href*="/apply.html"]')).toHaveCount(0);
     await expect(page.locator('a[href*="property=broad"]').first()).toHaveAttribute("href", "https://stay.mtcottages.com/?property=broad&src=parkersburg-broad-cottage");
   });
