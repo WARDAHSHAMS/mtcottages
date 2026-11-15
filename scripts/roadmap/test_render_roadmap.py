@@ -53,6 +53,15 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(self.epics[0].kpi, "qualified inquiries per month")
         self.assertEqual(self.epics[0].items[0].workflow, "ready")
 
+    def test_title_score_fallback(self) -> None:
+        funnels = self.epics[0]
+        self.assertEqual([i.iid for i in funnels.items], [101, 104])
+        self.assertIsNone(funnels.items[1].rice)
+        self.assertEqual(funnels.items[1].score, 120.0)
+        self.assertAlmostEqual(funnels.total_score, 440.0)
+        no_epic = self.epics[-1]
+        self.assertIsNone(no_epic.items[0].score)
+
     def test_html_is_escaped_and_complete(self) -> None:
         page = rr.render(self.epics, dt.datetime(2026, 11, 15, tzinfo=dt.timezone.utc))
         self.assertIn("Top 10 by RICE", page)

@@ -46,6 +46,8 @@ RICE_RE = re.compile(
     r"confidence=(?P<confidence>[\d.]+)\s+effort=(?P<effort>[\d.]+)\s*-->",
     re.IGNORECASE,
 )
+# Fallback for issues filed outside the growth template: "... (RICE 120)".
+TITLE_RICE_RE = re.compile(r"\(RICE\s+(?P<score>\d+(?:\.\d+)?)\)", re.IGNORECASE)
 KPI_RE = re.compile(r"^\s*\*\*KPI:?\*\*:?\s*(?P<kpi>.+)$", re.MULTILINE)
 EPIC_LABEL = "mtc-growth"
 WORKFLOW_ORDER = ["doing", "review", "ready", "backlog", "todo", "done"]
@@ -71,11 +73,15 @@ class Rice:
 
     @property
     def band(self) -> str:
-        if self.score >= 100:
-            return "high"
-        if self.score >= 30:
-            return "mid"
-        return "low"
+        return band_of(self.score)
+
+
+def band_of(score: float) -> str:
+    if score >= 100:
+        return "high"
+    if score >= 30:
+        return "mid"
+    return "low"
 
 
 @dataclass
@@ -89,6 +95,13 @@ class Item:
     milestone_due: str
     assignees: list[str]
     labels: list[str]
+    title_score: float | None = None
+
+    @property
+    def score(self) -> float | None:
+        if self.rice:
+            return self.rice.score
+        return self.title_score
 
 
 @dataclass
@@ -100,7 +113,7 @@ class Epic:
 
     @property
     def total_score(self) -> float:
-        return sum(i.rice.score for i in self.items if i.rice)
+        return sum(i.score for i in self.items if i.score is not None)
 
 
 def parse_rice(description: str | None) -> Rice | None:
@@ -130,7 +143,9 @@ def workflow_of(labels: list[str]) -> str:
 def to_item(raw: dict[str, Any]) -> Item:
     labels = [str(label) for label in raw.get("labels") or []]
     milestone = raw.get("milestone") or {}
+    title_match = TITLE_RICE_RE.search(str(raw.get("title", "")))
     return Item(
+        title_score=float(title_match["score"]) if title_match else None,
         iid=int(raw["iid"]),
         title=str(raw.get("title", "")),
         url=str(raw.get("web_url", "")),
@@ -258,13 +273,15 @@ def esc(value: str) -> str:
 
 
 def score_of(item: Item) -> float:
-    return item.rice.score if item.rice else -1.0
+    score = item.score
+    return score if score is not None else -1.0
 
 
 def fmt_score(item: Item) -> str:
-    if not item.rice:
+    score = item.score
+    if score is None:
         return '<span class="score low" title="No RICE line in the description">?</span>'
-    return f'<span class="score {item.rice.band}">{item.rice.score:.0f}</span>'
+    return f'<span class="score {band_of(score)}">{score:.0f}</span>'
 
 
 def render_item(item: Item, show_epic: str = "") -> str:
@@ -287,7 +304,7 @@ def render_item(item: Item, show_epic: str = "") -> str:
 
 def render(epics: list[Epic], generated: dt.datetime) -> str:
     all_items = [(e.title, i) for e in epics for i in e.items]
-    scored = sorted((p for p in all_items if p[1].rice), key=lambda p: -score_of(p[1]))
+    scored = sorted((p for p in all_items if p[1].score is not None), key=lambda p: -score_of(p[1]))
     counts: dict[str, int] = {}
     for _, item in all_items:
         counts[item.workflow] = counts.get(item.workflow, 0) + 1
@@ -344,7 +361,7 @@ def main(argv: list[str] | None = None) -> int:
     except RoadmapError as exc:
         print(f"roadmap: {exc}", file=sys.stderr)
         return 1
-    missing = [f"#{i.iid}" for e in epics for i in e.items if not i.rice]
+    missing = [f"#{i.iid}" for e in epics for i in e.items if i.score is None]
     print(f"roadmap: wrote {args.out} with {total} issues in {len(epics)} epics")
     if missing:
         print(f"roadmap: {len(missing)} issues have no RICE line: {' '.join(missing)}")

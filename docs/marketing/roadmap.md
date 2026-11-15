@@ -27,4 +27,4 @@ Each growth issue carries one hidden line in its description, which the renderer
 - **Confidence:** 1.0 = data-backed, 0.8 = strong evidence, 0.5 = educated guess.
 - **Effort:** agent-days, from 1 to 3 for a well-sized issue.
 
-score = reach × impact × confidence ÷ effort. The `RICE::high` label means a score of at least 100, `RICE::mid` at least 30, and `RICE::low` anything below. The page recomputes the score from the line, so if you change the inputs, update the label to match. The growth strategist checks this when grooming the backlog.
+score = reach × impact × confidence ÷ effort. Issues filed without the hidden line but with "(RICE 120)" in the title are ranked by that number. Issues with neither show "?" and are listed in the job log for grooming. The `RICE::high` label means a score of at least 100, `RICE::mid` at least 30, and `RICE::low` anything below. The page recomputes the score from the line, so if you change the inputs, update the label to match. The growth strategist checks this when grooming the backlog.
