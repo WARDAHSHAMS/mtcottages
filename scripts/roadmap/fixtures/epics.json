@@ -1,0 +1,16 @@
+[
+  {
+    "iid": 10,
+    "title": "Growth: Conversion funnels",
+    "web_url": "https://git.developerdojo.org/groups/WorldEnterpriseGroup/-/epics/10",
+    "description": "Outcome: every audience lands on a page built for them.\n\n**KPI:** qualified inquiries per month\n",
+    "labels": ["mtc-growth"]
+  },
+  {
+    "iid": 11,
+    "title": "Growth: Measurement",
+    "web_url": "https://git.developerdojo.org/groups/WorldEnterpriseGroup/-/epics/11",
+    "description": "No KPI line here.",
+    "labels": ["mtc-growth"]
+  }
+]

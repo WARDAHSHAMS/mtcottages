@@ -10,9 +10,14 @@ on:
 permissions:
   contents: read
 
+# Pull requests cancel their superseded runs. gh-pages pushes never do: a run
+# takes ~25 minutes, and on 2026-11-15 merges every 10 to 20 minutes cancelled
+# each deploy before it published, so !26 and !32 never went live (#19). Pushes
+# now queue: the running deploy finishes, and the newest waiting push (which
+# contains every earlier one) deploys next.
 concurrency:
   group: mtcottages-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   static-checks:
@@ -50,6 +55,8 @@ jobs:
           node scripts/check-claims.mjs dist
           # Unit tests for the distances schema and the banned-claim patterns (#25).
           node --test scripts/tests/*.test.mjs
+          # Unit tests for the live-build gate (#19).
+          python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 
       - name: Run proxy unit tests
         run: |
@@ -186,6 +193,11 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: e2e/package-lock.json
+
+      # Pages' CDN can serve the previous build for a few minutes after deploy;
+      # testing before this run's build is live tests the wrong site.
+      - name: Wait until mtcottages.com serves this commit
+        run: python3 -I scripts/check-live-build.py --expect "$GITHUB_SHA" --timeout 900
 
       - name: Install browser test dependencies
         working-directory: e2e

@@ -1,4 +1,5 @@
 import { defineConfig } from "astro/config";
+import buildStamp from "./integrations/build-stamp.mjs";
 import canonicalSitemap from "./integrations/canonical-sitemap.mjs";
 
 // The 23 section pages of the old bespoke Broad Cottage site now land on the closest new page.
@@ -54,5 +55,7 @@ export default defineConfig({
   // sitemap.xml is written from the built pages: every indexable page whose
   // canonical points at itself (integrations/canonical-sitemap.mjs). Redirects,
   // noindex pages and parked homes drop out on their own.
-  integrations: [canonicalSitemap()]
+  // build.json names the commit this build came from, for the post-deploy
+  // live-build gate (integrations/build-stamp.mjs, scripts/check-live-build.py).
+  integrations: [canonicalSitemap(), buildStamp()]
 });
