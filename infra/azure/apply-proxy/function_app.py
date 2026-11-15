@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import hmac
 import html
 import http.client
 import ipaddress
@@ -47,6 +48,21 @@ LOGICAPP_AUTH_MANAGED_IDENTITY = "managed-identity"
 # (same as FocusApiary/form-intake-proxy).
 LOGICAPP_TOKEN_AUDIENCE = "https://management.core.windows.net/"
 MAX_LOGICAPP_RESPONSE_BYTES = 64 * 1_024
+# End-to-end canary (#16). A request whose X-Intake-Canary header matches the
+# CANARY_TOKEN setting (a Key Vault reference) skips Turnstile and becomes a
+# fixed synthetic lead: the identity fields below and CANARY_GUEST_EMAIL replace
+# whatever was sent, so a canary can never carry a real person's data. The
+# Logic App sees CANARY_LOGICAPP_HEADER and deletes the lead it created in the
+# same run. Both settings must be present, or canary mode is off.
+CANARY_REQUEST_HEADER = "X-Intake-Canary"
+CANARY_LOGICAPP_HEADER = "X-Intake-Canary-Run"
+MIN_CANARY_TOKEN_LENGTH = 32
+CANARY_LEAD_FIELDS = {
+    "firstName": "Intake",
+    "lastName": "Canary",
+    "phone": "+1 304 555 0100",
+    "message": "Automated intake check. This lead is deleted when the check finishes.",
+}
 ACCEPTED_SUBMISSION_TTL_SECONDS = 24 * 60 * 60
 MAX_ACCEPTED_SUBMISSIONS = 4_096
 SUBMISSION_ID_PATTERN = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
@@ -629,13 +645,35 @@ def _intake_target(callback_url):
     return url, {"Authorization": f"Bearer {token}"}
 
 
-def _deliver_to_intake(callback_url, outbound):
+def _canary_guest_email():
+    value = os.environ.get("CANARY_GUEST_EMAIL", "").strip()
+    return value if len(value) <= 254 and re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value) else ""
+
+
+def _canary_request(req):
+    """True when the request carries the configured canary token (#16)."""
+    expected = os.environ.get("CANARY_TOKEN", "").strip()
+    if len(expected) < MIN_CANARY_TOKEN_LENGTH or not _canary_guest_email():
+        return False
+    presented = req.headers.get(CANARY_REQUEST_HEADER, "").strip()
+    if not presented:
+        return False
+    return hmac.compare_digest(presented.encode("utf-8"), expected.encode("utf-8"))
+
+
+def _canary_lead(outbound):
+    """The fixed synthetic lead a canary request becomes."""
+    return {**outbound, **CANARY_LEAD_FIELDS, "email": _canary_guest_email()}
+
+
+def _deliver_to_intake(callback_url, outbound, canary=False):
     """POST one lead to the Logic App.
 
     Returns (status, reason). status is the HTTP status, or None when no answer
     arrived (timeout, connection failure, malformed response, no identity
     token). reason is a short non-identifying label for logs; it never
-    contains lead data.
+    contains lead data. ``canary`` adds the header that makes the Logic App
+    delete the lead once it is created.
     """
     try:
         url, auth_headers = _intake_target(callback_url)
@@ -643,6 +681,7 @@ def _deliver_to_intake(callback_url, outbound):
         return None, f"auth-{error.reason}"
     except ValueError:
         return None, "invalid-trigger-url"
+    canary_headers = {CANARY_LOGICAPP_HEADER: "1"} if canary else {}
     request = urllib.request.Request(
         url,
         data=json.dumps(outbound).encode("utf-8"),
@@ -650,6 +689,10 @@ def _deliver_to_intake(callback_url, outbound):
             "Content-Type": "application/json",
             "Accept": "application/json",
             "Idempotency-Key": outbound.get("submissionId", ""),
+            # The run's clientTrackingId: lets staff and the canary find the
+            # Logic App run for one submission by its opaque id.
+            "x-ms-client-tracking-id": outbound.get("submissionId", ""),
+            **canary_headers,
             **auth_headers,
         },
         method="POST",
@@ -670,12 +713,13 @@ def _deliver_to_intake(callback_url, outbound):
         return None, type(error).__name__
 
 
-def _retry_envelope(submission_id, outbound, reason):
+def _retry_envelope(submission_id, outbound, reason, canary=False):
     return json.dumps({
         "version": INTAKE_ENVELOPE_VERSION,
         "submissionId": submission_id,
         "reason": reason,
         "queuedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "canary": bool(canary),
         "payload": outbound,
     })
 
@@ -720,14 +764,14 @@ def application_form(req: func.HttpRequest) -> func.HttpResponse:
     )
 
 
-def _queue_notifications(notify, submission_id, outbound, delivery):
+def _queue_notifications(notify, submission_id, outbound, delivery, canary=False):
     """Queue the staff alert, Teams card and guest acknowledgment (#14).
 
     Only configured channels are queued. The host writes them after the
     function returns, with the retry message, so notification never delays
     or fails the guest's answer.
     """
-    envelopes = intake_notify.notification_envelopes(submission_id, outbound, delivery)
+    envelopes = intake_notify.notification_envelopes(submission_id, outbound, delivery, canary)
     if envelopes:
         notify.set(envelopes)
 
@@ -759,7 +803,8 @@ def apply(req: func.HttpRequest, retry: func.Out[str], notify: func.Out[typing.L
     if validation_error:
         return _response({"success": False, "message": validation_error}, 400, origin)
 
-    turnstile_error = _verify_turnstile(req, payload)
+    canary = _canary_request(req)
+    turnstile_error = None if canary else _verify_turnstile(req, payload)
     if turnstile_error:
         status_code, message = turnstile_error
         return _response({"success": False, "message": message}, status_code, origin)
@@ -786,11 +831,14 @@ def apply(req: func.HttpRequest, retry: func.Out[str], notify: func.Out[typing.L
 
     outbound = _outbound_payload(payload)
     outbound["submissionId"] = submission_id
-    status, reason = _deliver_to_intake(callback_url, outbound)
+    if canary:
+        outbound = _canary_lead(outbound)
+        logger.info("Canary inquiry: %s", submission_id)
+    status, reason = _deliver_to_intake(callback_url, outbound, canary)
     if status is not None and 200 <= status < 300:
         _remember_accepted_submission(submission_id)
         logger.info("Inquiry delivered to intake: %s", submission_id)
-        _queue_notifications(notify, submission_id, outbound, "delivered")
+        _queue_notifications(notify, submission_id, outbound, "delivered", canary)
         return _response({"success": True, "message": ACCEPTED_MESSAGE}, 200, origin)
 
     # Anything else (timeout, connection failure, any non-2xx answer, including
@@ -801,10 +849,10 @@ def apply(req: func.HttpRequest, retry: func.Out[str], notify: func.Out[typing.L
     # remembered here: the browser keeps the same submissionId and its retry is
     # processed again instead of being told it was already received.
     logger.warning("Inquiry not accepted by intake (%s); queueing %s for redelivery", reason, submission_id)
-    retry.set(_retry_envelope(submission_id, outbound, reason))
+    retry.set(_retry_envelope(submission_id, outbound, reason, canary))
     # Staff hear about a queued lead at once: the alert is how they reach the
     # guest while CRM delivery is still retrying.
-    _queue_notifications(notify, submission_id, outbound, "queued")
+    _queue_notifications(notify, submission_id, outbound, "queued", canary)
     return _response({"success": True, "message": ACCEPTED_MESSAGE}, 202, origin)
 
 
@@ -830,7 +878,7 @@ def redeliver_intake(message: func.QueueMessage) -> None:
     if not callback_url:
         raise RuntimeError(f"intake is not configured; keeping {submission_id} queued")
 
-    status, reason = _deliver_to_intake(callback_url, outbound)
+    status, reason = _deliver_to_intake(callback_url, outbound, envelope.get("canary") is True)
     attempt = getattr(message, "dequeue_count", None)
     if status is not None and 200 <= status < 300:
         logger.info("Queued inquiry %s delivered on attempt %s", submission_id, attempt)

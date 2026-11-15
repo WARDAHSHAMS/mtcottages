@@ -46,6 +46,7 @@ variables:
     python3 -I scripts/check-form-parity.py
     jq empty infra/azure/*.json
     bash -n infra/azure/intake-logicapp.sh
+    bash -n infra/azure/intake-canary.sh
     test -f .nojekyll
     grep -qx 'mtcottages.com' CNAME
 
@@ -134,8 +135,13 @@ site-check:
   - infra/azure/apply-proxy/**/*
   - .gitlab-ci.yml
 
+# A scheduled pipeline (the #13 drift gate, the #16 canary) has no push either,
+# so `changes` would be true there too and every schedule would rebuild and
+# redeploy the proxy. Schedules check; they never publish.
 .apply-proxy:verify-rules:
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
         paths: *apply_proxy_paths
@@ -148,6 +154,8 @@ site-check:
 # jobs are not created, so a pipeline never waits on a runner that is not there.
 .apply-proxy:deploy-rules:
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
     - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $APPLY_PROXY_DEPLOY_ENABLED == "true"'
       changes: *apply_proxy_paths
     - when: never
@@ -297,3 +305,23 @@ drift:intake-logicapp:
     - when: never
   script:
     - bash infra/azure/intake-logicapp.sh drift
+
+# End-to-end canary (#16): one synthetic inquiry through Front Door, the proxy,
+# the Logic App and Dynamics 365, then proof the canary lead was deleted. A
+# failure fails this scheduled pipeline (pipeline-failure email) and the Logic
+# App's own RunsFailed alert fires. Off until the canary token, CANARY_TOKEN and
+# CANARY_GUEST_EMAIL app settings and the runner identity's Key Vault and
+# Logic App Operator roles exist (README, "End-to-end canary").
+canary:intake:
+  extends: .intake-logicapp:azure
+  stage: smoke
+  needs: []
+  # The canary only reads the workflow; it must not queue behind a deploy.
+  resource_group: intake-canary-mtcottages
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "schedule" && $INTAKE_CANARY_ENABLED == "true"'
+    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "web" && $INTAKE_CANARY_ENABLED == "true"'
+    - when: never
+  timeout: 10m
+  script:
+    - bash infra/azure/intake-canary.sh

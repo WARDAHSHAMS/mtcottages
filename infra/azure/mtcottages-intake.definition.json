@@ -217,6 +217,33 @@
                 }
               }
             },
+            "Delete_Canary_Lead": {
+              "type": "If",
+              "runAfter": {
+                "Respond_Success": ["Succeeded"]
+              },
+              "expression": {
+                "equals": ["@triggerOutputs()?['headers']?['X-Intake-Canary-Run']", "1"]
+              },
+              "actions": {
+                "Delete_Canary_D365_Lead": {
+                  "type": "ApiConnection",
+                  "runAfter": {},
+                  "inputs": {
+                    "host": {
+                      "connection": {
+                        "name": "@parameters('$connections')['dynamicscrmonline']['connectionId']"
+                      }
+                    },
+                    "method": "delete",
+                    "path": "/datasets/@{encodeURIComponent(encodeURIComponent(parameters('d365Organization')))}/tables/@{encodeURIComponent(encodeURIComponent('leads'))}/items/@{encodeURIComponent(encodeURIComponent(body('Create_D365_Applicant_Lead')?['leadid']))}"
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
             "Respond_Failure": {
               "type": "Response",
               "kind": "Http",
