@@ -134,6 +134,22 @@ for (const page of pages) {
   }
 }
 
+// integrations/build-stamp.mjs names the built commit; the post-deploy gate
+// (scripts/check-live-build.py) reads it from the live site (#19).
+const buildStampFile = join(dist, "build.json");
+if (!existsSync(buildStampFile)) {
+  errors.push("dist/build.json is missing; the live-build gate cannot tell which commit is published");
+} else {
+  try {
+    const stamp = JSON.parse(read(buildStampFile));
+    if (typeof stamp.commit !== "string" || !/^[0-9a-f]{40}$/.test(stamp.commit)) {
+      errors.push(`build.json commit ${JSON.stringify(stamp.commit)} is not a 40-character commit SHA`);
+    }
+  } catch (error) {
+    errors.push(`build.json is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 let totalBytes = 0;
 for (const file of files) {
   const { size } = statSync(file);

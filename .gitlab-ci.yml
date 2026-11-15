@@ -40,7 +40,8 @@ variables:
   # none (the previous template skipped silently), so keep "push nothing" explicit.
   GITHUB_MIRROR_EXTERNAL: "true"
   PREFLIGHT_IMAGE: "harbor.focuscell.org/dockerhub-proxy/alpine/k8s:1.33.1"
-  PREFLIGHT_REQUIRED_TOOLS: "jq python3"
+  # git: verify:site-live runs on this image and asks git about ancestry.
+  PREFLIGHT_REQUIRED_TOOLS: "jq python3 git"
   # The "Before publishing" checks from CLAUDE.md that need no npm install.
   PREFLIGHT_COMMANDS: |
     python3 -I scripts/check-form-parity.py
@@ -49,6 +50,7 @@ variables:
     bash -n infra/azure/intake-canary.sh
     bash -n infra/azure/analytics-verify.sh
     yq -o=json 'explode(.)' .gitlab-ci.yml | python3 -I scripts/check-ci-runner-contract.py
+    python3 -m unittest discover -s scripts/tests -p 'test_*.py'
     test -f .nojekyll
     grep -qx 'mtcottages.com' CNAME
 
@@ -130,6 +132,33 @@ site-check:
       - e2e/test-results/
       - astro-preview.log
       - lighthouse-scores.json
+
+# ---------------------------------------------------------------------------
+# Live-build gate (WorldEnterpriseGroup/mtcottages#19)
+# ---------------------------------------------------------------------------
+# On 2026-11-15 every gh-pages push cancelled the GitHub Pages deploy still in
+# progress, so !26 and !32 were merged and mirrored but never published, and
+# every pipeline stayed green. The site now serves /build.json with the commit
+# it was built from (integrations/build-stamp.mjs). This job fails unless
+# mtcottages.com serves this pipeline's commit, or a newer gh-pages commit that
+# contains it, within the deadline. The deploy takes ~25 minutes plus a queued
+# run ahead of it, so it waits up to 85 minutes.
+#
+# On main it fails at once when main has a commit gh-pages lacks: main never
+# deploys, so that work cannot go live until it is merged into gh-pages. The
+# scheduled pipelines on both branches re-check, which catches a deploy that
+# stalls with no new push. Read-only: it only GETs the public site and fetches
+# from this project.
+verify:site-live:
+  stage: smoke
+  image: ${PREFLIGHT_IMAGE}
+  needs: []
+  interruptible: false
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^(gh-pages|main)$/ && $CI_PIPELINE_SOURCE =~ /^(push|schedule|web)$/'
+  timeout: 100 minutes
+  script:
+    - python3 -I scripts/check-live-build.py --expect "$CI_COMMIT_SHA" --deploy-ref gh-pages --timeout 5100 --interval 60
 
 # ---------------------------------------------------------------------------
 # Stay application host (infra/azure/apply-proxy)
