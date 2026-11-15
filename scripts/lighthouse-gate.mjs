@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Lighthouse gate for every home microsite.
-// Runs Lighthouse (mobile emulation, the default) on each microsite's overview and
-// photo tour, and fails when a category drops below its threshold. The pages come
+// Runs Lighthouse (mobile emulation, the default) on each microsite's overview,
+// photo tour and location page, and fails when a category drops below its threshold. The pages come
 // from the built sitemap, so a new home is gated the day it ships.
 // Run from the e2e folder so its dependencies resolve:
 //   BASE_URL=https://mtcottages.com npm --prefix e2e run perf
@@ -48,7 +48,8 @@ async function micrositePages() {
     .filter((pathname) => /^\/[a-z0-9-]+\/[a-z0-9-]+\/$/.test(pathname))
     .sort();
   if (roots.length === 0) throw new Error(`${sitemapUrl} lists no home microsites`);
-  return roots.flatMap((root) => [root, `${root}tour.html`]);
+  // The location page carries the drive-time chart and table (#25).
+  return roots.flatMap((root) => [root, `${root}tour.html`, `${root}location.html`]);
 }
 
 if (!process.env.CHROME_PATH) {

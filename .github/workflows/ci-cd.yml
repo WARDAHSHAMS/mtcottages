@@ -48,6 +48,8 @@ jobs:
           node scripts/check-dist.mjs dist
           # Proximity claims cite dated measurements; wrong claims stay out (#26).
           node scripts/check-claims.mjs dist
+          # Unit tests for the distances schema and the banned-claim patterns (#25).
+          node --test scripts/tests/*.test.mjs
 
       - name: Run proxy unit tests
         run: |
@@ -199,7 +201,7 @@ jobs:
           BASE_URL: https://mtcottages.com
         run: npm test
 
-      - name: Lighthouse gate on every home microsite (overview and tour)
+      - name: Lighthouse gate on every home microsite (overview, tour and location)
         working-directory: e2e
         env:
           BASE_URL: https://mtcottages.com

@@ -13,23 +13,8 @@
 // With a distDir, the built pages are also scanned for the banned claims.
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-
-const MAX_AGE_DAYS = 365;
-const APPROVED_ADDRESSES = ["125 Frederick St", "200 Henrietta St", "2712 Broad St", "3113 Broad St"];
-const METERS_PER_MILE = 1609.344;
-
-// Claims the 2026-11-15 fact-check found wrong. Each must never return.
-const BANNED = [
-  { pattern: /\b(?:[0-9]|1[0-4])\s*min(?:ute)?s?\b[^.]{0,60}Jackson General/i, why: "Jackson General Hospital is in Ripley, about 16 minutes from Ravenswood" },
-  { pattern: /Jackson General Hospital[^.]{0,40}\bin Ravenswood\b/i, why: "Jackson General Hospital is in Ripley, not Ravenswood" },
-  { pattern: /walk(?:able|ing distance)[^.]{0,40}downtown (?:Marietta|Parkersburg)/i, why: "Frederick, Broad and Oak are 2.3 to 2.7 miles from downtown: a drive, not a walk" },
-  { pattern: /(?:short|easy) walk to downtown/i, why: "no listed home is a short walk from downtown Marietta or Parkersburg" },
-  { pattern: /steps from restaurants/i, why: "Oak Cottage is about 8 minutes from downtown Parkersburg by car" },
-  { pattern: /\b[1-5]\s*min(?:ute)?s?\b[^.]{0,20}Marietta Memorial/i, why: "Marietta Memorial Hospital is about 11 minutes from Frederick Cottage" },
-  { pattern: /\b[1-6]\s*min(?:ute)?s?\b[^.]{0,20}downtown Parkersburg/i, why: "Broad and Oak are about 7 to 8 minutes from downtown Parkersburg" },
-  { pattern: /Multiple bathrooms/i, why: "bathroom counts are stated only as photographed, with confirm on inquiry" },
-  { pattern: /Parkersburg(?:'|’)s north (?:side|end)/i, why: "Buck Cottage's neighbourhood is not verified (address not approved)" },
-];
+import { findBannedClaims, pageText } from "./lib/claims.mjs";
+import { validateDistances } from "./lib/distances.mjs";
 
 const errors = [];
 
@@ -58,61 +43,17 @@ function walk(dir) {
 }
 
 const scanBanned = (label, text) => {
-  for (const { pattern, why } of BANNED) {
-    const match = text.match(pattern);
-    if (match) errors.push(`${label}: "${match[0]}" (${why})`);
-  }
+  for (const { match, why } of findBannedClaims(text)) errors.push(`${label}: "${match}" (${why})`);
 };
 
 const distances = readJson("_data/distances.json").data;
 const housesFile = readJson("_data/houses.json");
 const houses = housesFile.data;
 
-// --- distances.json -------------------------------------------------------
+// --- distances.json (shared schema, scripts/lib/distances.mjs) -------------
+for (const message of validateDistances(distances)) errors.push(`distances.json ${message}`);
 const origins = distances.origins ?? {};
-const destinations = distances.destinations ?? {};
-const sources = distances.sources ?? {};
-const rows = new Map();
-const today = new Date();
-
-for (const [id, origin] of Object.entries(origins)) {
-  if (origin.kind === "address") {
-    if (!APPROVED_ADDRESSES.some((street) => origin.label.includes(street))) {
-      errors.push(`distances.json origin ${id} is a street address that is not owner-approved: only ${APPROVED_ADDRESSES.join(", ")}`);
-    }
-  } else if (origin.kind === "town-centre") {
-    if (!/town centre/i.test(origin.label)) errors.push(`distances.json origin ${id} must be labelled as a town centre`);
-  } else {
-    errors.push(`distances.json origin ${id} has unknown kind ${origin.kind}`);
-  }
-}
-
-for (const row of distances.rows ?? []) {
-  const where = `distances.json row ${row.id ?? "(no id)"}`;
-  if (row.id !== `${row.origin}:${row.destination}`) errors.push(`${where}: id must be "<origin>:<destination>"`);
-  if (rows.has(row.id)) errors.push(`${where}: duplicate id`);
-  rows.set(row.id, row);
-  if (!origins[row.origin]) errors.push(`${where}: unknown origin ${row.origin}`);
-  if (!destinations[row.destination]) errors.push(`${where}: unknown destination ${row.destination}`);
-  if (!row.method) errors.push(`${where}: method is missing`);
-  if (!sources[row.source]) errors.push(`${where}: source ${row.source} is not listed under sources`);
-  if (!Number.isFinite(row.seconds) || !Number.isFinite(row.meters)) {
-    errors.push(`${where}: seconds and meters must be numbers`);
-  } else {
-    const minutes = Math.ceil(row.seconds / 60);
-    const miles = Math.round((row.meters / METERS_PER_MILE) * 10) / 10;
-    if (row.minutes !== minutes) errors.push(`${where}: minutes ${row.minutes} should be ${minutes} (ceil of ${row.seconds} s)`);
-    if (row.miles !== miles) errors.push(`${where}: miles ${row.miles} should be ${miles} (${row.meters} m)`);
-  }
-  const measured = new Date(`${row.measured}T00:00:00Z`);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(row.measured)) || Number.isNaN(measured.getTime())) {
-    errors.push(`${where}: measured must be an ISO date (YYYY-MM-DD)`);
-  } else {
-    const ageDays = (today.getTime() - measured.getTime()) / 86_400_000;
-    if (ageDays < -1) errors.push(`${where}: measured ${row.measured} is in the future`);
-    if (ageDays > MAX_AGE_DAYS) errors.push(`${where}: measured ${row.measured} is older than 12 months; re-measure it`);
-  }
-}
+const rows = new Map((Array.isArray(distances.rows) ? distances.rows : []).map((row) => [row.id, row]));
 
 // --- houses.json ----------------------------------------------------------
 const homeOrigins = distances.homes ?? {};
@@ -164,7 +105,7 @@ if (dist) {
         errors.push(`cannot read ${page}: ${error instanceof Error ? error.message : String(error)}`);
         continue;
       }
-      scanBanned(page, markup.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "));
+      scanBanned(page, pageText(markup));
     }
   }
 }

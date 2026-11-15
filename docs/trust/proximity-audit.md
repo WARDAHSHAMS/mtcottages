@@ -86,9 +86,27 @@ The inventory stated laundry, off-street parking, internet and utilities as fact
 3. Which utilities are included, per home.
 4. "Mt Cottages has hosted traveling healthcare professionals for more than 10 years" (`/health-professionals.html`) has no record behind it. It stays live as a business claim; please confirm or correct it.
 
+## Drive-time chart and table on every location page (#25)
+
+`src/components/home/DistanceTable.astro` renders `_data/distances.json` on each microsite's `location.html`: a bar chart grouped by category (hospitals, major employers, colleges, schools, groceries, downtown and parks, interstate) and the same figures as a table, each row with its OSRM request link and measurement date. Nothing is typed into the page by hand. `microsites` in the data file maps each microsite to its origin; the build fails if a street-address home is not measured from its approved address, or a town-level home is measured from anything but its town centre.
+
+Added 2026-11-15 (OSRM table `table-work-school`; places geocoded with Nominatim):
+
+| Place | Category | Measured to |
+|---|---|---|
+| Selby General Hospital, Marietta | hospital | the hospital on Colegate Drive |
+| Chemours Washington Works | employer | the plant site as mapped by OpenStreetMap |
+| Bureau of the Fiscal Service, Parkersburg | employer | the 2nd Street building (the Bureau has several downtown offices) |
+| Constellium Ravenswood | employer | Century Road beside the plant |
+| Washington State Community College; WVU Parkersburg | campus | the main campus |
+| Marietta, Parkersburg and Ravenswood high schools | school | the school building |
+| Campus Martius Museum; Parkersburg City Park; Riverfront Park, Ravenswood | attraction | the museum or park |
+
+Two pairs (Frederick to Selby General and to Washington State) were re-run through the OSRM route service and matched the table to the tenth of a second.
+
 ## Keeping it honest
 
-`scripts/check-claims.mjs` runs in both pipelines after the build. It fails when:
+`scripts/check-claims.mjs` runs in both pipelines after the build, with the schema in `scripts/lib/distances.mjs` and the banned-claim patterns in `scripts/lib/claims.mjs`; both have unit tests (`node --test scripts/tests/*.test.mjs`). It fails when:
 
 - a `houses.json` proximity line has no measured row or "confirm on inquiry";
 - a line's minutes or miles differ from its measurement, or a measurement is older than 12 months;

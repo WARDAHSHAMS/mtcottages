@@ -5,6 +5,7 @@ import StatusBadge from "../../../components/home/StatusBadge.astro";
 import FloorPlanSvg from "../../../components/home/FloorPlanSvg.astro";
 import PlanModel from "../../../components/home/PlanModel.astro";
 import LocationMap from "../../../components/home/LocationMap.astro";
+import DistanceTable from "../../../components/home/DistanceTable.astro";
 import { homeShell } from "../../../components/home/shell";
 import { homes } from "../../../data/homes";
 import {
@@ -70,10 +71,10 @@ const copy: Record<HomePage, { eyebrow: string; heading: string; lede: string; t
     eyebrow: `${home.name} · Location`,
     heading: "Where it is and what is close.",
     lede: street
-      ? `${address}. Directions, a map and nearby places to get started.`
-      : `${home.name} is in ${address}. ${privateAddressNote} Here are directions to town, a map and nearby places to get started.`,
+      ? `${address}. Directions, a map, measured drive times and nearby places to get started.`
+      : `${home.name} is in ${address}. ${privateAddressNote} Here are directions to town, a map, drive times from the town centre and nearby places to get started.`,
     title: `Location, directions and nearby places for ${home.name}`,
-    description: `Directions to ${home.name} ${addressPhrase(home)}, plus nearby health care, groceries, food and parks.`,
+    description: `Directions to ${home.name} ${addressPhrase(home)}, measured drive times to hospitals, employers and schools, and nearby groceries, food and parks.`,
   },
   guide: {
     eyebrow: `${home.name} · Guide`,
@@ -268,7 +269,9 @@ const hasRooms = home.rooms.length > 0;
         </div>
       </section>
 
-      <section class="section" id="nearby" aria-labelledby="nearby-title">
+      <DistanceTable home={home} />
+
+      <section class="section section--paper" id="nearby" aria-labelledby="nearby-title">
         <div class="site-width">
           <div class="section-heading reveal">
             <div><p class="eyebrow">Nearby</p><h2 id="nearby-title">Places people ask about.</h2></div>
