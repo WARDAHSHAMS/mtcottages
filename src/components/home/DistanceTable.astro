@@ -1,0 +1,180 @@
+---
+import type { HomeMicrosite } from "../../data/homes/types";
+import { distancesFor, formatMeasured } from "../../data/distances";
+
+/**
+ * Measured drive times for one home (WorldEnterpriseGroup/mtcottages#25):
+ * a horizontal bar chart grouped by category, and the same figures as an
+ * accessible table with each row's source and measurement date. Every figure
+ * comes from _data/distances.json; nothing here is hard-coded. Homes without
+ * an approved street address are measured from their town centre, and the
+ * copy says so. There is no map and no pin.
+ */
+interface Props { home: HomeMicrosite }
+const { home } = Astro.props as Props;
+const data = distancesFor(home);
+const fromHome = data.origin.kind === "address";
+const town = home.address.locality;
+const fromLabel = fromHome ? home.name : `the ${town} town centre`;
+const dates = data.dates.map(formatMeasured);
+const dateText = dates.length === 1 ? dates[0] : `${dates[0]} to ${dates[dates.length - 1]}`;
+
+// Chart geometry in CSS pixels; widths are percentages so the chart reflows from 320px up.
+const GROUP_H = 34;
+const ROW_H = 44;
+const BAR_Y = 24;
+const BAR_H = 12;
+let y = 0;
+const chartGroups = data.groups.map((group) => {
+  const top = y;
+  y += GROUP_H;
+  const rows = group.rows.map((row) => {
+    const rowTop = y;
+    y += ROW_H;
+    return { ...row, top: rowTop, width: Math.max(2, (row.minutes / data.maxMinutes) * 100).toFixed(1) };
+  });
+  return { ...group, top, rows };
+});
+const chartHeight = y;
+const allRows = data.groups.flatMap((group) => group.rows);
+const shortest = allRows.reduce((a, b) => (b.minutes < a.minutes ? b : a));
+const longest = allRows.reduce((a, b) => (b.minutes > a.minutes ? b : a));
+const chartSummary = `${allRows.length} places in ${data.groups.length} groups (${data.groups.map((group) => group.label.toLowerCase()).join(", ")}). `
+  + `Shortest drive: ${shortest.label}, about ${shortest.minutes} min. Longest: ${longest.label}, about ${longest.minutes} min. `
+  + "Every figure, with its source and date, is in the table that follows.";
+---
+<section class="section" id="drive-times" aria-labelledby="drive-title" data-distance-table data-origin-kind={data.origin.kind}>
+  <div class="site-width">
+    <div class="section-heading reveal">
+      <div><p class="eyebrow">Drive times</p><h2 id="drive-title">Minutes, not miles.</h2></div>
+      <p>{fromHome
+        ? `How far ${home.name} really is from work, the hospital, school and the grocery store. Measured by road from the front door on ${dateText}, and rounded up.`
+        : `${home.name}'s street address is shared once you inquire, so these drives are measured from ${fromLabel}, not from the home. Times from the home itself: confirm on inquiry.`}</p>
+    </div>
+
+    <div class="dt">
+      <figure class="dt-chart">
+        <figcaption class="dt-chart-head">
+          <strong>From {fromLabel}</strong>
+          <span>About this many minutes by car, with no traffic.</span>
+        </figcaption>
+        <svg class="dt-svg" role="img" aria-labelledby="dt-chart-title dt-chart-desc" width="100%" height={chartHeight} data-chart>
+          <title id="dt-chart-title">Bar chart: drive times from {fromLabel}, in minutes.</title>
+          <desc id="dt-chart-desc">{chartSummary}</desc>
+          {chartGroups.map((group) => (
+            <g data-chart-group={group.category}>
+              <text class="dt-group" x="0" y={group.top + 22}>{group.label}</text>
+              {group.rows.map((row) => (
+                <g data-chart-row={row.destination}>
+                  <text class="dt-label" x="0" y={row.top + 16}>{row.label}{row.stale ? " (re-check due)" : ""}</text>
+                  <text class="dt-value" x="100%" y={row.top + 16} text-anchor="end">{row.minutes} min</text>
+                  <rect class="dt-track" x="0" y={row.top + BAR_Y} width="100%" height={BAR_H} rx={BAR_H / 2}></rect>
+                  <rect class={`dt-bar${row.stale ? " dt-bar--stale" : ""}`} x="0" y={row.top + BAR_Y} width={`${row.width}%`} height={BAR_H} rx={BAR_H / 2}></rect>
+                </g>
+              ))}
+            </g>
+          ))}
+        </svg>
+      </figure>
+
+      <table class="dt-table">
+        <caption>Drive times from {fromLabel}, with the source and date of each measurement.</caption>
+        <thead>
+          <tr><th scope="col">Place</th><th scope="col">Drive</th><th scope="col">Distance</th></tr>
+        </thead>
+        {data.groups.map((group) => (
+          <tbody data-table-group={group.category}>
+            <tr class="dt-table-group"><th scope="colgroup" colspan="3">{group.label}</th></tr>
+            {group.rows.map((row) => (
+              <tr data-row={row.id} data-measured={row.measured} data-stale={row.stale ? "true" : "false"}>
+                <th scope="row">
+                  <span class="dt-name">{row.name}</span>
+                  <span class="dt-source">
+                    <a href={row.sourceUrl} rel="noopener" target="_blank">OSRM route data<span class="sr-only"> for {row.label} (new tab)</span></a>
+                    {" · "}measured <time datetime={row.measured}>{formatMeasured(row.measured)}</time>
+                    {row.stale && <span class="hm-badge hm-badge--confirm">Re-check due</span>}
+                  </span>
+                </th>
+                <td class="dt-num">about {row.minutes} min</td>
+                <td class="dt-num">{row.miles} mi</td>
+              </tr>
+            ))}
+          </tbody>
+        ))}
+      </table>
+
+      <p class="dt-method">
+        How we measure: driving routes on OpenStreetMap roads from the public OSRM router, from {fromHome ? `the home's approved street address` : `the ${town} town centre`}.
+        The router assumes free-flowing traffic, so every time is rounded up to the next whole minute. Allow extra time at shift change, in school traffic and in snow.
+        Each figure is re-measured at least once a year. Routing data © <a href="https://www.openstreetmap.org/copyright" rel="noopener" target="_blank">OpenStreetMap contributors<span class="sr-only"> (new tab)</span></a>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .dt {
+    --dt-surface: #fff;
+    --dt-ink: var(--ink);
+    --dt-muted: var(--muted);
+    --dt-line: var(--line);
+    --dt-bar: var(--forest);
+    --dt-bar-stale: #9a4f2e;
+    --dt-track: var(--forest-soft);
+    --dt-link: var(--forest);
+    display: grid;
+    gap: 1.5rem;
+    padding: clamp(1rem, .6rem + 1.6vw, 1.75rem);
+    border: 1px solid var(--dt-line);
+    border-radius: .9rem;
+    background: var(--dt-surface);
+    color: var(--dt-ink);
+  }
+  @media (min-width: 960px) {
+    .dt { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items: start; }
+    .dt-method { grid-column: 1 / -1; }
+  }
+  @media (prefers-color-scheme: dark) {
+    .dt {
+      --dt-surface: #1b201a;
+      --dt-ink: #f1efe6;
+      --dt-muted: #c6cdc2;
+      --dt-line: #3a4337;
+      --dt-bar: #e4b482;
+      --dt-bar-stale: #f19c79;
+      --dt-track: #333c31;
+      --dt-link: #f0d1a9;
+      color-scheme: dark;
+    }
+  }
+  .dt-chart { min-width: 0; }
+  .dt-chart-head { display: grid; gap: .15rem; margin-bottom: .75rem; }
+  .dt-chart-head strong { font-size: 1.05rem; }
+  .dt-chart-head span { color: var(--dt-muted); font-size: .88rem; }
+  .dt-svg { display: block; overflow: visible; font-family: var(--body); }
+  .dt-group { fill: var(--dt-muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  .dt-label { fill: var(--dt-ink); font-size: 14px; }
+  .dt-value { fill: var(--dt-ink); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .dt-track { fill: var(--dt-track); }
+  .dt-bar { fill: var(--dt-bar); }
+  .dt-bar--stale { fill: var(--dt-bar-stale); }
+
+  .dt-table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  .dt-table caption { margin-bottom: .6rem; color: var(--dt-muted); font-size: .88rem; text-align: left; }
+  .dt-table th, .dt-table td { padding: .55rem .4rem; border-bottom: 1px solid var(--dt-line); text-align: left; vertical-align: top; }
+  .dt-table thead th { color: var(--dt-muted); font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+  .dt-table-group th { padding-top: 1rem; color: var(--dt-ink); font-family: var(--display); font-size: 1.05rem; }
+  .dt-table tbody th[scope="row"] { font-weight: 400; }
+  .dt-name { display: block; font-weight: 700; }
+  .dt-source { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; margin-top: .2rem; color: var(--dt-muted); font-size: .8rem; }
+  .dt-source a, .dt-method a { color: var(--dt-link); }
+  .dt-num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .dt-num:first-of-type { font-weight: 800; }
+  .dt-method { max-width: var(--reading); color: var(--dt-muted); font-size: .85rem; }
+
+  @media (forced-colors: active) {
+    .dt-label, .dt-value, .dt-group { fill: CanvasText; }
+    .dt-track { fill: Canvas; stroke: CanvasText; }
+    .dt-bar, .dt-bar--stale { fill: Highlight; }
+  }
+</style>
