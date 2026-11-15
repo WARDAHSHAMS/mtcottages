@@ -48,6 +48,7 @@ variables:
     bash -n infra/azure/intake-logicapp.sh
     bash -n infra/azure/intake-canary.sh
     bash -n infra/azure/analytics-verify.sh
+    yq -o=json 'explode(.)' .gitlab-ci.yml | python3 -I scripts/check-ci-runner-contract.py
     test -f .nojekyll
     grep -qx 'mtcottages.com' CNAME
 
@@ -277,8 +278,11 @@ verify:analytics:
     ANALYTICS_TEST_LABEL: "ci-${CI_COMMIT_SHORT_SHA}"
     # Like the launch-sequence deploy template: the azure-deploy runner cannot
     # write a git config (HOME is /), so the job takes no checkout and runs the
-    # script from package:apply-proxy's artifact.
+    # script from package:apply-proxy's artifact. HOME also points at a
+    # writable path, so nothing else in the job tries to write under /.
+    # scripts/check-ci-runner-contract.py enforces both in MR pipelines.
     GIT_STRATEGY: none
+    HOME: /tmp
   script:
     - bash infra/azure/analytics-verify.sh
 
@@ -311,6 +315,13 @@ verify:analytics:
     entrypoint: [""]
   # One writer or reader of the workflow at a time, across pipelines.
   resource_group: logicapp-mtcottages-intake
+  # The azure-deploy runner's pod has HOME=/, which stops a git checkout on
+  # "could not lock config file //.gitconfig" (#23, pipeline 145947). These
+  # jobs need the repository, so they keep the checkout and point git's global
+  # config at a writable path instead.
+  variables:
+    HOME: /tmp
+    GIT_CONFIG_GLOBAL: /tmp/.gitconfig
   interruptible: false
   retry:
     max: 1
