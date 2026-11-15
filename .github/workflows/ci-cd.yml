@@ -46,6 +46,8 @@ jobs:
           python3 -m py_compile scripts/check-form-parity.py infra/azure/apply-proxy/function_app.py
           # Shared with the GitLab merge-request pipeline (.gitlab-ci.yml).
           node scripts/check-dist.mjs dist
+          # Proximity claims cite dated measurements; wrong claims stay out (#26).
+          node scripts/check-claims.mjs dist
 
       - name: Run proxy unit tests
         run: |

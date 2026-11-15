@@ -166,7 +166,7 @@ export const cottages: Cottage[] = [
     shortTerm: "Confirm current availability",
     pricingNote: publishedLuxuryFurnishedPricingNote,
     signals: publishedStaySignals,
-    summary: "A comfortable one-bedroom furnished home in Parkersburg’s north side, with an easy scale for one person or a couple.",
+    summary: "A comfortable one-bedroom furnished home in Parkersburg, sized right for one person or a couple.",
     hero: photo(buckLiving, "Buck Cottage living room with a sofa, coffee table, warm curtains, and natural light", "A warm living room leads the Buck Cottage photo story."),
     gallery: [
       photo(buckLivingAlt, "Buck Cottage living room second angle with a sofa and windows"),

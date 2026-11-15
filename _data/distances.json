@@ -1,0 +1,87 @@
+{
+  "$comment": "Measured drive times and distances behind every proximity claim (WorldEnterpriseGroup/mtcottages#26). Homes with an owner-approved street address are measured from that address; every other home is measured from its town centre and labelled as such. Never add an origin for a house whose address is not approved. Rows older than 12 months fail e2e/tests/claims.spec.js.",
+  "method": {
+    "routing": "OSRM public demo server (router.project-osrm.org), driving profile, OpenStreetMap road data. OSRM reports free-flow time with no traffic or stops, so minutes are rounded up to the next whole minute and published as 'about'.",
+    "geocoding": "OpenStreetMap Nominatim (nominatim.openstreetmap.org), cross-checked against the operator's own published address where one exists.",
+    "minutes": "ceil(seconds / 60)",
+    "miles": "meters / 1609.344, rounded to one decimal",
+    "licence": "Routing and geocoding data © OpenStreetMap contributors, ODbL 1.0."
+  },
+  "origins": {
+    "frederick": { "label": "Frederick Cottage, 125 Frederick St, Marietta, OH 45750", "kind": "address", "lat": 39.4158196, "lng": -81.4233393 },
+    "broad": { "label": "Broad Cottage, 3113 Broad St, Parkersburg, WV 26104", "kind": "address", "lat": 39.2819327, "lng": -81.5287416 },
+    "oak": { "label": "Oak Cottage, 2712 Broad St, Parkersburg, WV 26101", "kind": "address", "lat": 39.279315, "lng": -81.5301764 },
+    "henrietta": { "label": "Henrietta Cottage, 200 Henrietta St, Ravenswood, WV 26164", "kind": "address", "lat": 38.949015, "lng": -81.757899 },
+    "parkersburg-centre": { "label": "Parkersburg town centre (downtown, Juliana Street)", "kind": "town-centre", "lat": 39.2667, "lng": -81.5615 },
+    "ravenswood-centre": { "label": "Ravenswood town centre (downtown, Walnut and Washington Streets)", "kind": "town-centre", "lat": 38.9481, "lng": -81.761 }
+  },
+  "homes": {
+    "marietta-01": "frederick",
+    "parkersburg-01": "broad",
+    "parkersburg-02": "parkersburg-centre",
+    "parkersburg-03": "parkersburg-centre",
+    "parkersburg-04": "oak",
+    "ravenswood-01": "ravenswood-centre",
+    "ravenswood-02": "ravenswood-centre",
+    "ravenswood-03": "henrietta"
+  },
+  "destinations": {
+    "marietta-memorial": { "name": "Marietta Memorial Hospital", "category": "hospital", "address": "401 Matthew St, Marietta, OH 45750", "lat": 39.4317032, "lng": -81.4645367 },
+    "camden-clark": { "name": "WVU Medicine Camden Clark Medical Center", "category": "hospital", "address": "800 Garfield Ave, Parkersburg, WV 26101", "lat": 39.2709358, "lng": -81.5602114 },
+    "jackson-general": { "name": "WVU Medicine Jackson General Hospital", "category": "hospital", "address": "122 Pinnell St, Ripley, WV 25271", "lat": 38.8228835, "lng": -81.7298948, "note": "In Ripley, not Ravenswood. Address per wvumedicine.org; OpenStreetMap places the campus entrance on Clay Lick Road." },
+    "downtown-marietta": { "name": "Downtown Marietta (Washington County Courthouse, Putnam Street)", "category": "attraction", "lat": 39.4158798, "lng": -81.4546369 },
+    "marietta-college": { "name": "Marietta College", "category": "campus", "lat": 39.416095, "lng": -81.4484225 },
+    "downtown-parkersburg": { "name": "Downtown Parkersburg (Smoot Theatre, 5th Street)", "category": "attraction", "lat": 39.266476, "lng": -81.5606099 },
+    "downtown-ravenswood": { "name": "Downtown Ravenswood (Walnut and Washington Streets)", "category": "attraction", "lat": 38.9481, "lng": -81.761 },
+    "kroger-7th-parkersburg": { "name": "Kroger on 7th Street, Parkersburg", "category": "grocery", "address": "2007 7th St, Parkersburg, WV 26101", "lat": 39.2698011, "lng": -81.521367 },
+    "foodfair-ravenswood": { "name": "Ravenswood Foodfair", "category": "grocery", "address": "423 Washington St, Ravenswood, WV 26164", "lat": 38.9524972, "lng": -81.7617659 },
+    "i77-marietta": { "name": "I-77 at Exit 1 (Pike Street, Marietta)", "category": "highway", "note": "Measured to the I-77 South on-ramp from Pike Street (OSRM step 7)." },
+    "i77-parkersburg": { "name": "I-77 on-ramp nearest the home", "category": "highway", "note": "Measured to the first I-77 on-ramp on the OSRM route south (Broad and Oak: via Staunton Turnpike, WV 47; town centre: via WV 95)." },
+    "i77-ravenswood": { "name": "I-77 at Exit 146 (Ravenswood)", "category": "highway", "note": "Measured to where the route joins I-77 via US 33 and WV 2." }
+  },
+  "sources": {
+    "table": "https://router.project-osrm.org/table/v1/driving/-81.4233393,39.4158196;-81.5287416,39.2819327;-81.5301764,39.2793150;-81.7578990,38.9490150;-81.761,38.9481;-81.5615,39.2667;-81.4645367,39.4317032;-81.4546369,39.4158798;-81.4484225,39.4160950;-81.5602114,39.2709358;-81.5606099,39.2664760;-81.7298948,38.8228835;-81.7617659,38.9524972;-81.5213670,39.2698011?sources=0;1;2;3;4;5&destinations=4;5;6;7;8;9;10;11;12;13&annotations=duration,distance",
+    "route-frederick-i77": "https://router.project-osrm.org/route/v1/driving/-81.4233393,39.4158196;-81.5606099,39.2664760?overview=false&steps=true",
+    "route-broad-i77": "https://router.project-osrm.org/route/v1/driving/-81.5287416,39.2819327;-81.7578990,38.9490150?overview=false&steps=true",
+    "route-oak-i77": "https://router.project-osrm.org/route/v1/driving/-81.5301764,39.2793150;-81.7578990,38.9490150?overview=false&steps=true",
+    "route-henrietta-i77": "https://router.project-osrm.org/route/v1/driving/-81.7578990,38.9490150;-81.7298948,38.8228835?overview=false&steps=true",
+    "route-ravenswood-centre-i77": "https://router.project-osrm.org/route/v1/driving/-81.761,38.9481;-81.7298948,38.8228835?overview=false&steps=true",
+    "route-parkersburg-centre-i77": "https://router.project-osrm.org/route/v1/driving/-81.5615,39.2667;-81.7578990,38.9490150?overview=false&steps=true"
+  },
+  "rows": [
+    { "id": "frederick:downtown-marietta", "origin": "frederick", "destination": "downtown-marietta", "seconds": 457.8, "meters": 3780.4, "minutes": 8, "miles": 2.3, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "frederick:marietta-memorial", "origin": "frederick", "destination": "marietta-memorial", "seconds": 625.7, "meters": 5655.1, "minutes": 11, "miles": 3.5, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "frederick:marietta-college", "origin": "frederick", "destination": "marietta-college", "seconds": 348.3, "meters": 2686, "minutes": 6, "miles": 1.7, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "frederick:i77-marietta", "origin": "frederick", "destination": "i77-marietta", "seconds": 191.9, "meters": 1249.9, "minutes": 4, "miles": 0.8, "method": "osrm", "source": "route-frederick-i77", "measured": "2026-11-15" },
+    { "id": "frederick:camden-clark", "origin": "frederick", "destination": "camden-clark", "seconds": 1436.1, "meters": 26519.4, "minutes": 24, "miles": 16.5, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "frederick:downtown-parkersburg", "origin": "frederick", "destination": "downtown-parkersburg", "seconds": 1322.1, "meters": 25780.7, "minutes": 23, "miles": 16, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+
+    { "id": "broad:camden-clark", "origin": "broad", "destination": "camden-clark", "seconds": 406.7, "meters": 4103, "minutes": 7, "miles": 2.5, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "broad:downtown-parkersburg", "origin": "broad", "destination": "downtown-parkersburg", "seconds": 410.8, "meters": 4389.2, "minutes": 7, "miles": 2.7, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "broad:kroger-7th-parkersburg", "origin": "broad", "destination": "kroger-7th-parkersburg", "seconds": 341.4, "meters": 2792.1, "minutes": 6, "miles": 1.7, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "broad:i77-parkersburg", "origin": "broad", "destination": "i77-parkersburg", "seconds": 540.6, "meters": 6599.4, "minutes": 10, "miles": 4.1, "method": "osrm", "source": "route-broad-i77", "measured": "2026-11-15" },
+    { "id": "broad:marietta-memorial", "origin": "broad", "destination": "marietta-memorial", "seconds": 1482.5, "meters": 24639.5, "minutes": 25, "miles": 15.3, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+
+    { "id": "oak:camden-clark", "origin": "oak", "destination": "camden-clark", "seconds": 433.4, "meters": 4312.9, "minutes": 8, "miles": 2.7, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "oak:downtown-parkersburg", "origin": "oak", "destination": "downtown-parkersburg", "seconds": 440, "meters": 4159.9, "minutes": 8, "miles": 2.6, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "oak:kroger-7th-parkersburg", "origin": "oak", "destination": "kroger-7th-parkersburg", "seconds": 305.9, "meters": 2476.1, "minutes": 6, "miles": 1.5, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "oak:i77-parkersburg", "origin": "oak", "destination": "i77-parkersburg", "seconds": 505.1, "meters": 6283.4, "minutes": 9, "miles": 3.9, "method": "osrm", "source": "route-oak-i77", "measured": "2026-11-15" },
+    { "id": "oak:marietta-memorial", "origin": "oak", "destination": "marietta-memorial", "seconds": 1509.2, "meters": 24849.4, "minutes": 26, "miles": 15.4, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+
+    { "id": "henrietta:downtown-ravenswood", "origin": "henrietta", "destination": "downtown-ravenswood", "seconds": 32.6, "meters": 310.2, "minutes": 1, "miles": 0.2, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "henrietta:jackson-general", "origin": "henrietta", "destination": "jackson-general", "seconds": 924, "meters": 18041.6, "minutes": 16, "miles": 11.2, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "henrietta:foodfair-ravenswood", "origin": "henrietta", "destination": "foodfair-ravenswood", "seconds": 90.3, "meters": 900.9, "minutes": 2, "miles": 0.6, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "henrietta:i77-ravenswood", "origin": "henrietta", "destination": "i77-ravenswood", "seconds": 324.1, "meters": 4700.2, "minutes": 6, "miles": 2.9, "method": "osrm", "source": "route-henrietta-i77", "measured": "2026-11-15" },
+    { "id": "henrietta:camden-clark", "origin": "henrietta", "destination": "camden-clark", "seconds": 2674.5, "meters": 55555.8, "minutes": 45, "miles": 34.5, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+
+    { "id": "ravenswood-centre:jackson-general", "origin": "ravenswood-centre", "destination": "jackson-general", "seconds": 906.6, "meters": 18668.1, "minutes": 16, "miles": 11.6, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "ravenswood-centre:foodfair-ravenswood", "origin": "ravenswood-centre", "destination": "foodfair-ravenswood", "seconds": 57.7, "meters": 590.7, "minutes": 1, "miles": 0.4, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "ravenswood-centre:i77-ravenswood", "origin": "ravenswood-centre", "destination": "i77-ravenswood", "seconds": 306.7, "meters": 5326.9, "minutes": 6, "miles": 3.3, "method": "osrm", "source": "route-ravenswood-centre-i77", "measured": "2026-11-15" },
+    { "id": "ravenswood-centre:camden-clark", "origin": "ravenswood-centre", "destination": "camden-clark", "seconds": 2657.1, "meters": 56182.3, "minutes": 45, "miles": 34.9, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+
+    { "id": "parkersburg-centre:camden-clark", "origin": "parkersburg-centre", "destination": "camden-clark", "seconds": 124.1, "meters": 726.9, "minutes": 3, "miles": 0.5, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "parkersburg-centre:kroger-7th-parkersburg", "origin": "parkersburg-centre", "destination": "kroger-7th-parkersburg", "seconds": 408.2, "meters": 4134.8, "minutes": 7, "miles": 2.6, "method": "osrm", "source": "table", "measured": "2026-11-15" },
+    { "id": "parkersburg-centre:i77-parkersburg", "origin": "parkersburg-centre", "destination": "i77-parkersburg", "seconds": 476.3, "meters": 6388.4, "minutes": 8, "miles": 4, "method": "osrm", "source": "route-parkersburg-centre-i77", "measured": "2026-11-15" },
+    { "id": "parkersburg-centre:marietta-memorial", "origin": "parkersburg-centre", "destination": "marietta-memorial", "seconds": 1313.8, "meters": 23199.6, "minutes": 22, "miles": 14.4, "method": "osrm", "source": "table", "measured": "2026-11-15" }
+  ]
+}

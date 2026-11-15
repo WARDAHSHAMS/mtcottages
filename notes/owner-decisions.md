@@ -8,7 +8,7 @@ Checked 2026-11-01 against the live pages for Frederick, Henrietta, Oak and Broa
 | 2 | Henrietta, Oak, Broad, Frederick | Security deposit and application fee | houses.json: deposits $1,045 / $1,375 / $895 / $1,395; fee $75. The stale $1,395 is banned in Frederick copy by a test | Not confirmed | Suzanne |
 | 3 | All four | Square footage | No value in the data | Never recorded | Suzanne, or Wardah from the floor plans |
 | 4 | All four | Availability and move-in dates | "Available now" appears only in the site menu, not per home | Availability changes; a per-home claim needs an owner | Suzanne |
-| 5 | Henrietta | Bathrooms | houses.json says 1, while its description says "Multiple bathrooms" | The two disagree | Suzanne or Wardah |
+| 5 | Henrietta | Bathrooms | houses.json now says 2 as photographed, count to confirm (#26, 2026-11-15); the microsite says "Two bathrooms appear in the photos" | The official count is unconfirmed | Suzanne or Wardah |
 | 6 | All four | Real front-of-house hero photos | Some heroes use the strongest honest room or outdoor image | Site rule: no generated photography; Wardah picks substitutes | Wardah |
 
 ## Virginia Cottage (Ravenswood, #7)
