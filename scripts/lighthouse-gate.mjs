@@ -31,6 +31,9 @@ const thresholds = {
 // Best of three: a busy CI runner can add a few hundred ms of blocking time to one run.
 const attempts = Number(process.env.LH_ATTEMPTS || 3);
 
+/** The town landing (money) pages from Growth M1 (#24, #28) are gated alongside the microsites. */
+const townLandingPages = ["/parkersburg/index.html"];
+
 /** Microsite roots are the sitemap's two-level directory URLs, e.g. /marietta/frederick/. */
 async function micrositePages() {
   if (process.env.LH_PAGES) return process.env.LH_PAGES.split(",").map((page) => page.trim()).filter(Boolean);
@@ -49,8 +52,9 @@ async function micrositePages() {
     .sort();
   if (roots.length === 0) throw new Error(`${sitemapUrl} lists no home microsites`);
   // The home page (#21) is the most visited page, so it is gated with the microsites.
-  // The location page carries the drive-time chart and table (#25).
-  return ["/", ...roots.flatMap((root) => [root, `${root}tour.html`, `${root}location.html`])];
+  // The location page carries the drive-time chart and table (#25); the town
+  // landing (money) pages are gated too (#24, #28).
+  return ["/", ...roots.flatMap((root) => [root, `${root}tour.html`, `${root}location.html`]), ...townLandingPages];
 }
 
 if (!process.env.CHROME_PATH) {
