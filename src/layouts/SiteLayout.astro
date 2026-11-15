@@ -43,6 +43,13 @@ const organizationSchema = {
   areaServed: ["Marietta, Ohio", "Parkersburg, West Virginia", "Ravenswood, West Virginia", "Racine, Ohio"],
 };
 const schemas = [organizationSchema, ...(schema ? (Array.isArray(schema) ? schema : [schema]) : [])];
+// Google Search Console HTML-tag verification. The token is public (it is
+// printed in the page), so it comes from a PUBLIC_ build variable that the
+// owner sets once; with no token the tag is simply left out.
+const searchConsoleToken = (import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION ?? "").trim();
+if (searchConsoleToken && !/^[A-Za-z0-9_-]{20,100}$/.test(searchConsoleToken)) {
+  throw new Error("PUBLIC_GOOGLE_SITE_VERIFICATION must be only the content value of Google's meta tag, not the whole tag");
+}
 ---
 <!doctype html>
 <html lang="en-US">
@@ -53,6 +60,7 @@ const schemas = [organizationSchema, ...(schema ? (Array.isArray(schema) ? schem
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     {noindex && <meta name="robots" content="noindex" />}
     <link rel="canonical" href={canonicalUrl} />
+    {searchConsoleToken && <meta name="google-site-verification" content={searchConsoleToken} />}
     <link rel="icon" href={favicon.src} />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Mt Cottages" />

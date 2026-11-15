@@ -15,7 +15,6 @@
     "test:e2e": "npm --prefix e2e test"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.7.3",
     "astro": "7.2.1",
     "three": "^0.160.1"
   },

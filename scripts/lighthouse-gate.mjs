@@ -34,7 +34,7 @@ const attempts = Number(process.env.LH_ATTEMPTS || 3);
 /** Microsite roots are the sitemap's two-level directory URLs, e.g. /marietta/frederick/. */
 async function micrositePages() {
   if (process.env.LH_PAGES) return process.env.LH_PAGES.split(",").map((page) => page.trim()).filter(Boolean);
-  const sitemapUrl = `${base}/sitemap-0.xml`;
+  const sitemapUrl = `${base}/sitemap.xml`;
   let xml;
   try {
     const response = await fetch(sitemapUrl);
