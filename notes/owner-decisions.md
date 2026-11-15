@@ -83,3 +83,13 @@ No microsite, by CEO decision 2026-11-14. Nothing here goes live.
 | W4 | Guest use of the yard and shed | Unknown | Awaiting Suzanne (optional); nothing goes live |
 
 Labelled AI 3D and concept views are allowed on the sites (each carries a visible "AI-generated concept" label). Photos are never generated.
+
+## Rates and terms (#72)
+
+Added 2026-11-15. `src/data/terms.json` holds every home's monthly rate, deposit, minimum stay, utilities, pets and move-in date, and each "Confirm on inquiry" entry there names its row here (`"ask"`). Rows 1, 2 and 4 above cover the rate, the deposit and availability. When the owner answers, set that home's entry to `"status": "confirmed"` with the value and a source, in one merge request: the microsite block, the cottage card and the Offer structured data all update from it. A confirmed monthly rate is what publishes an Offer.
+
+| # | Home | Fact | What the site shows now | Why it is not stated | Who answers |
+|---|---|---|---|---|---|
+| T1 | All listed homes | Which utilities the monthly rate includes | "Confirm on inquiry" (Frederick: "included per the rental arrangement") | No per-home list of what is covered | Suzanne |
+| T2 | All listed homes | Pet policy (allowed, fee, limits) | "Confirm on inquiry" | Never recorded | Suzanne |
+| T3 | Broad, Henrietta | Minimum stay | "Confirm on inquiry". Frederick lists 30 days; Buck, Oak and Virginia say "a month or longer" | Neither page states a minimum | Suzanne |

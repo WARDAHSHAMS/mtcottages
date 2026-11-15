@@ -1,5 +1,4 @@
 import type { HomeMicrosite, HomePhoto } from "./types";
-import { publishedLuxuryFurnishedRates } from "../site";
 import frontDrive from "../../../assets/images/cottages/marietta-01/frederick-ext-1.jpeg";
 import frontSnow from "../../../assets/images/cottages/marietta-01/frederick-ext-3.jpeg";
 import backyard from "../../../assets/images/cottages/marietta-01/frederick-backyard-cover.jpg";
@@ -185,7 +184,6 @@ export const frederickHome: HomeMicrosite = {
   bedrooms: 3,
   bathrooms: 1,
   sleeps: 6,
-  priceGuide: publishedLuxuryFurnishedRates["3 Bedrooms"],
   hero: photos.front,
   highlights: [
     {
@@ -210,13 +208,10 @@ export const frederickHome: HomeMicrosite = {
     { label: "Sleeps", value: "6", status: "listed" },
     { label: "Bathrooms", value: "1 full bath", status: "listed" },
     { label: "Furnishing", value: "Furnished", status: "listed" },
-    { label: "Minimum stay", value: "30 days", status: "listed" },
     { label: "Internet", value: "1 Gbps ethernet and wifi", status: "listed" },
     { label: "Laundry", value: "Washer and dryer", status: "listed" },
     { label: "Outdoor space", value: "Fenced backyard with patio seating", status: "photographed" },
     { label: "Parking", value: "Driveway in the photos; spaces and street rules to confirm", status: "confirm" },
-    { label: "Utilities", value: "Included per the rental arrangement; confirm what is covered", status: "confirm" },
-    { label: "Pets", value: "Pet policy", status: "confirm" },
     { label: "Square footage", value: "Size of the home", status: "confirm" },
   ],
   rooms: [

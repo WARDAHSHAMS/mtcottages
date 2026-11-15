@@ -1,7 +1,10 @@
 ---
 import CheckDates from "./CheckDates.astro";
 import { type Cottage } from "../data/site";
+import { cardTerms, termRows } from "../data/terms";
 const { cottage } = Astro.props as { cottage: Cottage };
+const terms = cardTerms(cottage.id);
+const rate = termRows(cottage.id).find((row) => row.field === "monthlyRate");
 ---
 <aside class="details-panel" aria-labelledby="quick-details-title">
   <div class="cluster" style="justify-content:space-between">
@@ -16,9 +19,9 @@ const { cottage } = Astro.props as { cottage: Cottage };
     <div class="detail"><span class="detail-icon" aria-hidden="true">⌁</span><span class="detail-label">Setting</span><span class="detail-value">{cottage.signals.setting}</span></div>
   </div>
   <div class="price-block">
-    <span class="detail-label">Published monthly guide</span>
-    <strong>{cottage.price}</strong>
-    <span class="text-muted">{cottage.pricingNote} {cottage.shortTerm}</span>
+    <span class="detail-label">Monthly rate</span>
+    <strong data-term="rate">{terms.rate}</strong>
+    <span class="text-muted">{rate?.note ?? "Confirm the rate for your dates when you ask."} {terms.available}.</span>
   </div>
   <CheckDates placement="details" home={cottage.id} />
   <p class="details-note">An inquiry starts a conversation. It is not a lease, approval, or guarantee of availability.</p>

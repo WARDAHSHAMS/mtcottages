@@ -1,0 +1,69 @@
+{
+  "$comment": "Rates and terms for every home (WorldEnterpriseGroup/mtcottages#72). This file is the only place these facts live: the microsite 'Rates & terms' block, the cottage cards, the property pages and the Offer structured data all read it. Ops change a value here through a merge request. Status: 'confirmed' = the owner confirmed this value for this home (needs value and source; a confirmed monthly rate publishes an Offer); 'listed' = part of the home's published listing (value and source); 'guide' = monthly rate only, the published luxury-furnished guide for the home's bedroom count (src/data/site.ts), shown as a guide, never as this home's rate; 'confirm' = not confirmed, the page says 'Confirm on inquiry'. A 'confirm' entry names the open question in notes/owner-decisions.md ('ask') and may carry a short note with no numbers. Validated by scripts/lib/terms.mjs at build time and in scripts/tests/terms.test.mjs.",
+  "homes": {
+    "frederick": {
+      "monthlyRate": { "status": "guide" },
+      "deposit": { "status": "confirm", "ask": "2" },
+      "minimumStay": { "status": "listed", "value": "30 days", "source": "Frederick Cottage listing: 30-day minimum stay; shorter stays priced on inquiry" },
+      "utilities": { "status": "confirm", "ask": "T1", "note": "Included per the rental arrangement; ask what is covered" },
+      "pets": { "status": "confirm", "ask": "T2" },
+      "availableFrom": { "status": "confirm", "ask": "4" }
+    },
+    "broad": {
+      "monthlyRate": { "status": "guide" },
+      "deposit": { "status": "confirm", "ask": "2" },
+      "minimumStay": { "status": "confirm", "ask": "T3" },
+      "utilities": { "status": "confirm", "ask": "T1" },
+      "pets": { "status": "confirm", "ask": "T2" },
+      "availableFrom": { "status": "confirm", "ask": "4" }
+    },
+    "buck": {
+      "monthlyRate": { "status": "guide" },
+      "deposit": { "status": "confirm", "ask": "2" },
+      "minimumStay": { "status": "listed", "value": "One month", "source": "Buck Cottage microsite: set up for stays of a month or longer" },
+      "utilities": { "status": "confirm", "ask": "T1" },
+      "pets": { "status": "confirm", "ask": "T2" },
+      "availableFrom": { "status": "confirm", "ask": "4" }
+    },
+    "yellow": {
+      "monthlyRate": { "status": "guide" },
+      "deposit": { "status": "confirm", "ask": "2" },
+      "minimumStay": { "status": "confirm", "ask": "T3" },
+      "utilities": { "status": "confirm", "ask": "T1" },
+      "pets": { "status": "confirm", "ask": "T2" },
+      "availableFrom": { "status": "confirm", "ask": "4" }
+    },
+    "oak": {
+      "monthlyRate": { "status": "guide" },
+      "deposit": { "status": "confirm", "ask": "2" },
+      "minimumStay": { "status": "listed", "value": "One month", "source": "Oak Cottage microsite: set up for stays of a month or longer" },
+      "utilities": { "status": "confirm", "ask": "T1" },
+      "pets": { "status": "confirm", "ask": "T2" },
+      "availableFrom": { "status": "confirm", "ask": "4" }
+    },
+    "walnut": {
+      "monthlyRate": { "status": "guide" },
+      "deposit": { "status": "confirm", "ask": "2" },
+      "minimumStay": { "status": "confirm", "ask": "T3" },
+      "utilities": { "status": "confirm", "ask": "T1" },
+      "pets": { "status": "confirm", "ask": "T2" },
+      "availableFrom": { "status": "confirm", "ask": "4" }
+    },
+    "virginia": {
+      "monthlyRate": { "status": "guide" },
+      "deposit": { "status": "confirm", "ask": "2" },
+      "minimumStay": { "status": "listed", "value": "One month", "source": "Virginia Cottage microsite: offered for stays of a month or longer" },
+      "utilities": { "status": "confirm", "ask": "T1" },
+      "pets": { "status": "confirm", "ask": "T2" },
+      "availableFrom": { "status": "confirm", "ask": "4" }
+    },
+    "henrietta": {
+      "monthlyRate": { "status": "guide" },
+      "deposit": { "status": "confirm", "ask": "2" },
+      "minimumStay": { "status": "confirm", "ask": "T3" },
+      "utilities": { "status": "confirm", "ask": "T1" },
+      "pets": { "status": "confirm", "ask": "T2" },
+      "availableFrom": { "status": "confirm", "ask": "4" }
+    }
+  }
+}

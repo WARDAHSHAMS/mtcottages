@@ -1,0 +1,54 @@
+---
+import StatusBadge from "./StatusBadge.astro";
+import { termRows } from "../../data/terms";
+import { inquiryUrl } from "../../data/homes/links";
+import type { HomeMicrosite } from "../../data/homes/types";
+
+interface Props { home: HomeMicrosite }
+const { home } = Astro.props as Props;
+const rows = termRows(home.id);
+const open = rows.filter((row) => row.status === "confirm").length;
+---
+
+<section class="hm-terms" id="rates-terms" aria-labelledby="rates-terms-title" data-terms-block={home.id}>
+  <div class="hm-terms-head">
+    <h3 id="rates-terms-title">Rates &amp; terms</h3>
+    <p>
+      {open > 0
+        ? `Only confirmed or published figures appear here. ${open === 1 ? "One term is" : `${open} terms are`} still to confirm: we answer ${open === 1 ? "it" : "them"} with your dates.`
+        : "Every term below is confirmed."}
+    </p>
+  </div>
+  <dl class="hm-terms-list">
+    {rows.map((row) => (
+      <div class={`hm-term${row.status === "confirm" ? " hm-term--confirm" : ""}`} data-term={row.field} data-status={row.status}>
+        <dt>{row.label}</dt>
+        <dd>
+          {row.value !== null ? <span class="hm-term-value">{row.value}</span> : <span class="hm-term-open">Ask us</span>}
+          <StatusBadge status={row.status} />
+          {row.note && <small class="hm-term-note">{row.note}</small>}
+        </dd>
+      </div>
+    ))}
+  </dl>
+  <p class="hm-terms-cta"><a class="text-link" href={inquiryUrl(home.id)}>Ask about rates and dates for {home.name} ↗</a></p>
+</section>
+
+<style>
+  .hm-terms { display: grid; gap: 1rem; padding-top: 1.1rem; border-top: 1px solid var(--line); }
+  .hm-terms-head { display: grid; gap: .3rem; }
+  .hm-terms-head h3 { color: var(--forest); font-family: var(--display); font-size: var(--step-1); font-weight: 500; letter-spacing: -.02em; line-height: 1.1; text-transform: none; }
+  .hm-terms-head p { max-width: 62ch; color: var(--muted); font-size: .95rem; }
+  .hm-terms-list { display: grid; gap: .65rem; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; }
+  .hm-term { display: grid; gap: .35rem; align-content: start; padding: .85rem; background: var(--canvas); border-radius: .7rem; }
+  .hm-term dt { color: var(--muted); font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; }
+  .hm-term dd { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; margin: 0; }
+  .hm-term-value { color: var(--forest); font-size: 1.1rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .hm-term-open { color: var(--ink); font-weight: 700; }
+  .hm-term-note { flex-basis: 100%; color: var(--muted); font-size: .84rem; line-height: 1.45; }
+  .hm-term--confirm { border: 1px dashed #c98f4a; background: color-mix(in srgb, #fff1d9 40%, var(--canvas)); }
+  .hm-terms-cta { margin: 0; }
+  @media (max-width: 900px) { .hm-terms-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .hm-terms-list { grid-template-columns: 1fr; } }
+  @media (forced-colors: active) { .hm-term, .hm-term--confirm { border: 1px solid CanvasText; } }
+</style>

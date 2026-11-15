@@ -1,5 +1,4 @@
 import type { HomeMicrosite, HomePhoto } from "./types";
-import { publishedLuxuryFurnishedRates } from "../site";
 import p04 from "../../../assets/images/cottages/ravenswood-03/photo-04.avif";
 import p06 from "../../../assets/images/cottages/ravenswood-03/photo-06.avif";
 import p13 from "../../../assets/images/cottages/ravenswood-03/photo-13.avif";
@@ -102,7 +101,6 @@ export const henriettaHome: HomeMicrosite = {
     lng: -81.757844,
   },
   bedrooms: 2,
-  priceGuide: publishedLuxuryFurnishedRates["2 Bedrooms"],
   hero: photos.dining,
   highlights: [
     {
@@ -131,8 +129,6 @@ export const henriettaHome: HomeMicrosite = {
     { label: "Internet", value: "Fiber-optic internet is the Mt Cottages standard; confirm for this home", status: "confirm" },
     { label: "Laundry", value: "A washing machine is photographed; dryer to be confirmed", status: "confirm" },
     { label: "Parking", value: "Off-street parking", status: "confirm" },
-    { label: "Utilities", value: "Which utilities are included", status: "confirm" },
-    { label: "Pets", value: "Pet policy", status: "confirm" },
     { label: "Sleeping capacity", value: "Number of guests the home sleeps", status: "confirm" },
     { label: "Square footage", value: "Size of the home", status: "confirm" },
   ],
