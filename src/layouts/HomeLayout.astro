@@ -8,6 +8,7 @@ import InquiryPanel from "../components/home/InquiryPanel.astro";
 import CheckDates from "../components/CheckDates.astro";
 import type { HomeShell } from "../components/home/shell";
 import type { ImageMetadata } from "astro";
+import type { SchemaNode } from "../data/schema";
 
 interface Props {
   shell: HomeShell;
@@ -20,7 +21,7 @@ interface Props {
   heroCaption?: string;
   /** Address chip shown under the lede, e.g. "125 Frederick St, Marietta, OH 45750". */
   chip?: string;
-  schema?: Record<string, unknown> | Record<string, unknown>[];
+  schema?: SchemaNode | SchemaNode[];
   /** Use the hero photo as the link-preview image (otherwise the site default). */
   shareHero?: boolean;
   inquiryExtra?: { label: string; href: string };

@@ -5,7 +5,7 @@ import SiteFooter from "../components/SiteFooter.astro";
 import SiteLightbox from "../components/SiteLightbox.astro";
 import Analytics from "../components/Analytics.astro";
 import { checkDatesLabel, homeName, isAudience, isHomeId, stayLink, type StayTown } from "../data/stay-link";
-import { breadcrumbSchema, businessSchema, type Crumb } from "../data/schema";
+import { breadcrumbSchema, businessSchema, type Crumb, type SchemaNode } from "../data/schema";
 import type { ImageMetadata } from "astro";
 import { getImage } from "astro:assets";
 import favicon from "../../assets/images/fav-icon/icon.png";
@@ -16,7 +16,8 @@ interface Props {
   description: string;
   canonical?: string;
   noindex?: boolean;
-  schema?: Record<string, unknown> | Record<string, unknown>[];
+  /** The page's own JSON-LD (built with the typed helpers in src/data/schema.ts). */
+  schema?: SchemaNode | SchemaNode[];
   socialImage?: ImageMetadata;
   socialImageAlt?: string;
   /** Opaque house id of the home this page is about. Every "Check dates" link on the page carries it (#20), and it is counted with page views and inquiry clicks (#23). */

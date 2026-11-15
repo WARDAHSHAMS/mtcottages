@@ -207,12 +207,6 @@ jobs:
           BASE_URL: https://mtcottages.com
         run: npm run perf
 
-      - name: validator.schema.org on the published structured data
-        working-directory: e2e
-        env:
-          BASE_URL: https://mtcottages.com
-        run: npm run schema
-
       - name: Verify the published stay application edge
         working-directory: e2e
         env:

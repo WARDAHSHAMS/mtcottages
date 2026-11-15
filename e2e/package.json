@@ -5,8 +5,7 @@
   "description": "Browser smoke tests for the Mt Cottages Astro site and application edge",
   "scripts": {
     "test": "playwright test tests/site.spec.js tests/broad-cottage.spec.js tests/homes.spec.js tests/seo.spec.js tests/distances.spec.js tests/schema.spec.js",
-    "perf": "node ../scripts/lighthouse-gate.mjs",
-    "schema": "node ../scripts/validate-schema.mjs"
+    "perf": "node ../scripts/lighthouse-gate.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

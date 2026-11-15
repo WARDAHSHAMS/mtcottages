@@ -3,12 +3,22 @@
  * every page publishes the same way, the towns it serves, and breadcrumb
  * helpers. Home microsites add their Accommodation in src/data/homes/schema.ts.
  *
+ * Every builder returns a schema-dts type (Google's typed schema.org
+ * vocabulary), so `npm run check` fails on an unknown type, an unknown
+ * property, or a value of the wrong type. That is the vocabulary gate: it runs
+ * offline in every pipeline, with no third-party validator in the path.
+ *
  * Honesty rules: no street address for the business (it has no public office),
  * no rating or review markup until real reviews exist, and no price or offer
- * until prices are owner-confirmed.
+ * until prices are owner-confirmed. e2e/tests/schema.spec.js enforces these on
+ * the built pages.
  */
+import type { BreadcrumbListLeaf, CityLeaf, JsonLdObject, ListItemLeaf, LodgingBusinessLeaf, WithContext } from "schema-dts";
 import { homes } from "./homes";
 import { homeBase } from "./homes/links";
+
+/** Any JSON-LD node a page may publish (a layout's `schema` prop). */
+export type SchemaNode = JsonLdObject;
 
 export const origin = "https://mtcottages.com";
 export const businessId = `${origin}/#business`;
@@ -17,7 +27,7 @@ const stateName = { OH: "Ohio", WV: "West Virginia" } as const;
 type StateCode = keyof typeof stateName;
 
 /** A town as a schema.org City inside its State, e.g. "Marietta, Ohio". */
-export const cityPlace = (town: string, state: StateCode) => ({
+export const cityPlace = (town: string, state: StateCode): CityLeaf => ({
   "@type": "City",
   name: `${town}, ${stateName[state]}`,
   containedInPlace: { "@type": "State", name: stateName[state], containedInPlace: { "@type": "Country", name: "US" } },
@@ -33,7 +43,7 @@ const servedTowns: { town: string; state: StateCode }[] = [
 /** The id a home microsite's Accommodation node carries (see homes/schema.ts). */
 export const homeNodeId = (base: string) => `${new URL(base, origin).toString()}#home`;
 
-export const businessSchema = (image: string) => ({
+export const businessSchema = (image: string): WithContext<LodgingBusinessLeaf> => ({
   "@context": "https://schema.org",
   "@type": "LodgingBusiness",
   "@id": businessId,
@@ -56,10 +66,10 @@ export const locationCrumbs = (guide: { town: string; path: string }): Crumb[] =
 ];
 
 /** A BreadcrumbList that matches the visible trail; hrefs are site paths or absolute URLs. */
-export const breadcrumbSchema = (trail: Crumb[]) => ({
+export const breadcrumbSchema = (trail: Crumb[]): WithContext<BreadcrumbListLeaf> => ({
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
-  itemListElement: trail.map((crumb, index) => ({
+  itemListElement: trail.map((crumb, index): ListItemLeaf => ({
     "@type": "ListItem",
     position: index + 1,
     name: crumb.name,
