@@ -68,15 +68,28 @@
     const form = document.querySelector("[data-application-form]");
     const params = new URLSearchParams(window.location.search);
     const properties = {
-      frederick: { name: "Frederick Cottage", path: "marietta/frederick/index.html" },
-      broad: { name: "Broad Cottage", path: "parkersburg/broad-cottage/" },
-      buck: { name: "Buck Cottage", path: "parkersburg/buck-cottage/" },
-      yellow: { name: "Yellow Cottage", path: "parkersburg/yellow-cottage.html" },
-      oak: { name: "Oak Cottage", path: "parkersburg/oak-cottage/" },
-      walnut: { name: "Walnut Cottage", path: "ravenswood/walnut-cottage.html" },
-      virginia: { name: "Virginia Cottage", path: "ravenswood/virginia-cottage/" },
-      henrietta: { name: "Henrietta Cottage", path: "ravenswood/henrietta-cottage/" },
+      frederick: { name: "Frederick Cottage", path: "marietta/frederick/index.html", town: "marietta" },
+      broad: { name: "Broad Cottage", path: "parkersburg/broad-cottage/", town: "parkersburg" },
+      buck: { name: "Buck Cottage", path: "parkersburg/buck-cottage/", town: "parkersburg" },
+      yellow: { name: "Yellow Cottage", path: "parkersburg/yellow-cottage.html", town: "parkersburg" },
+      oak: { name: "Oak Cottage", path: "parkersburg/oak-cottage/", town: "parkersburg" },
+      walnut: { name: "Walnut Cottage", path: "ravenswood/walnut-cottage.html", town: "ravenswood" },
+      virginia: { name: "Virginia Cottage", path: "ravenswood/virginia-cottage/", town: "ravenswood" },
+      henrietta: { name: "Henrietta Cottage", path: "ravenswood/henrietta-cottage/", town: "ravenswood" },
     };
+    // Persona slugs from the marketing site (src/data/stay-link.ts) mapped to the
+    // existing stayType options. Anything not listed here is ignored.
+    const audienceStayType = {
+      healthcare: "healthcare",
+      crew: "work",
+      insurance: "insurance",
+      relocation: "work",
+      "visiting-family": "family",
+      visitor: "family",
+      "long-term": "transition",
+    };
+    // Own keys only, so "constructor" or "__proto__" never match an inherited value.
+    const allowListed = (table, value) => (value && Object.prototype.hasOwnProperty.call(table, value) ? value : "");
     const optionAliases = {
       stayType: {
         healthcare: "Travel or healthcare assignment",
@@ -109,16 +122,19 @@
     };
 
     if (form) {
-      const property = properties[params.get("property") || ""];
+      const propertyId = allowListed(properties, (params.get("property") || "").trim().toLowerCase());
+      const property = propertyId ? properties[propertyId] : null;
+      const audience = allowListed(audienceStayType, (params.get("audience") || "").trim().toLowerCase());
       const context = form.querySelector("[data-property-context]");
       if (property && context) {
         context.hidden = false;
         context.querySelector("[data-property-name]").textContent = property.name;
         context.querySelector("[data-property-link]").href = `https://mtcottages.com/${property.path}`;
-        form.querySelector('[name="propertyId"]').value = params.get("property");
+        form.querySelector('[name="propertyId"]').value = propertyId;
       }
-      chooseOption("stayType", [params.get("stayType")]);
-      chooseOption("preferredLocation", [params.get("preferredLocation"), params.get("location")]);
+      // An explicit stayType wins; otherwise the audience the visitor came from.
+      chooseOption("stayType", [params.get("stayType"), audience ? audienceStayType[audience] : ""]);
+      chooseOption("preferredLocation", [params.get("preferredLocation"), params.get("location"), property ? property.town : ""]);
       chooseOption("duration", [params.get("duration")]);
       chooseOption("homeSize", [params.get("homeSize")]);
       chooseOption("pets", [params.get("pets")]);
@@ -156,8 +172,8 @@
       const countTest = navigator.webdriver ? countSlug(params.get("mtc_test")) || "webdriver" : "";
       const countBase = {
         p: window.location.pathname,
-        h: property ? countSlug(params.get("property")) : "",
-        a: countSlug(params.get("audience")) || countSlug(params.get("stayType")),
+        h: propertyId,
+        a: audience || countSlug(params.get("stayType")),
         s: countSlug(params.get("src")),
         r: externalReferrer(),
       };

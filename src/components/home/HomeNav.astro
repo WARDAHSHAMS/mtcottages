@@ -1,5 +1,6 @@
 ---
 import type { HomeShell } from "./shell";
+import { stayLink } from "../../data/stay-link";
 
 interface Props {
   shell: HomeShell;
@@ -48,6 +49,6 @@ const moreActive = more.some((item) => isCurrent(item.href));
         </li>
       )}
     </ul>
-    <a class="button residence-cta" href={shell.inquiryUrl}>Ask about this home</a>
+    <a class="button residence-cta" href={stayLink({ home: shell.id, page: current })} data-cta="home-nav">Check dates</a>
   </div>
 </nav>

@@ -134,9 +134,8 @@ test.describe("Broad Cottage", () => {
     await page.goto(BASE);
     const inquiryLinks = page.locator('a[href^="https://stay.mtcottages.com/"][href*="property=broad"]');
     expect(await inquiryLinks.count()).toBeGreaterThanOrEqual(2);
-    await expect(inquiryLinks.filter({ hasText: /Ask about this home/i }).first()).toBeVisible();
-    await expect(inquiryLinks.filter({ hasText: /Start a stay inquiry/i }).first()).toBeVisible();
+    await expect(inquiryLinks.filter({ hasText: /Check dates for Broad Cottage/i }).first()).toBeVisible();
     await expect(page.locator('a[href*="/apply.html"]')).toHaveCount(0);
-    await expect(page.locator('a[href*="property=broad"]').first()).toHaveAttribute("href", "https://stay.mtcottages.com/?property=broad");
+    await expect(page.locator('a[href*="property=broad"]').first()).toHaveAttribute("href", "https://stay.mtcottages.com/?property=broad&src=parkersburg-broad-cottage");
   });
 });

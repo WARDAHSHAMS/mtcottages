@@ -47,7 +47,7 @@ test("the homepage exposes the native Astro navigation and responsive image pipe
   await expect(navigation).toContainText("Services");
   await expect(navigation).toContainText("About");
   await expect(navigation).toContainText("Contact");
-  await expect(page.locator('a[href="https://stay.mtcottages.com/"]:visible').first()).toBeVisible();
+  await expect(page.locator('a[href="https://stay.mtcottages.com/?src=home"]:visible').first()).toBeVisible();
   await expect(page.locator('.hero-media img[src*="/_astro/"]')).toHaveCount(1);
   await expect(page.locator(".hero-media img")).toHaveAttribute("alt", /Frederick Cottage/);
   for (const essential of ["Furnished", "Fiber-optic internet", "Quiet", "Peaceful"]) {
@@ -90,7 +90,7 @@ test("the homepage lists every microsite home and links each one to its microsit
     if (name) await expect(listing.locator(".property-card").filter({ has: page.locator(`.property-link[href="${href}"]`) })).toContainText(name);
     expect((await request.get(href)).status(), `${href} status`).toBe(200);
   }
-  await expect(page.locator('section a[href="https://stay.mtcottages.com/"]').filter({ hasText: "Ask about your dates" }).first()).toBeVisible();
+  await expect(page.locator('section a[href="https://stay.mtcottages.com/?src=home"]').filter({ hasText: /Check dates/i }).first()).toBeVisible();
 });
 
 test("microsite tour photos load as responsive, undistorted images", async ({ page }) => {
@@ -109,7 +109,7 @@ test("microsite tour photos load as responsive, undistorted images", async ({ pa
 
 test("property inquiry CTAs go directly to stay with cottage context", async ({ page }) => {
   await page.goto("/marietta/frederick/index.html");
-  expect(await page.locator('a[href="https://stay.mtcottages.com/?property=frederick"]').count()).toBeGreaterThanOrEqual(2);
+  expect(await page.locator('a[href="https://stay.mtcottages.com/?property=frederick&src=marietta-frederick"]').count()).toBeGreaterThanOrEqual(2);
 });
 
 test("the cottages and locations indexes expose useful property details", async ({ page }) => {
@@ -140,7 +140,7 @@ test("all primary stay CTAs point directly to the canonical stay host", async ({
   await page.goto("/index.html");
   await expect(page.locator('a[href^="https://stay.mtcottages.com/"]:not([href*="/api/"]):visible').first()).toBeVisible();
   await page.goto("/marietta/frederick/index.html");
-  expect(await page.locator('a[href="https://stay.mtcottages.com/?property=frederick"]').count()).toBeGreaterThanOrEqual(2);
+  expect(await page.locator('a[href^="https://stay.mtcottages.com/?property=frederick&"]').count()).toBeGreaterThanOrEqual(2);
 });
 
 test("desktop navigation exposes one accessible mega panel at a time", async ({ page }) => {
@@ -240,7 +240,7 @@ test("header inquiry clicks are counted with their source and audience links wit
   await expect.poll(() => beacons(page)).toContainEqual(expect.objectContaining({ e: "cta_click", s: "header", p: "/index.html" }));
   await page.goto("/health-professionals.html");
   await page.evaluate(() => document.addEventListener("click", (event) => event.preventDefault()));
-  await page.locator('main a[href*="stayType=healthcare"]').first().click();
+  await page.locator('main a[href*="audience=healthcare"]').first().click();
   await expect.poll(() => beacons(page)).toContainEqual(expect.objectContaining({ e: "cta_click", a: "healthcare" }));
   await expectNothingStored(page, context);
 });

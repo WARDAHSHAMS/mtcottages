@@ -5,7 +5,9 @@ import PropertyCard from "../components/PropertyCard.astro";
 import TrustStrip from "../components/TrustStrip.astro";
 import DrillRail from "../components/DrillRail.astro";
 import ScrollDepth from "../components/ScrollDepth.astro";
-import { cottages, stayApplicationUrl } from "../data/site";
+import { cottages } from "../data/site";
+import { stayLink } from "../data/stay-link";
+const checkDatesHref = stayLink({ page: Astro.url.pathname });
 import homeHero from "../../assets/images/cottages/marietta-01/frederick-exterior-full-safe.avif";
 import homeDetail from "../../assets/images/cottages/marietta-01/photo-27.avif";
 
@@ -23,7 +25,7 @@ const homepageCottages = cottages.filter((cottage) => !notOnHomePage.has(cottage
         <p class="eyebrow">Mt Cottages · Mid-Ohio Valley</p>
         <h1>A furnished retreat for the season ahead.</h1>
         <p class="lede">Whole-home living with fiber-optic internet, quiet surroundings, and the room to settle in across Marietta, Parkersburg, and Ravenswood.</p>
-        <div class="cluster"><a class="button" href="/cottages.html">Browse {cottages.length} cottages <span aria-hidden="true">↗</span></a><a class="text-link" href={stayApplicationUrl}>Ask about your dates <span aria-hidden="true">↗</span></a></div>
+        <div class="cluster" data-cta="hero"><a class="button" href="/cottages.html">Browse {cottages.length} cottages <span aria-hidden="true">↗</span></a><a class="text-link" href={checkDatesHref}>Check dates <span aria-hidden="true">↗</span></a></div>
         <ul class="hero-essentials mt-4" aria-label="What comes with the stay"><li>Furnished</li><li>Fiber-optic internet</li><li>Quiet</li><li>Peaceful</li></ul>
       </div>
       <figure class="hero-media"><a class="hero-media__link" href="/marietta/frederick/index.html" aria-label="Explore Frederick Cottage in Marietta"><ResponsivePhoto src={homeHero} alt="Frederick Cottage exterior framed by mature trees and a covered entry" priority sizes="(max-width: 900px) 100vw, 64vw" /></a><figcaption>Frederick Cottage · a storied home in Marietta. <span aria-hidden="true">↗</span></figcaption></figure>
@@ -40,7 +42,7 @@ const homepageCottages = cottages.filter((cottage) => !notOnHomePage.has(cottage
   </section>
 
   <section class="section">
-    <div class="site-width"><div class="section-heading"><div><p class="eyebrow">Homes currently listed</p><h2>Find your place to land.</h2></div><p>Most homes have their own site with a photo tour, plan, amenities and map. Compare the community, bedroom count and monthly guide, then open the one that fits.</p></div><div class="card-grid card-grid--four" data-home-listing>{homepageCottages.map((cottage) => <PropertyCard cottage={cottage} />)}</div><div class="cluster mt-3"><a class="button" href={stayApplicationUrl}>Ask about your dates <span aria-hidden="true">↗</span></a><a class="text-link" href="/cottages.html">Compare all cottages <span aria-hidden="true">↗</span></a></div></div>
+    <div class="site-width"><div class="section-heading"><div><p class="eyebrow">Homes currently listed</p><h2>Find your place to land.</h2></div><p>Most homes have their own site with a photo tour, plan, amenities and map. Compare the community, bedroom count and monthly guide, then open the one that fits.</p></div><div class="card-grid card-grid--four" data-home-listing>{homepageCottages.map((cottage) => <PropertyCard cottage={cottage} />)}</div><div class="cluster mt-3" data-cta="home-listing"><a class="button" href={checkDatesHref}>Check dates <span aria-hidden="true">↗</span></a><a class="text-link" href="/cottages.html">Compare all cottages <span aria-hidden="true">↗</span></a></div></div>
   </section>
 
   <section class="section section--paper" aria-labelledby="drill-frederick">

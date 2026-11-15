@@ -1,0 +1,30 @@
+---
+/**
+ * The sitewide "Check dates" call to action (#20). The primary link opens the stay
+ * form with the home, audience and source page already filled in; the optional
+ * secondary link is "See distances" on a home's pages, or any page-specific step.
+ */
+import { checkDatesLabel, stayLink, type StayTown } from "../data/stay-link";
+
+interface Props {
+  /** Where the CTA sits on the page (hero, inquiry-panel, details, …); counted as the click source. */
+  placement: string;
+  /** Opaque house id; the label becomes "Check dates for <Home>". */
+  home?: string;
+  audience?: string;
+  town?: StayTown;
+  /** Replaces the default label, e.g. "Check dates in Racine". */
+  label?: string;
+  secondary?: { label: string; href: string };
+  tone?: "default" | "light";
+  class?: string;
+}
+
+const { placement, home, audience, town, label, secondary, tone = "default", class: className } = Astro.props;
+const href = stayLink({ home, audience, town, page: Astro.url.pathname });
+const text = label || checkDatesLabel(home);
+---
+<div class:list={["cluster", "check-dates", className]} data-cta={placement}>
+  <a class:list={["button", { "button--light": tone === "light" }]} href={href}>{text} <span aria-hidden="true">↗</span></a>
+  {secondary && <a class:list={["text-link", { "text-link--light": tone === "light" }]} href={secondary.href}>{secondary.label}</a>}
+</div>
