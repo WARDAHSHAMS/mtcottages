@@ -190,10 +190,14 @@ verify:site-live:
 
 # A scheduled pipeline (the #13 drift gate, the #16 canary) has no push either,
 # so `changes` would be true there too and every schedule would rebuild and
-# redeploy the proxy. Schedules check; they never publish.
+# redeploy the proxy. Schedules check; they never publish. The same holds for a
+# hand-run intake check (#12 count, #13 drift, #16/#84 canary from "Run pipeline"
+# or `glab ci run`): it reads Azure and must not republish the proxy.
 .apply-proxy:verify-rules:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE =~ /^(web|api)$/ && ($INTAKE_LOSS_COUNT == "true" || $INTAKE_LOGICAPP_DRIFT == "true" || $INTAKE_CANARY_ENABLED == "true")'
       when: never
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
@@ -208,6 +212,8 @@ verify:site-live:
 .apply-proxy:deploy-rules:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE =~ /^(web|api)$/ && ($INTAKE_LOSS_COUNT == "true" || $INTAKE_LOGICAPP_DRIFT == "true" || $INTAKE_CANARY_ENABLED == "true")'
       when: never
     - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $APPLY_PROXY_DEPLOY_ENABLED == "true"'
       changes: *apply_proxy_paths
@@ -385,6 +391,9 @@ deploy:intake-logicapp:
   stage: deploy
   needs: []
   rules:
+    # A hand-run read-only check never deploys the workflow it is reading.
+    - if: '$CI_PIPELINE_SOURCE =~ /^(web|api)$/ && ($INTAKE_LOSS_COUNT == "true" || $INTAKE_LOGICAPP_DRIFT == "true" || $INTAKE_CANARY_ENABLED == "true")'
+      when: never
     - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $INTAKE_LOGICAPP_DEPLOY_ENABLED == "true" && $CI_PIPELINE_SOURCE != "schedule"'
       changes: *intake_logicapp_paths
     - when: never

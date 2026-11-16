@@ -1075,6 +1075,24 @@ def test_scheduled_pipelines_never_rebuild_or_redeploy_the_proxy():
         assert "$CI_PIPELINE_SOURCE == \"schedule\"" in first_rule and "when: never" in first_rule, anchor
 
 
+HAND_RUN_CHECK_RULE = (
+    "- if: '$CI_PIPELINE_SOURCE =~ /^(web|api)$/ && ($INTAKE_LOSS_COUNT == \"true\" || "
+    "$INTAKE_LOGICAPP_DRIFT == \"true\" || $INTAKE_CANARY_ENABLED == \"true\")'\n      when: never"
+)
+
+
+def test_hand_run_intake_checks_never_rebuild_or_redeploy_anything():
+    # #12: the read-only count (and the drift and canary checks) started with
+    # "Run pipeline" or `glab ci run` must not republish the proxy or the Logic
+    # App. A push never matches: the rule needs a web or api source.
+    ci = (FUNCTION_PATH.parents[3] / ".gitlab-ci.yml").read_text(encoding="utf-8")
+    for anchor in (".apply-proxy:verify-rules:", ".apply-proxy:deploy-rules:", "deploy:intake-logicapp:"):
+        block = ci.split("\n" + anchor, 1)[1].split("\n\n", 1)[0]
+        assert HAND_RUN_CHECK_RULE in block, anchor
+        # It must come before any rule that could let the job run.
+        assert block.index(HAND_RUN_CHECK_RULE) < block.index('"gh-pages"'), anchor
+
+
 def _owner_team_actions():
     definition = json.loads((FUNCTION_PATH.parents[1] / "mtcottages-intake.definition.json").read_text(encoding="utf-8"))
     return (
