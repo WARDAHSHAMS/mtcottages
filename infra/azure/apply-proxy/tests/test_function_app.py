@@ -1143,7 +1143,7 @@ def test_real_inquiries_take_the_sales_path_only_after_the_canary_route():
     real = actions["Create_D365_Applicant_Lead"]
     assert real["runAfter"] == {"Route_Canary": ["Succeeded"]}
     assert real["inputs"]["body"]["ownerid@odata.bind"].startswith("@{concat('/teams(")
-    assert "canary" not in json.dumps(real).lower()
+    assert "canary" not in json.dumps(real["inputs"]).lower()
     assert "Delete_Canary_Lead" not in actions
     # Nothing outside the canary branch deletes a lead.
     outside = {name: action for name, action in actions.items() if name != "Route_Canary"}
