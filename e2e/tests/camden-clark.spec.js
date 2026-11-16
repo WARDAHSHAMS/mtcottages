@@ -129,6 +129,8 @@ test.describe("Camden Clark landing /travel-nurses/camden-clark/", () => {
   test("the inquiry links pre-fill the healthcare audience and the nearest home, and never submit", async ({ page, context }) => {
     const methods = [];
     await context.route(`${STAY}**`, (route) => {
+      // The live build's analytics beacon posts to /api/collect on the same host; that is not the stay form.
+      if (new URL(route.request().url()).pathname.startsWith("/api/")) return route.fulfill({ status: 202, body: "" });
       methods.push(route.request().method());
       return route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: "<!doctype html><title>Stay form stub</title><p>stub</p>" });
     });
