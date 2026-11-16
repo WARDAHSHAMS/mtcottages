@@ -138,7 +138,23 @@ for (const home of homes) {
   });
 }
 
-for (const listing of ["/index.html", "/cottages.html"]) {
+// The home page (#21) routes by town with house tiles rather than cottage cards, and
+// quotes the per-bedroom guide. Every monthly figure it prints must still come from
+// the same data: a published guide or a home's confirmed rate, never an unconfirmed one.
+test("every monthly figure on the home page is a published guide or a confirmed rate", async ({ page }) => {
+  await page.goto("/index.html");
+  const text = await page.locator("body").innerText();
+  const allowed = new Set(Object.values(guideRates));
+  for (const entry of Object.values(terms.homes)) {
+    if (["confirmed", "listed"].includes(entry.monthlyRate.status)) allowed.add(`${money(entry.monthlyRate.value)}/month`);
+  }
+  const quoted = [...text.matchAll(/\$[\d,]+\/month/g)].map((match) => match[0]);
+  expect(quoted.length).toBeGreaterThan(0);
+  for (const figure of quoted) expect(allowed, figure).toContain(figure);
+  for (const figure of unconfirmedFigures) expect(text, figure).not.toContain(figure);
+});
+
+for (const listing of ["/cottages.html", "/cozy-places.html", "/room-to-settle.html"]) {
   test(`cottage cards on ${listing} show the same rate, move-in and minimum stay as the data file`, async ({ page }) => {
     await page.goto(listing);
     const cards = page.locator("[data-card-terms]");
