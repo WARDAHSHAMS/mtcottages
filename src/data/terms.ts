@@ -100,6 +100,18 @@ export function termRows(id: string, today: Date = new Date()): TermRow[] {
   });
 }
 
+/**
+ * The home's monthly rate as "$N/month": the owner-confirmed rate, otherwise
+ * the published guide for its bedroom count. Null while the rate is still to
+ * confirm. Pages that chart or compare prices read this, never a copy.
+ */
+export function monthlyRateText(id: string, today: Date = new Date()): string | null {
+  const rate = termsOf(id).monthlyRate;
+  if (rate.status === "guide") return guideFor(id).rate;
+  if (rate.status === "confirm") return null;
+  return display("monthlyRate", rate, today);
+}
+
 /** The short version for a cottage card: rate, availability and minimum stay. */
 export function cardTerms(id: string, today: Date = new Date()): CardTerms {
   const terms = termsOf(id);

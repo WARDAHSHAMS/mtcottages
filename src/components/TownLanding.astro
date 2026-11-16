@@ -10,6 +10,7 @@ import ResponsivePhoto from "./ResponsivePhoto.astro";
 import { confirmedPriceHomes, landingHome, type TownLanding, type RouteTime } from "../data/townLanding";
 import { homeHref } from "../data/homes/links";
 import { stayLink } from "../data/stay-link";
+import { monthlyRateText } from "../data/terms";
 import type { Crumb } from "../data/schema";
 
 interface Props {
@@ -73,8 +74,8 @@ const shifted = Boolean(landing.story);
             </div>
             <p>{fit}</p>
             <ul class="tl-facts">{facts.map((fact) => <li>{fact}</li>)}</ul>
-            {confirmedPriceHomes.includes(home.id) && home.priceGuide
-              ? <p class="tl-price"><span>Monthly guide</span> <strong>{home.priceGuide}</strong></p>
+            {confirmedPriceHomes.includes(home.id) && monthlyRateText(home.id)
+              ? <p class="tl-price"><span>Monthly guide</span> <strong>{monthlyRateText(home.id)}</strong></p>
               : <p class="tl-price tl-price--confirm">Price: confirm on inquiry</p>}
             <div class="tl-home-actions">
               <a class="property-link" href={homeHref(home)}>Explore {home.name} <span aria-hidden="true">→</span></a>
