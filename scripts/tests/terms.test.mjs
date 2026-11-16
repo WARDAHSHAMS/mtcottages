@@ -29,17 +29,28 @@ test("decision ids are read from the first cell of each table row", () => {
   for (const id of ["1", "2", "4", "T1", "T2", "T3"]) assert.ok(decisions.has(id), `owner-decisions.md row ${id}`);
 });
 
-test("nothing is confirmed without the owner: no deposit, move-in date or per-home rate yet", () => {
-  // Rows 1, 2 and 4 of notes/owner-decisions.md are still open. When the owner
-  // answers, this test changes in the same merge request as the data.
+test("only listing-backed rates and move-in dates are confirmed; no deposit is", () => {
+  // Rows 1, 2 and 4 of notes/owner-decisions.md: Broad and Oak take their rate and
+  // move-in date from their live Furnished Finder listings (#70, read 2026-11-16).
+  // Every other home stays on the guide or on inquiry until a source exists, and
+  // this test changes in the same merge request as the data.
+  const listed = new Set(["broad", "oak"]);
   for (const [id, home] of Object.entries(terms.homes)) {
-    assert.notEqual(home.monthlyRate.status, "confirmed", `${id} monthly rate`);
     assert.equal(home.deposit.status, "confirm", `${id} deposit`);
-    assert.equal(home.availableFrom.status, "confirm", `${id} move-in date`);
+    if (listed.has(id)) {
+      assert.equal(home.monthlyRate.status, "confirmed", `${id} monthly rate`);
+      assert.match(home.monthlyRate.source, /^Furnished Finder listing \d+, .+, read \d{4}-\d{2}-\d{2}$/, `${id} rate source`);
+      assert.equal(home.availableFrom.status, "confirmed", `${id} move-in date`);
+      assert.equal(home.availableFrom.source, home.monthlyRate.source, `${id} move-in source`);
+    } else {
+      assert.notEqual(home.monthlyRate.status, "confirmed", `${id} monthly rate`);
+      assert.equal(home.availableFrom.status, "confirm", `${id} move-in date`);
+    }
   }
   assert.match(decisionsMd, /\| 1 \| Henrietta, Oak, Broad \| Monthly price/);
   assert.match(decisionsMd, /\| 2 \| [^|]+\| Security deposit/);
   assert.match(decisionsMd, /\| 4 \| [^|]+\| Availability and move-in dates/);
+  assert.match(decisionsMd, /## Listings match \(#70, read 2026-11-16\)/);
 });
 
 test("every field is present for every home, in the shared order", () => {
@@ -72,8 +83,8 @@ const broken = [
   ["a guide deposit", (d) => { d.homes.broad.deposit = { status: "guide" }; }, /status must be one of/],
   ["a listed move-in date", (d) => { d.homes.broad.availableFrom = { status: "listed", value: "2026-12-01", source: "x" }; }, /status must be one of/],
   ["an impossible date", (d) => { d.homes.broad.availableFrom = { status: "confirmed", value: "2026-13-01", source: "x" }; }, /ISO date/],
-  ["an open question with no row", (d) => { d.homes.broad.pets.ask = "T99"; }, /no row T99/],
-  ["an open question with no ask", (d) => { delete d.homes.broad.pets.ask; }, /must name a row/],
+  ["an open question with no row", (d) => { d.homes.broad.deposit.ask = "T99"; }, /no row T99/],
+  ["an open question with no ask", (d) => { delete d.homes.broad.deposit.ask; }, /must name a row/],
   ["a missing field", (d) => { delete d.homes.broad.utilities; }, /utilities: missing/],
   ["an unknown field", (d) => { d.homes.broad.parking = { status: "confirm", ask: "2" }; }, /unknown field "parking"/],
   ["an unknown key", (d) => { d.homes.broad.pets.price = 50; }, /unknown key "price"/],
