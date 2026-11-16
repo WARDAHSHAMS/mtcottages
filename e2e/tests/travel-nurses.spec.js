@@ -7,6 +7,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { test, expect } = require("@playwright/test");
 const AxeBuilder = require("@axe-core/playwright").default;
+const { stubStayHost } = require("./support/stay-host");
 
 const HUB = "/travel-nurses/";
 const STAY = "https://stay.mtcottages.com/";
@@ -112,12 +113,14 @@ test.describe("travel-nurse hub /travel-nurses/", () => {
     for (const href of await cards.locator("a").evaluateAll((links) => links.map((link) => link.getAttribute("href")))) {
       expect((await request.get(href)).status(), `${href} status`).toBe(200);
     }
-    // Only Memorial has its own landing page (#33): the Memorial card links it, and no placeholder promises others.
+    // Only hospitals with their own landing page link one, from their own card: Camden Clark (#32) and Memorial (#33). No placeholder promises others.
     const main = (await page.locator("main").textContent()) ?? "";
     expect(main).not.toMatch(/hospital guides?|coming soon|\bTBD\b|lorem/i);
     const guides = page.locator('main a[href^="/travel-nurses/"][href$="/"]:not([href="/travel-nurses/"])');
-    await expect(guides).toHaveCount(1);
+    await expect(guides).toHaveCount(2);
     await expect(page.locator('#hospitals [data-hospital="memorial-health"] a[data-hospital-guide]')).toHaveAttribute("href", "/travel-nurses/memorial-health-marietta/");
+    await expect(page.locator('#hospitals [data-hospital="camden-clark"] a[data-hospital-guide]')).toHaveAttribute("href", "/travel-nurses/camden-clark/");
+    await expect(cards.nth(0).locator('a[href="/travel-nurses/camden-clark/"]')).toHaveCount(1);
   });
 
   test("cites the GSA lodging per diem with its fiscal year, rate, counties and source links", async ({ page }) => {
@@ -215,14 +218,7 @@ test.describe("travel-nurse hub /travel-nurses/", () => {
 
   test("the inquiry links pre-fill the healthcare audience and open the stay form without submitting", async ({ page, context }) => {
     // Never submit a real application: the stay host is stubbed, and any non-GET request fails the test.
-    const methods = [];
-    await context.route(`${STAY}**`, (route) => {
-      // On the live host the cookieless visit beacon POSTs to the collector (Analytics.astro); answer it
-      // here so no test pageview reaches production counts, and keep it out of the stay-form check.
-      if (new URL(route.request().url()).pathname === "/api/collect") return route.fulfill({ status: 204 });
-      methods.push(route.request().method());
-      return route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: "<!doctype html><title>Stay form stub</title><p>stub</p>" });
-    });
+    const methods = await stubStayHost(context, STAY);
     await page.goto(HUB);
     const hero = page.locator('main [data-cta="hero"] a.button').first();
     await expect(hero).toHaveAttribute("href", STAY_HREF);

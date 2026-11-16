@@ -6,6 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { test, expect } = require("@playwright/test");
 const AxeBuilder = require("@axe-core/playwright").default;
+const { stubStayHost } = require("./support/stay-host");
 
 const PAGE = "/travel-nurses/memorial-health-marietta/";
 const HUB = "/travel-nurses/";
@@ -146,14 +147,7 @@ test.describe("Memorial Health landing /travel-nurses/memorial-health-marietta/"
   });
 
   test("the inquiry links carry Frederick and the healthcare audience, and are never submitted", async ({ page, context }) => {
-    const methods = [];
-    await context.route(`${STAY}**`, (route) => {
-      // On the live host the cookieless visit beacon POSTs to the collector (Analytics.astro); answer it
-      // here so no test pageview reaches production counts, and keep it out of the stay-form check.
-      if (new URL(route.request().url()).pathname === "/api/collect") return route.fulfill({ status: 204 });
-      methods.push(route.request().method());
-      return route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: "<!doctype html><title>Stay form stub</title><p>stub</p>" });
-    });
+    const methods = await stubStayHost(context, STAY);
     await page.goto(PAGE);
     const hero = page.locator('main [data-cta="hero"] a.button').first();
     await expect(hero).toHaveAttribute("href", STAY_HREF);

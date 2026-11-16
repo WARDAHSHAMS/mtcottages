@@ -13,6 +13,10 @@
   .tn-drives strong { color: var(--ink); font-size: 1.1rem; }
   .tn-drives .tl-miles { display: inline; }
 
+  .tn-drive-cards { padding: 0; list-style: none; }
+  .tn-drive-big { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .6rem; font-variant-numeric: tabular-nums; }
+  .tn-drive-big strong { color: var(--forest); font-family: var(--display); font-size: var(--step-3); line-height: 1; }
+
   .tn-perdiem { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); align-items: start; }
   .tn-perdiem-figure { display: grid; gap: .5rem; padding: var(--space-3); background: var(--forest); color: #fff; border-radius: var(--radius); }
   .tn-perdiem-label { color: #f0d1a9; font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; }
@@ -36,8 +40,22 @@
   .tn-table .tn-row-ref > * { background: color-mix(in srgb, var(--sun) 60%, var(--paper)); }
   .tn-chart .details-note { max-width: none; }
 
-  .tn-card .property-card { height: 100%; }
+  .tn-area { display: grid; gap: 1.2rem; }
+  .tn-area-group { display: grid; gap: .4rem; }
+  .tn-area-place { color: var(--forest); font-weight: 800; }
+  .tn-bar--area { grid-template-columns: minmax(7rem, 10rem) minmax(0, 1fr) 4.5rem; }
+  .tn-bar-fill--oak { background: var(--accent-ink); }
+  .tn-status { color: var(--muted); font-size: .88em; }
+
+  /* A card fills its grid cell by growing in a column, not with height: 100%, so an
+     "Ask about" link under it stays inside the cell. With height: 100% the link
+     overflowed the cell, the next paragraph covered it, and axe reported target-size
+     on a[data-cta="home-oak"] (pipeline 147296). */
+  .tn-card { display: flex; flex-direction: column; }
+  .tn-card > .property-card { flex: 1 1 auto; }
   .tn-inline { margin-top: 0; }
+  /* The "Ask about" link under a card: a 44px tap target with room above it. */
+  .tn-card > .tn-inline { align-self: flex-start; min-height: 2.75rem; margin-top: .5rem; }
   .tn-small-heading { font-size: var(--step-1); }
 }
 

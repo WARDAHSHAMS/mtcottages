@@ -16,7 +16,7 @@
  * - No affiliation with any hospital or health system is claimed.
  */
 import { homes } from "./homes";
-import { hasStreetAddress } from "./homes/links";
+import { hasStreetAddress, homeHref, statusLabel } from "./homes/links";
 import { distancesFor, formatMeasured } from "./distances";
 import { type Faq } from "./townLanding";
 import { monthlyRateText, termRows } from "./terms";
@@ -25,6 +25,9 @@ import type { HomeMicrosite } from "./homes/types";
 export const hubPath = "travel-nurses/index.html";
 /** The URL every internal link uses: Astro writes the directory form under build.format "preserve". */
 export const hubHref = "/travel-nurses/";
+/** The Camden Clark landing page (#32). */
+export const camdenClarkPath = "travel-nurses/camden-clark/index.html";
+export const camdenClarkHref = "/travel-nurses/camden-clark/";
 
 export const hub = {
   title: "Travel Nurse Housing in the Mid-Ohio Valley | Mt Cottages",
@@ -130,7 +133,7 @@ export const chartLabel =
 // Hospitals and measured drive times
 // ---------------------------------------------------------------------------
 
-export type DriveLine = { homeId: string; homeName: string; minutes: number; miles: number; measured: string; sourceUrl: string };
+export type DriveLine = { homeId: string; homeName: string; label: string; minutes: number; miles: number; measured: string; sourceUrl: string };
 
 export type HospitalCard = {
   id: string;
@@ -156,7 +159,7 @@ export const drive = (homeId: string, destination: string): DriveLine => {
   if (!hasStreetAddress(home)) throw new Error(`${homeId} has no approved street address, so its hospital drive is not published`);
   const row = distancesFor(home).groups.flatMap((group) => group.rows).find((entry) => entry.destination === destination);
   if (!row) throw new Error(`_data/distances.json has no ${destination} row for ${homeId}`);
-  return { homeId, homeName: home.name, minutes: row.minutes, miles: row.miles, measured: row.measured, sourceUrl: row.sourceUrl };
+  return { homeId, homeName: home.name, label: row.label, minutes: row.minutes, miles: row.miles, measured: row.measured, sourceUrl: row.sourceUrl };
 };
 
 export const hospitals: HospitalCard[] = [
@@ -167,6 +170,7 @@ export const hospitals: HospitalCard[] = [
     summary: "Broad and Oak Cottages sit a few blocks apart on Broad Street in North Parkersburg.",
     campuses: [{ label: "Camden Clark Medical Center", drives: [drive("broad", "camden-clark"), drive("oak", "camden-clark")] }],
     town: { name: "Furnished rentals in Parkersburg, WV", href: "/parkersburg/index.html" },
+    guide: { name: "Furnished homes near Camden Clark", href: camdenClarkHref },
   },
   {
     id: "memorial-health",
@@ -253,3 +257,163 @@ export const faqs: Faq[] = [
 
 export const disclaimer =
   "Mt Cottages is an independent furnished-housing company. It is not affiliated with, endorsed by or sponsored by WVU Medicine, Camden Clark Medical Center, Jackson General Hospital, Memorial Health System, Marietta Memorial Hospital or Selby General Hospital. Hospital names are used only to say where our homes are in relation to them.";
+
+// ---------------------------------------------------------------------------
+// Camden Clark landing page (#32): /travel-nurses/camden-clark/
+// ---------------------------------------------------------------------------
+
+/**
+ * Same honesty rules as the hub, plus: every minute and mile on the page is read from
+ * _data/distances.json through drive(); a place that has no row there (a gym, a late-night
+ * restaurant) is not listed at all; parking, laundry and internet repeat only what each
+ * home's own facts say, with their status, and everything else says "confirm on inquiry".
+ * Buck Cottage has no approved street address, so its drive is given on inquiry, as on the hub.
+ */
+const nearbyHomeIds = ["broad", "oak"] as const;
+
+/** Drives from each Parkersburg home with a published address to the hospital, nearest first. */
+export const camdenDrives: DriveLine[] = nearbyHomeIds
+  .map((id) => drive(id, "camden-clark"))
+  .sort((a, b) => a.minutes - b.minutes || a.miles - b.miles || a.homeName.localeCompare(b.homeName));
+
+/** The home with the shortest measured drive; the page's inquiry links pre-select it. */
+export const nearestHome: DriveLine = camdenDrives[0];
+
+const minutesOf = camdenDrives.map((line) => line.minutes);
+/** "7 to 8", or just "7" when the homes tie. */
+export const camdenRange = Math.min(...minutesOf) === Math.max(...minutesOf)
+  ? `${Math.min(...minutesOf)}`
+  : `${Math.min(...minutesOf)} to ${Math.max(...minutesOf)}`;
+
+const drivePhrase = (line: DriveLine): string => `${line.homeName} is about ${line.minutes} minutes (${line.miles.toFixed(1)} miles)`;
+
+export const camdenClark = {
+  title: "Travel Nurse Housing near Camden Clark, Parkersburg WV",
+  description: `Furnished homes ${camdenRange} minutes from WVU Medicine Camden Clark in Parkersburg, WV: measured drives, what we have confirmed, and what to ask first.`,
+  eyebrow: "Camden Clark Medical Center, Parkersburg, WV",
+  h1: "Furnished housing near WVU Medicine Camden Clark in Parkersburg, WV",
+  lede: `Working at Camden Clark? Broad Cottage and Oak Cottage are whole furnished homes on Broad Street in Parkersburg, ${camdenRange} minutes from the hospital by car. Your own front door, a full kitchen and fiber-optic internet, instead of a hotel room for thirteen weeks.`,
+  intro: "Below are the measured drive from each home, what we have and have not confirmed for nights and parking, and the grocery store, park and interstate around you. If we have not checked something, we say so and confirm it in writing before you commit.",
+  inquiryLabel: `Check dates for ${nearestHome.homeName}`,
+  crumbName: "Camden Clark",
+} as const;
+
+export const camdenCrumbs = (): { name: string; href: string }[] => [
+  { name: "Home", href: "/" },
+  { name: "Travel nurses", href: hubHref },
+  { name: camdenClark.crumbName, href: camdenClarkHref },
+];
+
+// Area around the hospital: only destinations that exist in _data/distances.json.
+
+type AreaPlace = { id: string; note: string };
+
+/** Destinations from distances.json worth a night-shift nurse's attention, with a plain line each. */
+const areaPlaces: AreaPlace[] = [
+  { id: "camden-clark", note: "Where you clock in." },
+  { id: "kroger-7th-parkersburg", note: "A full-service grocery store near City Park. Check its hours before a run after a late shift." },
+  { id: "parkersburg-city-park", note: "Shelters, playgrounds, tennis and pickleball courts and walking paths, for a walk to wind down." },
+  { id: "downtown-parkersburg", note: "Measured to the Smoot Theatre on 5th Street." },
+  { id: "i77-parkersburg", note: "The nearest I-77 on-ramp, for trips up and down the valley." },
+];
+
+export type AreaDrive = { homeId: string; homeName: string; minutes: number; miles: number; share: number };
+export type AreaRow = { id: string; label: string; note: string; drives: AreaDrive[] };
+
+const areaDrives = areaPlaces.map((place) => ({ place, lines: nearbyHomeIds.map((id) => drive(id, place.id)) }));
+const areaMax = Math.max(...areaDrives.flatMap(({ lines }) => lines.map((line) => line.minutes)));
+
+export const areaRows: AreaRow[] = areaDrives.map(({ place, lines }) => ({
+  id: place.id,
+  label: lines[0].label,
+  note: place.note,
+  drives: lines.map((line) => ({
+    homeId: line.homeId,
+    homeName: line.homeName,
+    minutes: line.minutes,
+    miles: line.miles,
+    share: Math.max(4, (line.minutes / areaMax) * 100),
+  })),
+}));
+
+export const areaChartLabel =
+  `Bar chart of drive minutes from ${nearbyHomeIds.map((id) => microsite(id).name).join(" and ")}. ` +
+  areaRows.map((row) => `${row.label}: ${row.drives.map((entry) => `${entry.homeName} ${entry.minutes} minutes`).join(", ")}`).join(". ") +
+  ". The same numbers are in the table below.";
+
+const areaMeasured = formatMeasured(
+  areaDrives.flatMap(({ lines }) => lines.map((line) => line.measured)).sort().at(-1) ?? "",
+);
+
+export const areaSource =
+  `Routes from OpenStreetMap data (OSRM), measured ${areaMeasured} from each home's approved street address. Free-flow driving times, so allow longer at shift change and in bad weather.`;
+
+/** A gap the page states rather than papers over: nothing here was measured, so nothing is listed. */
+export const areaGap =
+  "We have not measured the drive to a gym, a pharmacy or a restaurant that is open late, so we do not list one. Ask us when you inquire, and check opening hours yourself before you rely on any of them.";
+
+// Nights and parking: repeat each home's own facts, with their status.
+
+export type ShiftCell = { label: string; text: string; status: string; confirmed: boolean };
+export type ShiftRow = { homeId: string; homeName: string; href: string; cells: ShiftCell[] };
+
+const shiftFacts = ["Parking", "Laundry", "Internet", "Setting"] as const;
+
+const shiftCell = (home: HomeMicrosite, label: (typeof shiftFacts)[number]): ShiftCell => {
+  const fact = home.facts.find((entry) => entry.label === label);
+  if (!fact) return { label, text: "Confirm on inquiry", status: statusLabel.confirm, confirmed: false };
+  if (fact.status === "confirm") {
+    const text = /^confirm/i.test(fact.value) ? "Confirm on inquiry" : `${fact.value}. Confirm on inquiry.`;
+    return { label, text, status: statusLabel.confirm, confirmed: false };
+  }
+  return { label, text: fact.value, status: statusLabel[fact.status], confirmed: true };
+};
+
+export const shiftRows: ShiftRow[] = nearbyHomeIds.map((id) => {
+  const home = microsite(id);
+  return { homeId: id, homeName: home.name, href: homeHref(home), cells: shiftFacts.map((label) => shiftCell(home, label)) };
+});
+
+/** What the homes' own pages and photos say about sleeping by day and a long contract. */
+export const nightNotes = [
+  "Broad Cottage is a one-bedroom with a queen bed and a desk and chair by the bedroom window, and a washer and dryer in the home. Both are visible in its photos.",
+  "Oak Cottage has three bedrooms, each with a made bed, a nightstand and lamp, and a curtained window in its photos. Its listing calls the setting quiet.",
+  "Oak Cottage's photos show wooden steps leading down the slope from the house to the street. Worth knowing if you carry bags or groceries.",
+  "Fiber-optic internet is listed for both homes, for charting, calls and streaming between shifts. Broad Cottage's speed is still to be confirmed.",
+];
+
+export const nightConfirm = [
+  "Parking space for your car, and the street rules",
+  "Blackout shades or curtains on the bedroom you would sleep in",
+  "Which bedroom is farthest from the street, and how quiet the street is in the daytime",
+  "Late arrival after a night shift, and how you get in",
+  "What the monthly price covers, including utilities",
+  "Pet policy",
+  "Washer and dryer at Oak Cottage",
+];
+
+export const camdenFaqs: Faq[] = [
+  {
+    q: "How far is Camden Clark from your homes?",
+    a: `${camdenDrives.map(drivePhrase).join(" and ")} by car, measured from each home's street address in free-flow driving, so allow longer at shift change and in bad weather. Buck Cottage is also in Parkersburg; its street address is not published, so we give you its drive when you inquire.`,
+  },
+  {
+    q: "Where do I park, and what about getting home after a night shift?",
+    a: "Neither home's parking is confirmed for your car yet. Oak Cottage's listing mentions off-street parking, and Broad Cottage's parking is to be confirmed. Ask us before you commit for your space, the street rules and how a late arrival works, and we answer in writing for the home you want.",
+  },
+  {
+    q: "Can I sleep through the day there?",
+    a: "We cannot promise silence, and we have not confirmed blackout shades for either home. Oak Cottage's listing calls the setting quiet, and each home's page shows its real bedroom photos. Ask which bedroom is farthest from the street and what covers its windows, and we answer for the home you are considering.",
+  },
+  {
+    q: "Is Mt Cottages part of WVU Medicine or Camden Clark?",
+    a: "No. Mt Cottages is an independent furnished-housing company. It is not affiliated with, endorsed by or sponsored by WVU Medicine or Camden Clark Medical Center. The hospital's name is used only to say where our homes are in relation to it.",
+  },
+  {
+    q: "Will my housing stipend cover it?",
+    a: "Your agency sets your stipend in your contract, not GSA and not us. Our travel nurse page sets the federal lodging per diem beside our monthly guide prices so you can compare, and says plainly that it is a reference, not a promise. Send your dates and we confirm the current price and what it includes before you decide.",
+  },
+];
+
+export const camdenDisclaimer =
+  "Mt Cottages is an independent furnished-housing company. It is not affiliated with, endorsed by or sponsored by WVU Medicine or Camden Clark Medical Center. The hospital's name is used only to say where our homes are in relation to it.";

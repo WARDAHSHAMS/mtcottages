@@ -1,0 +1,25 @@
+---
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import CamdenClarkLanding from "../../../components/CamdenClarkLanding.astro";
+import { homes } from "../../../data/homes";
+import { faqSchema } from "../../../data/schema";
+import { camdenClark, camdenClarkHref, camdenCrumbs, camdenFaqs, nearestHome } from "../../../data/travelNurses";
+
+// The Camden Clark landing page (#32), a child of the travel-nurse hub (#29). Its hero is the real
+// photo of the home with the shortest measured drive to the hospital.
+const nearest = homes.find((home) => home.id === nearestHome.homeId);
+if (!nearest) throw new Error(`Camden Clark page: nearest home "${nearestHome.homeId}" has no live microsite`);
+const crumbs = camdenCrumbs();
+const hero = { src: nearest.hero.src, alt: nearest.hero.alt, focal: nearest.hero.focal };
+---
+<SiteLayout
+  title={camdenClark.title}
+  description={camdenClark.description}
+  audience="healthcare"
+  breadcrumbs={crumbs}
+  socialImage={hero.src}
+  socialImageAlt={hero.alt}
+  schema={faqSchema(camdenClarkHref, camdenFaqs)}
+>
+  <CamdenClarkLanding crumbs={crumbs} hero={hero} />
+</SiteLayout>
