@@ -161,7 +161,7 @@ test.describe("Camden Clark landing /travel-nurses/camden-clark/", () => {
       expect((await request.get(href)).status(), `${href} status`).toBe(200);
     }
     await expect(page.locator("#homes .tn-card")).toHaveCount(2);
-    for (const id of parkersburg) await expect(page.locator(`#homes .tn-card[data-home="${id}"] img`)).toHaveAttribute("alt", /\S{10,}/);
+    for (const id of parkersburg) await expect(page.locator(`#homes .tn-card[data-home="${id}"] img`)).toHaveAttribute("alt", /^(?=.*\w{3}).{10,}$/);
     const crumbs = page.locator("main nav.crumbs a");
     await expect(crumbs.nth(1)).toHaveAttribute("href", HUB);
   });
