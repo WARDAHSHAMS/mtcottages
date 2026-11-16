@@ -6,29 +6,17 @@
 // (noindex) and the 404 page drop out without a hand-kept list, and a new page
 // is listed the day it ships. The build fails when a page has no canonical, more
 // than one, or a canonical that points to a page that was not built.
-import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { PageLastmod } from "./page-lastmod.mjs";
 
 const CANONICAL_TAG = /<link\b[^>]*\brel=["']?canonical\b[^>]*>/gi;
 const HREF = /\bhref=["']?([^"'\s>]+)/i;
 const NOINDEX = /<meta\b[^>]*\bname=["']?robots["']?[^>]*\bcontent=["'][^"']*\bnoindex\b/i;
 
 const escapeXml = (value) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-/** When the site content last changed: the commit being built, else the build time. */
-function lastModified(logger) {
-  try {
-    const committed = execFileSync("git", ["log", "-1", "--format=%cI"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
-    if (committed) return committed;
-    logger.warn("git returned no commit date; using the build time as lastmod");
-  } catch (error) {
-    logger.warn(`git commit date unavailable (${error instanceof Error ? error.message : String(error)}); using the build time as lastmod`);
-  }
-  return new Date().toISOString();
-}
 
 async function htmlFiles(dir) {
   const found = [];
@@ -45,12 +33,14 @@ const fileForPath = (dist, pathname) => path.join(dist, decodeURIComponent(pathn
 
 export default function canonicalSitemap() {
   let site;
+  let root;
   return {
     name: "mtcottages:canonical-sitemap",
     hooks: {
       "astro:config:done": ({ config }) => {
         if (!config.site) throw new Error("canonical-sitemap needs `site` in astro.config.mjs");
         site = new URL(config.site);
+        root = fileURLToPath(config.root);
       },
       "astro:build:done": async ({ dir, logger }) => {
         const dist = fileURLToPath(dir);
@@ -96,15 +86,18 @@ export default function canonicalSitemap() {
         if (errors.length > 0) throw new Error(`Canonical links are broken:\n${errors.join("\n")}`);
         if (locs.length === 0) throw new Error("No indexable page has a self-referencing canonical; the sitemap would be empty");
 
-        const lastmod = lastModified(logger);
-        const body = locs.map((loc) => `<url><loc>${escapeXml(loc)}</loc><lastmod>${lastmod}</lastmod></url>`).join("\n");
+        // Each page's lastmod is when its own content last changed (#82); CI refuses a shallow clone.
+        const dates = new PageLastmod({ root, logger, failOnShallow: Boolean(process.env.CI) });
+        const entries = locs.map((loc) => ({ loc, lastmod: dates.lastmod(new URL(loc).pathname) }));
+        const body = entries.map(({ loc, lastmod }) => `<url><loc>${escapeXml(loc)}</loc><lastmod>${lastmod}</lastmod></url>`).join("\n");
         const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
         try {
           await writeFile(path.join(dist, "sitemap.xml"), xml, "utf8");
         } catch (error) {
           throw new Error(`cannot write sitemap.xml: ${error instanceof Error ? error.message : String(error)}`);
         }
-        logger.info(`sitemap.xml lists ${locs.length} indexable pages (lastmod ${lastmod})`);
+        const distinct = new Set(entries.map(({ lastmod }) => lastmod)).size;
+        logger.info(`sitemap.xml lists ${locs.length} indexable pages with ${distinct} distinct content dates (${dates.fallbacks.length} without a traceable source)`);
       },
     },
   };

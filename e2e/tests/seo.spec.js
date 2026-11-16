@@ -28,6 +28,18 @@ async function sitemapLocs(request) {
   return entries;
 }
 
+// #82: lastmod is when each page's own content last changed (integrations/page-lastmod.mjs),
+// so Google can trust it. A build-time stamp would give every page one date.
+test("sitemap lastmod comes from each page's content, not the build", async ({ request }) => {
+  const entries = await sitemapLocs(request);
+  const dates = entries.map(({ lastmod }) => lastmod);
+  for (const date of dates) {
+    expect(date, "UTC W3C datetime").toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    expect(Date.parse(date), `${date} is not in the future`).toBeLessThanOrEqual(Date.now() + 60_000);
+  }
+  expect(new Set(dates).size, "pages carry their own dates, not one build stamp").toBeGreaterThan(1);
+});
+
 test("robots.txt allows crawling and points to the sitemap", async ({ request }) => {
   const response = await request.get("/robots.txt");
   expect(response.status()).toBe(200);
