@@ -1,0 +1,57 @@
+/* Travel-nurse hub (src/components/TravelNurseHub.astro). Built on the site tokens in site.css and town-landing.css. */
+@layer components {
+  .tn-hospitals { padding: 0; list-style: none; }
+  .tn-hospital { display: grid; align-content: start; gap: .8rem; padding: var(--space-3); background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 .8rem 2.2rem rgb(31 40 34 / .06); }
+  .tn-hospital h3 { font-size: 1.35rem; max-width: 22ch; }
+  .tn-hospital .location { color: var(--muted); font-size: .92rem; }
+  .tn-hospital .inline-link { margin-top: auto; color: var(--forest); font-weight: 800; }
+  .tn-campus { display: grid; gap: .4rem; padding-top: .8rem; border-top: 1px solid var(--line); }
+  .tn-campus-label { color: var(--muted); font-family: var(--mono); font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .tn-drives { display: grid; gap: .5rem; padding: 0; list-style: none; font-variant-numeric: tabular-nums; }
+  .tn-drives li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .2rem .8rem; }
+  .tn-drive-home { color: var(--forest); font-weight: 700; }
+  .tn-drives strong { color: var(--ink); font-size: 1.1rem; }
+  .tn-drives .tl-miles { display: inline; }
+
+  .tn-perdiem { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); align-items: start; }
+  .tn-perdiem-figure { display: grid; gap: .5rem; padding: var(--space-3); background: var(--forest); color: #fff; border-radius: var(--radius); }
+  .tn-perdiem-label { color: #f0d1a9; font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; }
+  .tn-perdiem-number { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; }
+  .tn-perdiem-number strong { font-family: var(--display); font-size: var(--step-3); font-variant-numeric: tabular-nums; line-height: 1; }
+  .tn-perdiem-number span { font-size: 1.1rem; }
+  .tn-perdiem-note { color: rgb(255 255 255 / .86); font-size: .95rem; }
+  .tn-sources { font-size: .88rem; color: var(--muted); }
+  .tn-sources a { color: var(--accent-deep); font-weight: 700; }
+
+  .tn-chart { padding: var(--space-3); background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); }
+  .tn-chart-title { margin-bottom: 1rem; color: var(--forest); font-family: var(--display); font-size: var(--step-1); line-height: 1.15; }
+  .tn-bars { display: grid; gap: .7rem; }
+  .tn-bar { display: grid; gap: .8rem; grid-template-columns: minmax(9rem, 14rem) minmax(0, 1fr) 4.5rem; align-items: center; }
+  .tn-bar-name { display: grid; color: var(--ink); font-size: .92rem; font-weight: 700; line-height: 1.25; }
+  .tn-bar-name small { color: var(--muted); font-size: .76rem; font-weight: 400; }
+  .tn-bar-track { position: relative; display: block; height: 1.5rem; background: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 25%); }
+  .tn-bar-fill { position: absolute; inset-block: .25rem; inset-inline-start: 0; width: var(--share); border-radius: 0 4px 4px 0; background: var(--forest); }
+  .tn-bar--ref .tn-bar-fill { background: var(--accent-ink); }
+  .tn-bar-value { color: var(--ink); font-size: .92rem; font-variant-numeric: tabular-nums; font-weight: 800; text-align: end; }
+  .tn-table .tn-row-ref > * { background: color-mix(in srgb, var(--sun) 60%, var(--paper)); }
+  .tn-chart .details-note { max-width: none; }
+
+  .tn-card .property-card { height: 100%; }
+  .tn-inline { margin-top: 0; }
+  .tn-small-heading { font-size: var(--step-1); }
+}
+
+@media (max-width: 900px) {
+  .tn-perdiem { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .tn-chart { padding: 1rem; }
+  .tn-bar { grid-template-columns: minmax(0, 1fr) auto; gap: .3rem .8rem; }
+  .tn-bar-track { grid-column: 1 / -1; grid-row: 2; }
+  .tn-bar-value { grid-column: 2; grid-row: 1; }
+}
+
+@media (forced-colors: active) {
+  .tn-bar-fill { background: CanvasText; forced-color-adjust: none; }
+}

@@ -36,7 +36,7 @@ const SLUG = /^[a-z0-9][a-z0-9-]{0,39}$/;
 /**
  * A short, stable slug for the page a CTA sits on, used as `src` so a lead and its
  * counts say which page sent it: "/" is "home", "/marietta/frederick/location.html"
- * is "marietta-frederick-location", "/health-professionals.html" is "health-professionals".
+ * is "marietta-frederick-location", "/travel-nurses/" is "travel-nurses".
  */
 export const pageSlug = (pathname: string): string => {
   const cleaned = pathname

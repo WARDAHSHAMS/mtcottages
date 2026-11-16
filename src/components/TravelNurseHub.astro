@@ -1,0 +1,228 @@
+---
+/**
+ * Travel-nurse hub (#29), structured like the town money pages (TownLanding.astro):
+ * hero with one CTA, the three hospitals with measured drives, the GSA lodging
+ * per diem against our guide prices (a labelled chart with a table fallback),
+ * 13-week terms stated only as far as they are confirmed, native FAQ
+ * disclosures that match the page's FAQPage schema, the live homes, and the
+ * no-affiliation disclaimer. Data and honesty rules: src/data/travelNurses.ts.
+ */
+import "../styles/town-landing.css";
+import "../styles/travel-nurses.css";
+import ResponsivePhoto from "./ResponsivePhoto.astro";
+import PropertyCard from "./PropertyCard.astro";
+import { cottages } from "../data/site";
+import { homes } from "../data/homes";
+import { stayLink } from "../data/stay-link";
+import type { Crumb } from "../data/schema";
+import type { Photo } from "../data/site";
+import {
+  chartLabel, chartRows, disclaimer, driveSource, faqs, homesNote, hospitals, hub, perDiem, perDiemMonth, terms, usd,
+} from "../data/travelNurses";
+
+interface Props {
+  crumbs: Crumb[];
+  hero: Photo;
+}
+
+const { crumbs, hero } = Astro.props;
+// Every inquiry link carries the audience and this page as its source (#20).
+const page = Astro.url.pathname;
+const inquiryHref = stayLink({ audience: "healthcare", page });
+const homeCards = homes.map((home) => {
+  const cottage = cottages.find((entry) => entry.id === home.id);
+  if (!cottage) throw new Error(`The travel-nurse hub lists "${home.id}", which is not in src/data/site.ts`);
+  return { home, cottage };
+});
+---
+
+<section class="guide-hero section--tight tl-hero">
+  <div class="site-width guide-hero-grid">
+    <div>
+      <nav class="crumbs" aria-label="Breadcrumb">
+        {crumbs.map((crumb, index) => index < crumbs.length - 1
+          ? <><a href={crumb.href}>{crumb.name}</a><span aria-hidden="true">/</span></>
+          : <span aria-current="page">{crumb.name}</span>)}
+      </nav>
+      <p class="eyebrow mt-3">{hub.eyebrow}</p>
+      <h1>{hub.h1}</h1>
+      <p class="lede" data-testid="hub-lede">{hub.lede}</p>
+      <p class="mt-2 reading">{hub.intro}</p>
+      <div class="cluster mt-3" data-cta="hero">
+        <a class="button" href={inquiryHref}>{hub.inquiryLabel} <span aria-hidden="true">↗</span></a>
+        <a class="button button--ghost" href="#stipend">Compare with your stipend</a>
+      </div>
+    </div>
+    <figure class="hero-image-frame">
+      <ResponsivePhoto {...hero} priority sizes="(max-width: 900px) 100vw, 55vw" />
+    </figure>
+  </div>
+</section>
+
+<section class="section section--paper" id="hospitals" aria-labelledby="tn-hospitals-title">
+  <div class="site-width">
+    <div class="section-heading">
+      <div><p class="eyebrow">The three hospitals</p><h2 id="tn-hospitals-title">Minutes from the hospital that brought you here</h2></div>
+      <p>Drive minutes are measured from each home's street address to the hospital, not guessed. Each hospital's town has its own page with every home there.</p>
+    </div>
+    <ul class="card-grid tn-hospitals" role="list">
+      {hospitals.map((hospital) => (
+        <li class="tn-hospital" data-hospital={hospital.id}>
+          <p class="location">{hospital.place}</p>
+          <h3>{hospital.name}</h3>
+          <p>{hospital.summary}</p>
+          {hospital.campuses.map((campus) => (
+            <div class="tn-campus" data-campus>
+              <p class="tn-campus-label">{campus.label}</p>
+              <ul class="tn-drives" role="list">
+                {campus.drives.map((line) => (
+                  <li data-home={line.homeId}>
+                    <span class="tn-drive-home">{line.homeName}</span>
+                    <span><strong>{line.minutes} min</strong> <span class="tl-miles">drive, {line.miles.toFixed(1)} mi</span></span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <a class="inline-link" href={hospital.town.href}>{hospital.town.name} <span aria-hidden="true">→</span></a>
+        </li>
+      ))}
+    </ul>
+    <p class="details-note mt-2" data-testid="drive-source">{driveSource}</p>
+  </div>
+</section>
+
+<section class="section" id="stipend" aria-labelledby="tn-stipend-title">
+  <div class="site-width">
+    <div class="section-heading">
+      <div><p class="eyebrow">Your housing stipend</p><h2 id="tn-stipend-title">What the federal lodging rate says about the price</h2></div>
+      <p>Your agency sets your stipend, not GSA and not us. Many travelers use the federal lodging per diem as a yardstick, so here it is for our counties, beside our monthly guide prices.</p>
+    </div>
+
+    <div class="tn-perdiem" data-testid="per-diem">
+      <div class="tn-perdiem-figure">
+        <p class="tn-perdiem-label">GSA lodging per diem, {perDiem.fiscalYear}</p>
+        <p class="tn-perdiem-number"><strong data-testid="per-diem-rate">{usd(perDiem.lodgingPerNight)}</strong> <span>a night</span></p>
+        <p class="tn-perdiem-note">Standard CONUS rate for travel from {perDiem.period}. That is {usd(perDiemMonth)} for {perDiem.nights} nights.</p>
+      </div>
+      <div class="stack">
+        <p>GSA sets one standard lodging rate for most of the country and lists about 300 areas with their own rate. We checked GSA's {perDiem.fiscalYear} files, and none of the counties below is on the list, so each gets the standard rate:</p>
+        <ul class="checklist" role="list" data-testid="per-diem-counties">
+          {perDiem.counties.map((county) => <li><span><strong>{county.county}</strong> ({county.place}, {county.zips})</span></li>)}
+        </ul>
+        <p class="text-muted">The year before, {perDiem.prior.fiscalYear}, the standard lodging rate was {usd(perDiem.prior.lodgingPerNight)}. Checked {perDiem.checked}; GSA can revise rates each fiscal year.</p>
+        <p class="tn-sources" data-testid="per-diem-sources">Source: {perDiem.sources.map((source, index) => <>{index > 0 && " · "}<a href={source.href} rel="noopener">{source.label}</a></>)}</p>
+      </div>
+    </div>
+
+    <figure class="tn-chart mt-4" data-testid="stipend-chart">
+      <figcaption class="tn-chart-title" id="tn-chart-title">Thirty nights of the {perDiem.fiscalYear} lodging per diem, beside each home's monthly guide price</figcaption>
+      <div class="tn-bars" role="img" aria-label={chartLabel}>
+        <div class="tn-bar tn-bar--ref" aria-hidden="true">
+          <span class="tn-bar-name">GSA lodging, {perDiem.nights} nights<small>{usd(perDiem.lodgingPerNight)} a night, {perDiem.fiscalYear}</small></span>
+          <span class="tn-bar-track"><span class="tn-bar-fill" style="--share:100%"></span></span>
+          <span class="tn-bar-value">{usd(perDiemMonth)}</span>
+        </div>
+        {chartRows.map((row) => (
+          <div class="tn-bar" aria-hidden="true">
+            <span class="tn-bar-name">{row.label}<small>{row.detail}</small></span>
+            <span class="tn-bar-track"><span class="tn-bar-fill" style={`--share:${row.share.toFixed(1)}%`}></span></span>
+            <span class="tn-bar-value">{usd(row.amount)}</span>
+          </div>
+        ))}
+      </div>
+      <div class="tl-table-scroll mt-2" role="region" aria-labelledby="tn-chart-title" tabindex="0">
+        <table class="tl-table tn-table" data-testid="stipend-table">
+          <caption class="sr-only">The same figures as the chart: monthly guide price for each home and how far it sits from {usd(perDiemMonth)}, thirty nights of the {perDiem.fiscalYear} GSA lodging per diem</caption>
+          <thead>
+            <tr><th scope="col">Home</th><th scope="col">Monthly amount</th><th scope="col">Against {perDiem.nights} nights of GSA lodging</th><th scope="col">Status</th></tr>
+          </thead>
+          <tbody>
+            <tr class="tn-row-ref"><th scope="row">GSA lodging per diem, {perDiem.nights} nights</th><td><strong>{usd(perDiemMonth)}</strong></td><td>{usd(perDiem.lodgingPerNight)} a night, {perDiem.fiscalYear}</td><td>Federal reference rate</td></tr>
+            {chartRows.map((row) => (
+              <tr data-home={row.id}><th scope="row">{row.label}</th><td><strong>{usd(row.amount)}</strong></td><td>{row.gap}</td><td>{row.status}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="details-note mt-2">Guide prices are the bedroom-count guide Mt Cottages publishes, shown for planning and not as an offer; only Frederick's is owner-confirmed, and every other home's price is confirmed on inquiry. The thirty-night figure is simple arithmetic, not a stipend: the per diem is lodging only, and what a guide price covers, including utilities, is confirmed in writing for each home.</p>
+    </figure>
+
+    <div class="tn-reading mt-4 stack reading">
+      <h3>How to read this</h3>
+      <ul class="checklist" role="list">
+        <li><span>GSA is a reference, not a promise. Your contract sets your stipend, and it can be higher or lower than the federal figure.</span></li>
+        <li><span>Ask your recruiter for the exact housing stipend in writing before you compare any home with it.</span></li>
+        <li><span>This is not tax advice. A tax professional can explain how a stipend applies to you.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section section--paper" id="terms" aria-labelledby="tn-terms-title">
+  <div class="site-width split">
+    <div class="stack">
+      <p class="eyebrow">13-week stays</p>
+      <h2 id="tn-terms-title">What we state, and what we confirm first</h2>
+      <ul class="checklist" role="list" data-testid="terms-stated">{terms.stated.map((item) => <li><span>{item}</span></li>)}</ul>
+      <p class="reading">Ask about 13-week stays: send your start and end dates and we confirm, home by home and in writing, whether they fit. Confirm the contract length against the lease length with anyone you rent from, us included.</p>
+    </div>
+    <div class="stack">
+      <p class="eyebrow">Confirm on inquiry</p>
+      <h2>Not confirmed for every home yet</h2>
+      <ul class="tl-confirm" role="list" data-testid="terms-confirm">{terms.confirm.map((item) => <li>{item}</li>)}</ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="faq" aria-labelledby="tn-faq-title">
+  <div class="site-width split split--wide">
+    <div>
+      <p class="eyebrow">Questions</p>
+      <h2 id="tn-faq-title">Travel nurse housing, answered</h2>
+    </div>
+    <div class="faq">
+      {faqs.map((faq) => (
+        <details>
+          <summary>{faq.q}</summary>
+          <p>{faq.a}</p>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="section section--paper" id="homes" aria-labelledby="tn-homes-title">
+  <div class="site-width">
+    <div class="section-heading">
+      <div><p class="eyebrow">Live homes</p><h2 id="tn-homes-title">Our furnished homes in three river towns</h2></div>
+      <p>{homesNote}</p>
+    </div>
+    <div class="card-grid">
+      {homeCards.map(({ home, cottage }) => (
+        <div class="tn-card" data-home={home.id}><PropertyCard cottage={cottage} headingLevel={3} /></div>
+      ))}
+    </div>
+    <p class="mt-3">Or start from the town: <a class="inline-link tn-inline" href="/parkersburg/index.html">Parkersburg, WV</a> · <a class="inline-link tn-inline" href="/marietta/index.html">Marietta, Ohio</a> · <a class="inline-link tn-inline" href="/ravenswood/index.html">Ravenswood, WV</a></p>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="tn-disclaimer-title">
+  <div class="site-width">
+    <h2 id="tn-disclaimer-title" class="tn-small-heading">No affiliation</h2>
+    <p class="details-note mt-2" data-testid="disclaimer">{disclaimer}</p>
+  </div>
+</section>
+
+<section class="section section--dark" aria-labelledby="tn-next-title">
+  <div class="site-width split split--wide">
+    <div>
+      <p class="eyebrow tl-eyebrow-light">The next step</p>
+      <h2 id="tn-next-title">Tell us your contract dates. We will tell you what fits.</h2>
+    </div>
+    <div>
+      <p class="lede lede--light">Share your hospital, your start and end dates and who is coming. We reply with the homes that fit, their current price and what is included. An inquiry is a conversation, not a lease.</p>
+      <a class="button button--light mt-3" href={inquiryHref} data-cta="next-step">{hub.inquiryLabel} <span aria-hidden="true">↗</span></a>
+    </div>
+  </div>
+</section>

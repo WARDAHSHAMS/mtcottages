@@ -30,7 +30,7 @@ const developerCopy = /\bLevel \d\b|\bmicrosite\b|\bpublic (homes?|cottages?|por
 const publicPages = [
   "/index.html", "/cottages.html", "/available.html", "/locations.html", "/room-to-settle.html",
   "/about.html", "/contact.html", "/faq.html", "/cozy-places.html",
-  "/fully-furnished-homes.html", "/health-professionals.html", "/work-relocation.html",
+  "/fully-furnished-homes.html", "/travel-nurses/index.html", "/work-relocation.html",
   "/insurance-housing.html", "/family-stays.html", "/living.html", "/services.html",
   "/home-amenities.html", "/guest-services.html", "/meal-preparation.html", "/property-care.html",
   "/housekeeping.html", "/partnerships.html", "/pay-rent.html", "/privacy.html", "/residents.html",
@@ -273,7 +273,7 @@ test("header inquiry clicks are counted with their source and audience links wit
   await page.evaluate(() => document.addEventListener("click", (event) => event.preventDefault()));
   await page.locator(".site-header a.header-cta").click();
   await expect.poll(() => beacons(page)).toContainEqual(expect.objectContaining({ e: "cta_click", s: "header", p: "/index.html" }));
-  await page.goto("/health-professionals.html");
+  await page.goto("/travel-nurses/");
   await page.evaluate(() => document.addEventListener("click", (event) => event.preventDefault()));
   await page.locator('main a[href*="audience=healthcare"]').first().click();
   await expect.poll(() => beacons(page)).toContainEqual(expect.objectContaining({ e: "cta_click", a: "healthcare" }));
