@@ -26,7 +26,7 @@ const homes = [
   { id: "broad", name: "Broad Cottage", href: "/parkersburg/broad-cottage/", price: "$1,895", confirmed: false },
   { id: "buck", name: "Buck Cottage", href: "/parkersburg/buck-cottage/", price: "$1,895", confirmed: false },
   { id: "oak", name: "Oak Cottage", href: "/parkersburg/oak-cottage/", price: "$2,575", confirmed: false },
-  { id: "frederick", name: "Frederick Cottage", href: "/marietta/frederick/", price: "$2,575", confirmed: false },
+  { id: "frederick", name: "Frederick Cottage", href: "/marietta/frederick/index.html", price: "$2,575", confirmed: false },
   { id: "virginia", name: "Virginia Cottage", href: "/ravenswood/virginia-cottage/", price: "$2,295", confirmed: false },
   { id: "henrietta", name: "Henrietta Cottage", href: "/ravenswood/henrietta-cottage/", price: "$2,295", confirmed: false },
 ];
