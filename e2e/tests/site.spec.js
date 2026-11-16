@@ -131,8 +131,9 @@ test("the cottages and locations indexes expose useful property details", async 
     "Frederick Cottage": "$2,575/month", "Broad Cottage": "$1,895/month", "Buck Cottage": "$1,895/month",
     "Oak Cottage": "$2,575/month", "Virginia Cottage": "$2,295/month", "Henrietta Cottage": "$2,295/month",
   };
+  // #72: a rate that is still the bedroom-count guide carries the word "guide" (src/data/terms.ts).
   for (const [name, price] of Object.entries(shownPrices)) {
-    await expect(page.locator(".property-card").filter({ has: page.locator("h2", { hasText: name }) }).locator(".property-price")).toHaveText(price);
+    await expect(page.locator(".property-card").filter({ has: page.locator("h2", { hasText: name }) }).locator(".property-price")).toHaveText(new RegExp(`^\\${price}( guide)?$`));
   }
   await expect(page.locator(".comparison-table")).toHaveCount(0);
   await expect(page.getByText("Compare at a glance")).toHaveCount(0);
