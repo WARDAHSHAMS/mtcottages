@@ -131,7 +131,7 @@ export function offerFor(id: string, homeUrl: string, homeNode: string, today: D
     "@id": `${homeUrl}#offer`,
     url: homeUrl,
     itemOffered: { "@id": homeNode },
-    businessFunction: "http://purl.org/goodrelations/v1#LeaseOut",
+    businessFunction: { "@id": "http://purl.org/goodrelations/v1#LeaseOut" },
     price,
     priceCurrency: "USD",
     priceSpecification: { "@type": "UnitPriceSpecification", price, priceCurrency: "USD", unitCode: "MON", unitText: "month" },
