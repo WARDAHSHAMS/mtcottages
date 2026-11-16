@@ -147,8 +147,12 @@ site-check:
 # every pipeline stayed green. The site now serves /build.json with the commit
 # it was built from (integrations/build-stamp.mjs). This job fails unless
 # mtcottages.com serves this pipeline's commit, or a newer gh-pages commit that
-# contains it, within the deadline. The deploy takes ~25 minutes plus a queued
-# run ahead of it, so it waits up to 85 minutes.
+# contains it, within the deadline. A healthy GitHub run takes 30 to 35 minutes
+# from push to published (runs 117 and 119), so the deadline is 45 minutes: one
+# deploy plus margin. A shorter one (#83 asked for ~20) would be red on every
+# healthy merge. When a run is still queued behind another, the newer gh-pages
+# pipeline's gate covers the commit, because its deploy contains this one.
+# python3 -u streams each poll to the job log instead of buffering to the end.
 #
 # On main it fails at once when main has a commit gh-pages lacks: main never
 # deploys, so that work cannot go live until it is merged into gh-pages. The
@@ -162,9 +166,9 @@ verify:site-live:
   interruptible: false
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^(gh-pages|main)$/ && $CI_PIPELINE_SOURCE =~ /^(push|schedule|web)$/'
-  timeout: 100 minutes
+  timeout: 55 minutes
   script:
-    - python3 -I scripts/check-live-build.py --expect "$CI_COMMIT_SHA" --deploy-ref gh-pages --timeout 5100 --interval 60
+    - python3 -I -u scripts/check-live-build.py --expect "$CI_COMMIT_SHA" --deploy-ref gh-pages --timeout 2700 --interval 60
 
 # ---------------------------------------------------------------------------
 # Stay application host (infra/azure/apply-proxy)
