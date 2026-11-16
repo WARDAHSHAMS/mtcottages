@@ -34,7 +34,8 @@ test("every listed page except the home page has a visible trail that matches it
     const schemaNames = lists[0].itemListElement.map((item) => item.name);
     const trail = page.getByRole("navigation", { name: "Breadcrumb" });
     await expect(trail, `${path} shows a breadcrumb trail`).toBeVisible();
-    const visibleNames = await trail.locator("a, span:not([aria-hidden='true'])").allInnerTexts();
+    // textContent, not innerText: a trail styled with text-transform still names its pages as the schema does.
+    const visibleNames = await trail.locator("a, span:not([aria-hidden='true'])").allTextContents();
     expect(visibleNames.map((name) => name.trim()), `${path}: visible trail matches the schema`).toEqual(schemaNames);
     await expect(trail.getByRole("link", { name: "Home", exact: true })).toHaveAttribute("href", "/");
     await expect(trail.locator("[aria-current='page']"), `${path}: the last crumb is the current page`).toHaveText(schemaNames.at(-1));
