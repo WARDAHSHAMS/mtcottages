@@ -110,6 +110,8 @@ site-check:
     - node scripts/check-claims.mjs dist
     # On-page SEO: titles, descriptions, one H1, alt text, no duplicates (#69).
     - node scripts/seo-audit.mjs dist
+    # No broken or redirect links, no orphan pages, descriptive anchors, matching breadcrumbs (#35).
+    - node scripts/check-links.mjs dist
     # Unit tests for the distances schema and the banned-claim patterns (#25), and per-page sitemap lastmod (#82).
     - node --test scripts/tests/*.test.mjs
     # Same address guard as GitHub Actions: only the four approved addresses.

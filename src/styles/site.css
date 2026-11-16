@@ -620,3 +620,11 @@
   ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .22s; }
 }
 .site-header { view-transition-name: site-header; }
+
+/* Related block (#35): descriptive links into the page's town, guides and homes. */
+.related-links-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1rem; margin: 1.5rem 0 0; padding: 0; list-style: none; }
+.related-links-list a { display: grid; gap: .35rem; height: 100%; padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); color: var(--ink); text-decoration: none; }
+.related-links-list a:hover strong, .related-links-list a:focus-visible strong { text-decoration: underline; }
+.related-links-list a:focus-visible { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
+.related-links-list strong { color: var(--accent-ink); }
+.related-links-list span { color: var(--muted); font-size: .95rem; }

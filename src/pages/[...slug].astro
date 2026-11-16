@@ -3,8 +3,10 @@ import SiteLayout from "../layouts/SiteLayout.astro";
 import PropertyCard from "../components/PropertyCard.astro";
 import GuidePage from "../components/GuidePage.astro";
 import LocationsDirectory from "../components/LocationsDirectory.astro";
-import { cottages, guides, locationData, routePaths, type Guide } from "../data/site";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import { cottages, guides, homesForGuide, locationData, routePaths, sectionCrumbs, type Guide } from "../data/site";
 import { pageTitle } from "../data/seo";
+import { locationCrumbs, type Crumb } from "../data/schema";
 
 // Every listed home has its own microsite (src/pages/[town]/[home]), so this
 // route renders only the guide, location, utility and cottage-index pages.
@@ -57,24 +59,24 @@ const description = pageGuide?.description || pageLocation?.description || utili
 const metaDescription = meta.metaDescription ?? description;
 // Resident tools are not search landing pages.
 const noindex = ["resident-portal.html", "pay-rent.html", "maintenance.html", "emergency-maintenance.html"].includes(routePath);
-const guideHomes: Record<string, string[]> = {
-  "living.html": ["frederick", "broad", "buck"],
-  "family-stays.html": ["frederick", "oak", "henrietta"],
-};
+// One trail per page (#35): rendered visibly below and published as the page's BreadcrumbList.
+const crumbs: Crumb[] = pageLocation
+  ? locationCrumbs(pageLocation)
+  : sectionCrumbs(routePath, pageGuide?.eyebrow ?? utilityPage?.eyebrow ?? headline);
 ---
 
-<SiteLayout title={title} description={metaDescription} noindex={noindex} audience={pageGuide?.audience}>
+<SiteLayout title={title} description={metaDescription} noindex={noindex} audience={pageGuide?.audience} breadcrumbs={crumbs}>
   {pageGuide ? (
-    <GuidePage guide={pageGuide} cottages={cottages.filter((item) => guideHomes[pageGuide.path]?.includes(item.id))} />
+    <GuidePage guide={pageGuide} cottages={homesForGuide(pageGuide.path)} crumbs={crumbs} />
   ) : pageLocation ? (
-    <GuidePage guide={pageLocation} cottages={pageLocation.cottages} />
+    <GuidePage guide={pageLocation} cottages={pageLocation.cottages} crumbs={crumbs} />
   ) : routePath === "locations.html" ? (
-    <LocationsDirectory />
+    <LocationsDirectory crumbs={crumbs} />
   ) : utilityPage && routePath !== "cottages.html" ? (
-    <GuidePage guide={{ ...utilityPage, path: routePath, intro: utilityPage.description, sections: utilityPage.sections }} cottages={[]} />
+    <GuidePage guide={{ ...utilityPage, path: routePath, intro: utilityPage.description, sections: utilityPage.sections }} cottages={[]} crumbs={crumbs} />
   ) : routePath === "cottages.html" || routePath === "cozy-places.html" || routePath === "room-to-settle.html" ? (
-    <><section class="section"><div class="site-width"><p class="eyebrow">Cottages</p><h1>{routePath === "cozy-places.html" ? "Cozy places." : routePath === "room-to-settle.html" ? "Room to settle in." : "Browse our furnished homes."}</h1><p class="lede mt-2">Browse the listed homes by town, bedroom count, price, and the photographs that help you see the fit.</p><div class="card-grid mt-4">{(routePath === "cozy-places.html" ? cottages.filter((item) => item.bedrooms === "1 Bedroom") : routePath === "room-to-settle.html" ? cottages.filter((item) => item.bedrooms !== "1 Bedroom") : cottages).map((item) => <PropertyCard cottage={item} />)}</div></div></section></>
+    <><section class="section"><div class="site-width"><Breadcrumbs items={crumbs} /><p class="eyebrow mt-3">Cottages</p><h1>{routePath === "cozy-places.html" ? "Cozy places." : routePath === "room-to-settle.html" ? "Room to settle in." : "Browse our furnished homes."}</h1><p class="lede mt-2">Browse the listed homes by town, bedroom count, price, and the photographs that help you see the fit.</p><div class="card-grid mt-4">{(routePath === "cozy-places.html" ? cottages.filter((item) => item.bedrooms === "1 Bedroom") : routePath === "room-to-settle.html" ? cottages.filter((item) => item.bedrooms !== "1 Bedroom") : cottages).map((item) => <PropertyCard cottage={item} />)}</div></div></section></>
   ) : (
-    <GuidePage guide={{ path: routePath, eyebrow: "Mt Cottages", title: headline, description, intro: "Explore the homes, location guides, and practical support around a furnished stay.", sections: [{ title: "Start with the main paths", body: "Browse cottages, compare locations, explore living guides, or start a direct conversation about your timing and household." }] }} />
+    <GuidePage guide={{ path: routePath, eyebrow: "Mt Cottages", title: headline, description, intro: "Explore the homes, location guides, and practical support around a furnished stay.", sections: [{ title: "Start with the main paths", body: "Browse cottages, compare locations, explore living guides, or start a direct conversation about your timing and household." }] }} crumbs={crumbs} />
   )}
 </SiteLayout>

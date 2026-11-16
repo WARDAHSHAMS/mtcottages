@@ -1,5 +1,6 @@
 import type { ImageMetadata } from "astro";
 import type { Audience, StayTown } from "./stay-link";
+import { pageCrumbs, type Crumb } from "./schema";
 
 import mariettaExterior from "../../assets/images/cottages/marietta-01/frederick-exterior-full-safe.avif";
 import mariettaBackyard from "../../assets/images/cottages/marietta-01/frederick-backyard-cover.jpg";
@@ -426,3 +427,54 @@ export const parkedHomePages = [
   { town: "parkersburg", slug: "yellow-cottage", target: "/parkersburg/index.html", townName: "Parkersburg, WV" },
   { town: "ravenswood", slug: "walnut-cottage", target: "/ravenswood/index.html", townName: "Ravenswood, WV" },
 ] as const;
+
+/** One entry in a Related block (src/components/RelatedLinks.astro): the label names its target. */
+export type RelatedLink = { href: string; label: string; note: string };
+
+/** Homes with a public microsite. Yellow and Walnut are parked (CEO decision 2026-11-14) and never featured. */
+export const listedHomeIds = ["frederick", "broad", "buck", "oak", "virginia", "henrietta"];
+
+/**
+ * The listed homes each living guide features (#35): the guide links to them,
+ * and each home's Related block links back. Living and Family stays keep their
+ * earlier hand-picked sets; the audience guides show every listed home, since
+ * any of them can fit and the inquiry confirms which.
+ */
+export const guideHomes: Record<string, string[]> = {
+  "living.html": ["frederick", "broad", "buck"],
+  "family-stays.html": ["frederick", "oak", "henrietta"],
+  "health-professionals.html": listedHomeIds,
+  "work-relocation.html": listedHomeIds,
+  "insurance-housing.html": listedHomeIds,
+};
+
+/** The living guides that feature a home, in nav order. */
+export const guidesForHome = (homeId: string): Guide[] =>
+  Object.values(guides).filter((guide) => guideHomes[guide.path]?.includes(homeId));
+
+/** The cottages a guide features, in portfolio order. */
+export const homesForGuide = (guidePath: string): Cottage[] => {
+  const ids = guideHomes[guidePath] ?? [];
+  return cottages.filter((cottage) => ids.includes(cottage.id));
+};
+
+/**
+ * Breadcrumb trail for a page [...slug].astro serves (#35), from the main nav:
+ * a section index is Home / Living; a page in a section is
+ * Home / Living / Family stays; a page outside the nav whose eyebrow names a
+ * section ("Services · Housekeeping") nests under it; anything else is
+ * Home / <name>.
+ */
+export function sectionCrumbs(routePath: string, eyebrow: string): Crumb[] {
+  const groupCrumb = (group: (typeof navGroups)[number]): Crumb => ({ name: group.label, href: `/${group.href}` });
+  for (const group of navGroups) {
+    if (group.href === routePath) return pageCrumbs(groupCrumb(group));
+    const item = group.items.find(([, href]) => href === routePath);
+    if (item) return pageCrumbs(groupCrumb(group), { name: item[0], href: `/${routePath}` });
+  }
+  const [section, name] = eyebrow.split(" · ");
+  const parent = name ? navGroups.find((group) => group.label === section) : undefined;
+  return parent
+    ? pageCrumbs(groupCrumb(parent), { name, href: `/${routePath}` })
+    : pageCrumbs({ name: eyebrow, href: `/${routePath}` });
+}
