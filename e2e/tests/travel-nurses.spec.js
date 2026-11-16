@@ -202,7 +202,8 @@ test.describe("travel-nurse hub /travel-nurses/", () => {
       const card = page.locator(`#homes .tn-card[data-home="${home.id}"]`);
       await expect(card.getByRole("heading", { level: 3 })).toHaveText(home.name);
       await expect(card.getByRole("link", { name: home.name }).first()).toHaveAttribute("href", home.href);
-      await expect(card.locator("img")).toHaveAttribute("alt", /\S{10,}/);
+      // A real description, not a bare file name or a blank: at least 10 characters with a word in them.
+      await expect(card.locator("img")).toHaveAttribute("alt", /^(?=.*\w{3}).{10,}$/);
       expect((await request.get(home.href)).status(), `${home.href} status`).toBe(200);
     }
     for (const town of ["/parkersburg/index.html", "/marietta/index.html", "/ravenswood/index.html"]) {
