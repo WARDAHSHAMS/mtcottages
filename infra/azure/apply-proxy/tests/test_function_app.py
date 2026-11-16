@@ -1075,17 +1075,76 @@ def test_scheduled_pipelines_never_rebuild_or_redeploy_the_proxy():
         assert "$CI_PIPELINE_SOURCE == \"schedule\"" in first_rule and "when: never" in first_rule, anchor
 
 
-def test_logic_app_deletes_only_canary_leads_after_answering():
+HAND_RUN_CHECK_RULE = (
+    "- if: '$CI_PIPELINE_SOURCE =~ /^(web|api)$/ && ($INTAKE_LOSS_COUNT == \"true\" || "
+    "$INTAKE_LOGICAPP_DRIFT == \"true\" || $INTAKE_CANARY_ENABLED == \"true\")'\n      when: never"
+)
+
+
+def test_hand_run_intake_checks_never_rebuild_or_redeploy_anything():
+    # #12: the read-only count (and the drift and canary checks) started with
+    # "Run pipeline" or `glab ci run` must not republish the proxy or the Logic
+    # App. A push never matches: the rule needs a web or api source.
+    ci = (FUNCTION_PATH.parents[3] / ".gitlab-ci.yml").read_text(encoding="utf-8")
+    for anchor in (".apply-proxy:verify-rules:", ".apply-proxy:deploy-rules:", "deploy:intake-logicapp:"):
+        block = ci.split("\n" + anchor, 1)[1].split("\n\n", 1)[0]
+        assert HAND_RUN_CHECK_RULE in block, anchor
+        # It must come before any rule that could let the job run.
+        assert block.index(HAND_RUN_CHECK_RULE) < block.index('"gh-pages"'), anchor
+
+
+def _owner_team_actions():
     definition = json.loads((FUNCTION_PATH.parents[1] / "mtcottages-intake.definition.json").read_text(encoding="utf-8"))
-    owner_team = (
+    return (
         definition["actions"]["Require_MtCottages_Business_Unit"]["actions"]["Require_MtCottages_Owner_Team"]["actions"]
     )
-    cleanup = owner_team["Delete_Canary_Lead"]
-    assert cleanup["runAfter"] == {"Respond_Success": ["Succeeded"]}
-    assert cleanup["expression"] == {
+
+
+def test_logic_app_routes_canaries_away_from_the_sales_queue():
+    # #84: a canary is a declared synthetic. It still proves the trigger, the
+    # business-unit and owner-team lookups and a D365 create and delete, but
+    # it is never assigned to the sales team and never reaches the real path.
+    actions = _owner_team_actions()
+    route = actions["Route_Canary"]
+    assert route["runAfter"] == {}
+    assert route["expression"] == {
         "equals": [f"@triggerOutputs()?['headers']?['{function_app.CANARY_LOGICAPP_HEADER}']", "1"]
     }
-    delete = cleanup["actions"]["Delete_Canary_D365_Lead"]["inputs"]
-    assert delete["method"] == "delete"
-    assert "body('Create_D365_Applicant_Lead')?['leadid']" in delete["path"]
-    assert cleanup["else"]["actions"] == {}
+    assert route["else"]["actions"] == {}
+    canary = route["actions"]
+
+    lead = canary["Create_D365_Canary_Lead"]
+    body = lead["inputs"]["body"]
+    assert not any(key.startswith("ownerid") for key in body), "a canary must never be owned by the sales team"
+    assert body["subject"].startswith("@{concat('[canary] ")
+    assert body["_leadqualitycode_label"] == "Cold"
+    assert body["donotemail"] is True and body["donotphone"] is True
+    assert sorted(lead["runtimeConfiguration"]["secureData"]["properties"]) == ["inputs", "outputs"]
+
+    delete = canary["Delete_Canary_D365_Lead"]
+    assert delete["runAfter"] == {"Create_D365_Canary_Lead": ["Succeeded"]}
+    assert delete["inputs"]["method"] == "delete"
+    assert "body('Create_D365_Canary_Lead')?['leadid']" in delete["inputs"]["path"]
+
+    # The canary answers success only after its lead is gone; otherwise the
+    # run fails, so the canary job and the RunsFailed alert both fire.
+    assert canary["Respond_Canary_Success"]["runAfter"] == {"Delete_Canary_D365_Lead": ["Succeeded"]}
+    assert canary["Respond_Canary_Success"]["inputs"]["statusCode"] == 201
+    assert canary["Stop_Canary"]["inputs"] == {"runStatus": "Succeeded"}
+    assert sorted(canary["Respond_Canary_Failure"]["runAfter"]["Delete_Canary_D365_Lead"]) == [
+        "Failed", "Skipped", "TimedOut",
+    ]
+    assert canary["Fail_Canary_Run"]["runAfter"] == {"Respond_Canary_Failure": ["Succeeded"]}
+    assert canary["Fail_Canary_Run"]["inputs"]["runStatus"] == "Failed"
+
+
+def test_real_inquiries_take_the_sales_path_only_after_the_canary_route():
+    actions = _owner_team_actions()
+    real = actions["Create_D365_Applicant_Lead"]
+    assert real["runAfter"] == {"Route_Canary": ["Succeeded"]}
+    assert real["inputs"]["body"]["ownerid@odata.bind"].startswith("@{concat('/teams(")
+    assert "canary" not in json.dumps(real["inputs"]).lower()
+    assert "Delete_Canary_Lead" not in actions
+    # Nothing outside the canary branch deletes a lead.
+    outside = {name: action for name, action in actions.items() if name != "Route_Canary"}
+    assert '"method": "delete"' not in json.dumps(outside)
