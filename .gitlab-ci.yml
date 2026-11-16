@@ -355,6 +355,37 @@ verify:analytics:
   - infra/azure/intake-logicapp.sh
   - .gitlab-ci.yml
 
+# The azure-deploy runner's pods cannot open a connection to
+# git.developerdojo.org:443, so a checkout there fails in get_sources
+# ("Failed to connect ... after 133 s", count:intake-loss jobs 2577588 and
+# 2577608, #12). Artifact download goes through the runner and works, which is
+# why deploy:apply-proxy and verify:analytics pass. The intake jobs take no
+# checkout either; this job ships every file they read. Its rules are the union
+# of theirs, so each of them always finds it in the pipeline.
+package:intake-scripts:
+  stage: package
+  image: ${PREFLIGHT_IMAGE}
+  needs: []
+  interruptible: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $INTAKE_LOGICAPP_DEPLOY_ENABLED == "true" && $CI_PIPELINE_SOURCE != "schedule"'
+      changes: *intake_logicapp_paths
+    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE =~ /^(schedule|web|api)$/ && ($INTAKE_LOGICAPP_DRIFT == "true" || $INTAKE_CANARY_ENABLED == "true" || $INTAKE_LOSS_COUNT == "true")'
+    - when: never
+  script:
+    - bash -n infra/azure/intake-logicapp.sh
+    - bash -n infra/azure/intake-canary.sh
+    - bash -n infra/azure/intake-loss-count.sh
+    - jq empty infra/azure/mtcottages-intake.definition.json infra/azure/mtcottages-intake.parameters.json
+  artifacts:
+    paths:
+      - infra/azure/intake-logicapp.sh
+      - infra/azure/intake-canary.sh
+      - infra/azure/intake-loss-count.sh
+      - infra/azure/mtcottages-intake.definition.json
+      - infra/azure/mtcottages-intake.parameters.json
+    expire_in: 1 day
+
 .intake-logicapp:azure:
   tags:
     - azure-deploy
@@ -364,13 +395,13 @@ verify:analytics:
     entrypoint: [""]
   # One writer or reader of the workflow at a time, across pipelines.
   resource_group: logicapp-mtcottages-intake
-  # The azure-deploy runner's pod has HOME=/, which stops a git checkout on
-  # "could not lock config file //.gitconfig" (#23, pipeline 145947). These
-  # jobs need the repository, so they keep the checkout and point git's global
-  # config at a writable path instead.
+  # No checkout: the azure-deploy runner cannot reach the GitLab host for a
+  # clone (see package:intake-scripts) and its pod has HOME=/ (#23). Every job
+  # below needs package:intake-scripts for its files; HOME points at a
+  # writable path for az. scripts/check-ci-runner-contract.py enforces both.
   variables:
+    GIT_STRATEGY: none
     HOME: /tmp
-    GIT_CONFIG_GLOBAL: /tmp/.gitconfig
   interruptible: false
   retry:
     max: 1
@@ -383,7 +414,9 @@ verify:analytics:
 deploy:intake-logicapp:
   extends: .intake-logicapp:azure
   stage: deploy
-  needs: []
+  needs:
+    - job: package:intake-scripts
+      artifacts: true
   rules:
     - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $INTAKE_LOGICAPP_DEPLOY_ENABLED == "true" && $CI_PIPELINE_SOURCE != "schedule"'
       changes: *intake_logicapp_paths
@@ -396,7 +429,9 @@ deploy:intake-logicapp:
 drift:intake-logicapp:
   extends: .intake-logicapp:azure
   stage: smoke
-  needs: []
+  needs:
+    - job: package:intake-scripts
+      artifacts: true
   rules:
     - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "schedule" && $INTAKE_LOGICAPP_DRIFT == "true"'
     - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && ($CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "api") && $INTAKE_LOGICAPP_DRIFT == "true"'
@@ -413,7 +448,9 @@ drift:intake-logicapp:
 canary:intake:
   extends: .intake-logicapp:azure
   stage: smoke
-  needs: []
+  needs:
+    - job: package:intake-scripts
+      artifacts: true
   # The canary only reads the workflow; it must not queue behind a deploy.
   resource_group: intake-canary-mtcottages
   rules:
@@ -481,7 +518,9 @@ roadmap:
 count:intake-loss:
   extends: .intake-logicapp:azure
   stage: smoke
-  needs: []
+  needs:
+    - job: package:intake-scripts
+      artifacts: true
   resource_group: intake-loss-count-mtcottages
   rules:
     - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && ($CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "api") && $INTAKE_LOSS_COUNT == "true"'
