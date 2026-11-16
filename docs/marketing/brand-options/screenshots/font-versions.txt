@@ -1,0 +1,7 @@
+Rendered by GitLab job 2559678 (brand:capture, pipeline 145887, MR !37) with these font packages:
+@fontsource/figtree@5.3.0
+@fontsource/fraunces@5.3.0
+@fontsource/inter@5.3.0
+@fontsource/newsreader@5.3.0
+@fontsource/source-sans-3@5.3.1
+@fontsource/source-serif-4@5.3.1

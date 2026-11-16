@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="48" viewBox="0 0 200 48" role="img" aria-labelledby="wordmark-b-title">
+  <title id="wordmark-b-title">Mt Cottages</title>
+  <path d="M3 21 20 6l17 15" fill="none" stroke="#a8432a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="5" y="41" fill="#23505a" font-family="Fraunces, Georgia, serif" font-size="23" font-style="italic" font-weight="600">Mt</text>
+  <text x="46" y="38" textLength="150" lengthAdjust="spacingAndGlyphs" fill="#2b2420" font-family="Fraunces, Georgia, serif" font-size="29" font-weight="500">Cottages</text>
+</svg>
