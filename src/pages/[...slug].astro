@@ -9,6 +9,7 @@ import TrustStrip from "../components/TrustStrip.astro";
 import LocationsDirectory from "../components/LocationsDirectory.astro";
 import CheckDates from "../components/CheckDates.astro";
 import { cottages, cottageByPath, guides, locationData, navGroups, routePaths, type Cottage, type Guide } from "../data/site";
+import { cardTerms } from "../data/terms";
 
 export function getStaticPaths() {
   return routePaths.map((path) => ({ params: { slug: path.replace(/\.html$/, "") } }));
@@ -67,7 +68,7 @@ const noindex = ["resident-portal.html", "pay-rent.html", "maintenance.html", "e
     <>
       <section class="property-hero section--tight">
         <div class="site-width property-hero-grid">
-          <div><nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><a href={`/${cottage.locationPath}`}>{cottage.town}</a><span aria-hidden="true">/</span><span>{cottage.name}</span></nav><p class="eyebrow mt-3">{cottage.town}</p><h1>{cottage.name}</h1><p class="lede">{cottage.summary}</p><div class="property-fact-rail"><span><small>Space</small><strong>{cottage.bedrooms}</strong></span><span><small>Home</small><strong>Furnished</strong></span><span><small>Monthly guide</small><strong>{cottage.price}</strong></span></div><CheckDates class="mt-3" placement="hero" home={cottage.id} secondary={cottage.id === "frederick" ? { label: "Explore the full home site", href: "/marietta/frederick/index.html" } : undefined} />{cottage.id === "frederick" && <p class="text-muted mt-2">Frederick Cottage has a complete home site: a room-by-room photo tour with answers to common questions, a concept plan and 3D model, amenities, the location with nearby places, and a guest guide.</p>}</div>
+          <div><nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><a href={`/${cottage.locationPath}`}>{cottage.town}</a><span aria-hidden="true">/</span><span>{cottage.name}</span></nav><p class="eyebrow mt-3">{cottage.town}</p><h1>{cottage.name}</h1><p class="lede">{cottage.summary}</p><div class="property-fact-rail"><span><small>Space</small><strong>{cottage.bedrooms}</strong></span><span><small>Home</small><strong>Furnished</strong></span><span><small>Monthly</small><strong data-term="rate">{cardTerms(cottage.id).rate}</strong></span></div><CheckDates class="mt-3" placement="hero" home={cottage.id} secondary={cottage.id === "frederick" ? { label: "Explore the full home site", href: "/marietta/frederick/index.html" } : undefined} />{cottage.id === "frederick" && <p class="text-muted mt-2">Frederick Cottage has a complete home site: a room-by-room photo tour with answers to common questions, a concept plan and 3D model, amenities, the location with nearby places, and a guest guide.</p>}</div>
           <figure class="hero-image-frame hero-image-frame--property"><ResponsivePhoto {...cottage.hero} priority sizes="(max-width: 900px) 100vw, 62vw" /><figcaption class="sr-only">{cottage.hero.alt}</figcaption></figure>
         </div>
       </section>

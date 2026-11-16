@@ -2,6 +2,7 @@ import type { AccommodationLeaf, LocationFeatureSpecificationLeaf, WithContext }
 import type { HomeMicrosite } from "./types";
 import { homeBase, homeHref, type HomePage } from "./links";
 import { breadcrumbSchema, businessId, cityPlace, homeNodeId, origin } from "../schema";
+import { offerFor } from "../terms";
 
 const pageTitle: Record<HomePage, string> = {
   tour: "Tour",
@@ -14,7 +15,8 @@ const pageTitle: Record<HomePage, string> = {
 /**
  * Accommodation structured data. Owner-approved homes carry a full postal
  * address and geo point; town-level homes carry only locality and region, with
- * no street, postcode or coordinates. No Offer: prices are not confirmed.
+ * no street, postcode or coordinates. Prices live in the separate Offer
+ * (homePageSchema), which publishes only an owner-confirmed rate.
  * Amenities are listed only when their status is known (never "confirm"), and
  * there is no numberOfRooms: the room plans are illustrative concepts, so the
  * only room counts published are the listed bedrooms and bathrooms.
@@ -61,5 +63,12 @@ export const homeBreadcrumbs = (home: HomeMicrosite, page?: HomePage) =>
     ...(page ? [{ name: pageTitle[page], href: homeHref(home, page) }] : []),
   ]);
 
-/** Everything a home page publishes as JSON-LD. */
-export const homePageSchema = (home: HomeMicrosite, page?: HomePage) => [homeSchema(home), homeBreadcrumbs(home, page)];
+/**
+ * Everything a home page publishes as JSON-LD. The Offer comes from
+ * src/data/terms.json and exists only once the owner confirms the home's
+ * monthly rate; a published guide is not an offer.
+ */
+export const homePageSchema = (home: HomeMicrosite, page?: HomePage) => {
+  const offer = offerFor(home.id, new URL(homeBase(home), origin).toString(), homeNodeId(homeBase(home)));
+  return [homeSchema(home), homeBreadcrumbs(home, page), ...(offer ? [offer] : [])];
+};

@@ -17,7 +17,9 @@ export type TownArea = { kind: "town"; locality: string; region: string; lat: nu
  * - "photographed": visible in the published photographs
  * - "confirm": not yet confirmed; the page shows "Confirm on inquiry"
  * Never put an unconfirmed price, square footage or availability date on a
- * page. Leave it out and add it to the decision list instead.
+ * page. Leave it out and add it to the decision list instead. Rates, deposit,
+ * minimum stay, utilities, pets and availability live only in
+ * src/data/terms.json (the "Rates & terms" block), never in `facts`.
  */
 export type FactStatus = "confirmed" | "listed" | "photographed" | "confirm";
 
@@ -121,8 +123,6 @@ export type HomeMicrosite = {
   bedrooms: number;
   bathrooms?: number;
   sleeps?: number;
-  /** Only the already-published bedroom-count guide from src/data/site.ts. */
-  priceGuide?: string;
   hero: HomePhoto;
   /** Three short reasons to choose this home, each ideally with a photo. */
   highlights: { title: string; body: string; photo?: HomePhoto }[];

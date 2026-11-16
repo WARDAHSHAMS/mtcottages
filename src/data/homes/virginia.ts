@@ -33,7 +33,6 @@ export const virginiaHome: HomeMicrosite = {
     "Virginia Cottage is a two-bedroom home in Ravenswood with older-house character: a white brick fireplace with built-in shelves, a curved staircase with a dark wood handrail, and a dining room with toile wallpaper. The current photos show the rooms only partly furnished, so ask us how the home is set up for your dates. It is offered for stays of a month or longer.",
   address: ravenswoodArea,
   bedrooms: 2,
-  priceGuide: "$2,295/month",
   hero: photos.fireplace,
   highlights: [
     { title: "Fireplace and built-in shelves", body: "A wide white brick fireplace sits beside built-in bookshelves, against deep red walls.", photo: photos.fireplace },
@@ -43,7 +42,6 @@ export const virginiaHome: HomeMicrosite = {
   facts: [
     { label: "Town", value: "Ravenswood, WV. The street address is shared once you inquire.", status: "listed" },
     { label: "Bedrooms", value: "2", status: "listed" },
-    { label: "Monthly guide", value: "$2,295/month, the published guide for a two-bedroom home. Confirm the current rate for your dates.", status: "listed" },
     { label: "Floors", value: "More than one floor, with a staircase", status: "photographed" },
     { label: "Furnishing", value: "Listed as furnished; the current photos show the rooms only partly furnished", status: "confirm" },
     { label: "Internet", value: "Fiber-optic internet", status: "listed" },
@@ -51,8 +49,6 @@ export const virginiaHome: HomeMicrosite = {
     { label: "Bathrooms", value: "Two: a ground-floor powder room (photographed) and an upstairs bathroom with a tub (not yet photographed); confirm on inquiry", status: "confirm" },
     { label: "Laundry", value: "Laundry access is listed; whether it is in the home is to be confirmed", status: "confirm" },
     { label: "Parking", value: "Parking arrangement", status: "confirm" },
-    { label: "Utilities", value: "What is included in the monthly rate", status: "confirm" },
-    { label: "Pets", value: "Pet policy", status: "confirm" },
   ],
   rooms: [
     {

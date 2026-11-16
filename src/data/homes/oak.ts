@@ -52,7 +52,6 @@ export const oakHome: HomeMicrosite = {
     "Oak Cottage is a furnished three-bedroom home in Parkersburg. The photos show an oak-cabinet kitchen that opens onto a bright dining room, bedrooms dressed with layered bedding and wall-mounted TVs, a full bathroom with a tub and shower, and a covered porch with chairs for sitting outside. It is set up for stays of a month or longer.",
   address: { kind: "street", streetAddress: "2712 Broad St", locality: "Parkersburg", region: "WV", postalCode: "26101", lat: 39.279273, lng: -81.530239 },
   bedrooms: 3,
-  priceGuide: "$2,575/month",
   hero: photos.hero,
   highlights: [
     { title: "Kitchen that opens to the dining room", body: "Oak cabinets and everyday appliances sit right beside a dining table with seating for shared meals.", photo: photos.kitchenDoor },
@@ -70,9 +69,7 @@ export const oakHome: HomeMicrosite = {
     { label: "Entrance", value: "Wooden steps lead down the slope from the house to the street", status: "photographed" },
     { label: "Laundry", value: "Washer and dryer", status: "confirm" },
     { label: "Parking", value: "Off-street parking", status: "confirm" },
-    { label: "Utilities", value: "What is included in the monthly rate", status: "confirm" },
     { label: "Sleeps", value: "Number of guests", status: "confirm" },
-    { label: "Pets", value: "Pet policy", status: "confirm" },
   ],
   rooms: [
     {

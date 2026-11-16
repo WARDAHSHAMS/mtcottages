@@ -95,7 +95,6 @@ export const broadHome: HomeMicrosite = {
   },
   bedrooms: 1,
   bathrooms: 1,
-  priceGuide: "$1,895/month",
   hero: photos.living,
   highlights: [
     {
@@ -128,9 +127,6 @@ export const broadHome: HomeMicrosite = {
     { label: "Parking", value: "Confirm on inquiry", status: "confirm" },
     { label: "Sleeps", value: "Confirm on inquiry", status: "confirm" },
     { label: "Square footage", value: "Confirm on inquiry", status: "confirm" },
-    { label: "Pets", value: "Confirm on inquiry", status: "confirm" },
-    { label: "Utilities", value: "Confirm on inquiry", status: "confirm" },
-    { label: "Availability", value: "Confirm on inquiry", status: "confirm" },
   ],
   rooms: [
     {

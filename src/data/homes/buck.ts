@@ -35,7 +35,6 @@ export const buckHome: HomeMicrosite = {
     "Buck Cottage is a furnished one-bedroom home in Parkersburg, sized for one person or a couple. The photos show a living room with a reclining sofa, a bedroom with a wall-mounted TV and a door into the bathroom, a compact kitchen with a full-size refrigerator, and a full bathroom with a tub and shower. It is set up for stays of a month or longer.",
   address: parkersburgArea,
   bedrooms: 1,
-  priceGuide: "$1,895/month",
   hero: photos.living,
   highlights: [
     { title: "A living room to unwind in", body: "A reclining sofa, a coffee table, and warm lamps make an easy place to end the day.", photo: photos.livingWide },
@@ -45,16 +44,12 @@ export const buckHome: HomeMicrosite = {
   facts: [
     { label: "Town", value: "Parkersburg, WV. The street address is shared once you inquire.", status: "listed" },
     { label: "Bedrooms", value: "1", status: "listed" },
-    { label: "Monthly guide", value: "$1,895/month, the published guide for a one-bedroom home. Confirm the current rate for your dates.", status: "listed" },
     { label: "Bathrooms", value: "One full bathroom with tub and shower is photographed; total count to be confirmed", status: "confirm" },
     { label: "Furnishing", value: "Furnished one-bedroom layout", status: "listed" },
     { label: "Internet", value: "Fiber-optic internet", status: "listed" },
     { label: "Setting", value: "Quiet setting", status: "listed" },
     { label: "Laundry", value: "Laundry access is listed; whether it is in the home is to be confirmed", status: "confirm" },
     { label: "Parking", value: "Parking options are listed; the arrangement is to be confirmed", status: "confirm" },
-    { label: "Utilities", value: "What is included in the monthly rate", status: "confirm" },
-    { label: "Availability", value: "Current availability", status: "confirm" },
-    { label: "Pets", value: "Pet policy", status: "confirm" },
   ],
   rooms: [
     {

@@ -2,6 +2,8 @@
 import HomeLayout from "../../../layouts/HomeLayout.astro";
 import ResponsivePhoto from "../../../components/ResponsivePhoto.astro";
 import FactGrid from "../../../components/home/FactGrid.astro";
+import TermsBlock from "../../../components/home/TermsBlock.astro";
+import { assertTermsOwnedByBlock } from "../../../data/terms";
 import { homeShell } from "../../../components/home/shell";
 import { homes } from "../../../data/homes";
 import CheckDates from "../../../components/CheckDates.astro";
@@ -14,6 +16,7 @@ export function getStaticPaths() {
 }
 
 const { home } = Astro.props as { home: HomeMicrosite };
+assertTermsOwnedByBlock(home);
 const shell = homeShell(home);
 const address = fullAddress(home);
 const bedLabel = `${home.bedrooms} ${home.bedrooms === 1 ? "bedroom" : "bedrooms"}`;
@@ -39,7 +42,7 @@ const bedLabel = `${home.bedrooms} ${home.bedrooms === 1 ? "bedroom" : "bedrooms
       </div>
       <div class="details-panel reveal">
         <FactGrid facts={home.facts} label={`${home.name} key facts`} />
-        {home.priceGuide && <p class="hm-price"><span>Monthly guide</span> <strong>{home.priceGuide}</strong> <small>Confirm the current rate and your dates when you ask.</small></p>}
+        <TermsBlock home={home} />
         <CheckDates placement="facts" home={home.id} secondary={{ label: "Directions and nearby", href: homeHref(home, "location") }} />
       </div>
     </div>
