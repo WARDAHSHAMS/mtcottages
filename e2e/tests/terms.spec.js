@@ -11,7 +11,9 @@ const root = path.join(__dirname, "../..");
 const terms = JSON.parse(readFileSync(path.join(root, "src/data/terms.json"), "utf8"));
 const siteTs = readFileSync(path.join(root, "src/data/site.ts"), "utf8");
 const guideRates = Object.fromEntries([...siteTs.matchAll(/^\s+"(\d Bedrooms?)": "(\$[\d,]+\/month)",$/gm)].map((m) => [m[1], m[2]]));
-const bedroomsById = Object.fromEntries([...siteTs.matchAll(/^ {4}id: "([a-z-]+)",\n[\s\S]*?^ {4}bedrooms: "(\d Bedrooms?)",$/gm)].map((m) => [m[1], m[2]]));
+// \r?\n: git core.autocrlf checks this file out with CRLF on Windows, and a literal
+// \n would then match nothing, emptying this map and failing every test below.
+const bedroomsById = Object.fromEntries([...siteTs.matchAll(/^ {4}id: "([a-z-]+)",\r?\n[\s\S]*?^ {4}bedrooms: "(\d Bedrooms?)",$/gm)].map((m) => [m[1], m[2]]));
 
 const homes = [
   { id: "frederick", base: "/marietta/frederick/" },
