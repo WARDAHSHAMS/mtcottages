@@ -112,10 +112,12 @@ test.describe("travel-nurse hub /travel-nurses/", () => {
     for (const href of await cards.locator("a").evaluateAll((links) => links.map((link) => link.getAttribute("href")))) {
       expect((await request.get(href)).status(), `${href} status`).toBe(200);
     }
-    // No per-hospital landing page exists yet, so none is linked and no placeholder promises one.
+    // Only Memorial has its own landing page (#33): the Memorial card links it, and no placeholder promises others.
     const main = (await page.locator("main").textContent()) ?? "";
     expect(main).not.toMatch(/hospital guides?|coming soon|\bTBD\b|lorem/i);
-    await expect(page.locator('main a[href^="/travel-nurses/"][href$="/"]:not([href="/travel-nurses/"])')).toHaveCount(0);
+    const guides = page.locator('main a[href^="/travel-nurses/"][href$="/"]:not([href="/travel-nurses/"])');
+    await expect(guides).toHaveCount(1);
+    await expect(page.locator('#hospitals [data-hospital="memorial-health"] a[data-hospital-guide]')).toHaveAttribute("href", "/travel-nurses/memorial-health-marietta/");
   });
 
   test("cites the GSA lodging per diem with its fiscal year, rate, counties and source links", async ({ page }) => {

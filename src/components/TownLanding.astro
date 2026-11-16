@@ -163,6 +163,7 @@ const shifted = Boolean(landing.story);
         <li class="story-card">
           <h3>{audience.title}</h3>
           <p>{audience.body}</p>
+          {audience.more && <a class="inline-link" href={audience.more.href}>{audience.more.label} <span aria-hidden="true">→</span></a>}
           <a class="inline-link" href={audience.href}>{audience.linkLabel} <span aria-hidden="true">→</span></a>
         </li>
       ))}
