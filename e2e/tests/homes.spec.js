@@ -243,6 +243,10 @@ for (const home of homes) {
     });
 
     test("axe finds no violations once the 3D model and the map are open", async ({ page }) => {
+      // Up to 30s for the WebGL model on a CPU-only runner, then two full axe scans
+      // (plan, and location with its drive-time chart): more than the 45s default
+      // under a loaded CI runner, as Frederick showed (site-check job 2566288).
+      test.setTimeout(120_000);
       await page.emulateMedia({ reducedMotion: "reduce" });
       await page.goto(`${home.base}plan.html`);
       await page.locator("[data-model-open]").click();
