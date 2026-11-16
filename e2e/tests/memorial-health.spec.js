@@ -148,6 +148,9 @@ test.describe("Memorial Health landing /travel-nurses/memorial-health-marietta/"
   test("the inquiry links carry Frederick and the healthcare audience, and are never submitted", async ({ page, context }) => {
     const methods = [];
     await context.route(`${STAY}**`, (route) => {
+      // On the live host the cookieless visit beacon POSTs to the collector (Analytics.astro); answer it
+      // here so no test pageview reaches production counts, and keep it out of the stay-form check.
+      if (new URL(route.request().url()).pathname === "/api/collect") return route.fulfill({ status: 204 });
       methods.push(route.request().method());
       return route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: "<!doctype html><title>Stay form stub</title><p>stub</p>" });
     });
