@@ -8,6 +8,7 @@ import type { Crumb } from "../data/schema";
 import Breadcrumbs from "./Breadcrumbs.astro";
 import RelatedLinks from "./RelatedLinks.astro";
 import type { RelatedLink } from "../data/site";
+import { articlesForAudience, guideHref } from "../data/guides";
 
 interface Props {
   guide: Guide;
@@ -19,6 +20,8 @@ interface Props {
 }
 
 const { guide, cottages = [], crumbs, related = [] } = Astro.props;
+// Area guides (#47) written for this page's audience.
+const relatedArticles: RelatedLink[] = articlesForAudience(guide.audience).map((article) => ({ href: guideHref(article), label: article.h1, note: article.description }));
 const heroHref = guide.actionHref || stayLink({ audience: guide.audience, town: guide.stayTown, page: Astro.url.pathname });
 ---
 
@@ -50,5 +53,7 @@ const heroHref = guide.actionHref || stayLink({ audience: guide.audience, town: 
 {cottages.length > 0 && <section class="section"><div class="site-width"><div class="section-heading"><div><p class="eyebrow">Homes to consider</p><h2>Places to consider.</h2></div><p>Furnished, connected homes with fiber-optic internet and quiet, peaceful living. Availability changes, so start here and we will confirm your dates and the details.</p></div><div class="card-grid">{cottages.map((cottage) => <PropertyCard cottage={cottage} />)}</div></div></section>}
 
 {related.length > 0 && <RelatedLinks links={related} heading="More ways we can help." />}
+
+{relatedArticles.length > 0 && <RelatedLinks links={relatedArticles} eyebrow="Area guides" heading="Guides for this kind of stay." />}
 
 {guide.inquiryCta !== false && <section class="section section--dark"><div class="site-width split split--wide"><div><p class="eyebrow" style="color:#e4b482">The next step</p><h2>Tell us what would make the place work.</h2></div><div><p class="lede lede--light">Share your dates, preferred community, household, and the reason for your stay. We will follow up with the furnished homes that fit and the right next step.</p><CheckDates class="mt-3" placement="next-step" audience={guide.audience} town={guide.stayTown} tone="light" /></div></div></section>}

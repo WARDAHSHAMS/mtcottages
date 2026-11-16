@@ -1,0 +1,23 @@
+---
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import GuideArticle from "../../../components/guides/GuideArticle.astro";
+import { articles, guideHref, guidesIndexHref, TITLE_SUFFIX, type GuideArticle as Article } from "../../../data/guides";
+import { articleSchema, pageCrumbs } from "../../../data/schema";
+
+export function getStaticPaths() {
+  return articles.map((article) => ({ params: { slug: article.slug }, props: { article } }));
+}
+
+const { article } = Astro.props as { article: Article };
+const href = guideHref(article);
+const crumbs = pageCrumbs({ name: "Area guides", href: guidesIndexHref }, { name: article.seoTitle, href });
+---
+<SiteLayout
+  title={`${article.seoTitle}${TITLE_SUFFIX}`}
+  description={article.description}
+  audience={article.audiences[0]}
+  breadcrumbs={crumbs}
+  schema={articleSchema({ url: href, headline: article.h1, description: article.description, published: article.published, updated: article.updated })}
+>
+  <GuideArticle article={article} crumbs={crumbs} />
+</SiteLayout>

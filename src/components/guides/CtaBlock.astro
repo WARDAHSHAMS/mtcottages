@@ -1,0 +1,53 @@
+---
+/**
+ * Call to action for guides (#47): one inquiry button, plus a link to each
+ * home the guide covers in its towns, named in full ("Broad Cottage,
+ * Parkersburg, WV"). The inquiry link carries the guide's audience and source
+ * page like every other "Check dates" link (#20, #23).
+ */
+import { homes } from "../../data/homes";
+import { homeBase } from "../../data/homes/links";
+import { stayLink, type Audience } from "../../data/stay-link";
+import type { GuideTown } from "../../data/guides";
+
+interface Props {
+  heading: string;
+  text: string;
+  homeIds: string[];
+  towns: GuideTown[];
+  audience?: Audience;
+}
+
+const { heading, text, homeIds, towns, audience } = Astro.props as Props;
+const townSlugs: string[] = towns;
+const offered = homes.filter((home) => homeIds.includes(home.id) && townSlugs.includes(home.town.slug));
+const inquiryHref = stayLink({ audience, page: Astro.url.pathname });
+---
+<aside class="gcta" aria-label="Find a home" data-guide-cta>
+  <div>
+    <p class="eyebrow">Find your place</p>
+    <h3>{heading}</h3>
+    <p>{text}</p>
+    <a class="button" href={inquiryHref} data-cta="guide">Check dates <span aria-hidden="true">↗</span></a>
+  </div>
+  {offered.length > 0 && (
+    <ul class="gcta-homes">
+      {offered.map((home) => (
+        <li><a href={homeBase(home)}>{home.name}, {home.town.name}, {home.town.state}</a></li>
+      ))}
+    </ul>
+  )}
+</aside>
+
+<style>
+  .gcta { display: grid; gap: 1.25rem; margin: 1.5rem 0; padding: clamp(1.1rem, .7rem + 1.6vw, 1.9rem); border-radius: .9rem; background: var(--accent-deep); color: #fff; }
+  .gcta .eyebrow { color: #e4b482; }
+  .gcta h3 { margin: .25rem 0 .5rem; color: #fff; }
+  .gcta p { color: #f1efe6; }
+  .gcta .button { margin-top: .75rem; }
+  .gcta-homes { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+  .gcta-homes a { display: block; padding: .6rem .8rem; border: 1px solid rgb(255 255 255 / .35); border-radius: var(--radius); color: #fff; text-decoration: none; }
+  .gcta-homes a:hover, .gcta-homes a:focus-visible { background: rgb(255 255 255 / .12); text-decoration: underline; }
+  .gcta-homes a:focus-visible { outline: 3px solid #e4b482; outline-offset: 2px; }
+  @media (min-width: 760px) { .gcta { grid-template-columns: 1.4fr 1fr; align-items: center; } }
+</style>

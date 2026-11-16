@@ -1,0 +1,100 @@
+---
+/**
+ * /guides/ (#47): every area guide, newest first, filterable by town and
+ * topic. The list is complete without JavaScript; the filters appear only when
+ * the script runs, and narrow the list in place.
+ */
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import { articles, guideHref, guidesIndexHref, guideTopicLabel, guideTownLabel, usedTopics, usedTowns } from "../../data/guides";
+import { pageCrumbs } from "../../data/schema";
+
+const crumbs = pageCrumbs({ name: "Area guides", href: guidesIndexHref });
+const dateText = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+---
+<SiteLayout
+  title="Mid-Ohio Valley Area Guides | Mt Cottages"
+  description="Guides to living and working around Marietta, Parkersburg and Ravenswood: commute times, healthcare and moving tips from the Mt Cottages team."
+  breadcrumbs={crumbs}
+>
+  <section class="section--tight">
+    <div class="site-width">
+      <Breadcrumbs items={crumbs} />
+      <p class="eyebrow mt-3">Area guides</p>
+      <h1>Guides to the Mid-Ohio Valley.</h1>
+      <p class="lede">Practical guides from the Mt Cottages team for a stay in Marietta, Parkersburg or Ravenswood, with measured figures and their sources.</p>
+    </div>
+  </section>
+
+  <section class="section section--paper">
+    <div class="site-width">
+      <form class="gfilter" data-guide-filter hidden aria-label="Filter guides">
+        <label>Town
+          <select name="town">
+            <option value="">All towns</option>
+            {usedTowns.map((town) => <option value={town}>{guideTownLabel[town]}</option>)}
+          </select>
+        </label>
+        <label>Topic
+          <select name="topic">
+            <option value="">All topics</option>
+            {usedTopics.map((topic) => <option value={topic}>{guideTopicLabel[topic]}</option>)}
+          </select>
+        </label>
+        <p class="gfilter-count" role="status" aria-live="polite" data-guide-count>{articles.length} {articles.length === 1 ? "guide" : "guides"}</p>
+      </form>
+
+      <ul class="glist" data-guide-list>
+        {articles.map((article) => (
+          <li data-towns={article.towns.join(" ")} data-topics={article.topics.join(" ")}>
+            <a class="glist-card" href={guideHref(article)}>
+              <span class="eyebrow">{article.topics.map((topic) => guideTopicLabel[topic]).join(" · ")}</span>
+              <strong>{article.h1}</strong>
+              <span>{article.description}</span>
+              <span class="glist-meta">Updated <time datetime={article.updated}>{dateText(article.updated)}</time> · {article.towns.map((town) => guideTownLabel[town]).join("; ")}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p class="glist-empty" data-guide-empty hidden>No guide covers that town and topic yet. <a href="/guides/">Show all guides</a>.</p>
+    </div>
+  </section>
+</SiteLayout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>("[data-guide-filter]");
+  const items = [...document.querySelectorAll<HTMLLIElement>("[data-guide-list] > li")];
+  const count = document.querySelector<HTMLElement>("[data-guide-count]");
+  const empty = document.querySelector<HTMLElement>("[data-guide-empty]");
+  if (form && count && empty) {
+    const apply = () => {
+      const data = new FormData(form);
+      const town = String(data.get("town") ?? "");
+      const topic = String(data.get("topic") ?? "");
+      let shown = 0;
+      for (const item of items) {
+        const match = (!town || (item.dataset.towns ?? "").split(" ").includes(town)) && (!topic || (item.dataset.topics ?? "").split(" ").includes(topic));
+        item.hidden = !match;
+        if (match) shown += 1;
+      }
+      count.textContent = `${shown} ${shown === 1 ? "guide" : "guides"}`;
+      empty.hidden = shown > 0;
+    };
+    form.addEventListener("change", apply);
+    form.addEventListener("submit", (event) => event.preventDefault());
+    form.hidden = false;
+  }
+</script>
+
+<style>
+  .gfilter { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-bottom: 1.5rem; }
+  .gfilter label { display: grid; gap: .3rem; font-weight: 700; font-size: .92rem; }
+  .gfilter select { min-height: 2.75rem; padding: .4rem .6rem; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; font: inherit; }
+  .gfilter-count { margin: 0 0 .6rem; color: var(--muted); }
+  .glist { display: grid; gap: 1rem; margin: 0; padding: 0; list-style: none; }
+  .glist-card { display: grid; gap: .4rem; padding: 1.25rem; border: 1px solid var(--line); border-radius: .9rem; background: #fff; color: var(--ink); text-decoration: none; }
+  .glist-card strong { font-family: var(--display); font-size: 1.25rem; }
+  .glist-card:hover strong, .glist-card:focus-visible strong { text-decoration: underline; }
+  .glist-meta { color: var(--muted); font-size: .88rem; }
+  @media (min-width: 760px) { .glist { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>

@@ -13,7 +13,7 @@
  * until prices are owner-confirmed. e2e/tests/schema.spec.js enforces these on
  * the built pages.
  */
-import type { BreadcrumbListLeaf, CityLeaf, FAQPageLeaf, JsonLdObject, ListItemLeaf, LodgingBusinessLeaf, QuestionLeaf, WithContext } from "schema-dts";
+import type { ArticleLeaf, BreadcrumbListLeaf, CityLeaf, FAQPageLeaf, JsonLdObject, ListItemLeaf, LodgingBusinessLeaf, QuestionLeaf, WithContext } from "schema-dts";
 import { homes } from "./homes";
 import { homeBase } from "./homes/links";
 
@@ -77,6 +77,26 @@ export const locationCrumbs = (guide: { town: string; path: string }): Crumb[] =
   locationsCrumb,
   { name: guide.town, href: `/${guide.path}` },
 ];
+
+/**
+ * A guide as a schema.org Article (#47). The author and publisher are the
+ * business itself: guides are written by the Mt Cottages team, never by an
+ * invented person.
+ */
+export const articleSchema = (article: { url: string; headline: string; description: string; published: string; updated: string; image?: string }): WithContext<ArticleLeaf> => ({
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "@id": `${new URL(article.url, origin).toString()}#article`,
+  headline: article.headline,
+  description: article.description,
+  datePublished: article.published,
+  dateModified: article.updated,
+  inLanguage: "en-US",
+  mainEntityOfPage: new URL(article.url, origin).toString(),
+  author: { "@id": businessId },
+  publisher: { "@id": businessId },
+  ...(article.image ? { image: article.image } : {}),
+});
 
 /** A trail under the home page: Home / …trail. */
 export const pageCrumbs = (...trail: Crumb[]): Crumb[] => [homeCrumb, ...trail];

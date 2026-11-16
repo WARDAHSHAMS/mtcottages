@@ -128,6 +128,51 @@ export function distancesFor(home: HomeMicrosite, today: Date = new Date()): Hom
   };
 }
 
+/** One measured drive from a home (or, for a home without an approved address, its town centre). */
+export type DriveFromHome = {
+  homeId: string;
+  homeName: string;
+  originKind: "address" | "town-centre";
+  minutes: number;
+  miles: number;
+  measured: string;
+  sourceUrl: string;
+};
+
+/** A destination and every measured drive to it from the given homes, nearest first. */
+export type DriveMatrixRow = { destination: string; name: string; label: string; note?: string; category: DistanceCategory; drives: DriveFromHome[] };
+
+/**
+ * Measured drives from each home to each destination, for guide charts (#47).
+ * A pair that was never measured is left out, never estimated. Throws for an
+ * unknown destination, so a typo fails the build instead of shipping an empty chart.
+ */
+export function driveMatrix(destinationIds: string[], homeList: Pick<HomeMicrosite, "id" | "name">[]): DriveMatrixRow[] {
+  return destinationIds.map((destinationId) => {
+    const destination = destinations[destinationId];
+    if (!destination || !isCategory(destination.category)) throw new Error(`_data/distances.json has no destination ${destinationId}`);
+    const drives = homeList.flatMap((home): DriveFromHome[] => {
+      const originId = microsites[home.id];
+      const origin = originId ? origins[originId] : undefined;
+      if (!originId || !origin) throw new Error(`_data/distances.json has no microsites entry for ${home.id}`);
+      if (origin.kind !== "address" && origin.kind !== "town-centre") throw new Error(`origin ${originId} has kind ${origin.kind}`);
+      const row = raw.rows.find((candidate) => candidate.origin === originId && candidate.destination === destinationId);
+      if (!row) return [];
+      const sourceUrl = sources[row.source];
+      if (!sourceUrl) throw new Error(`row ${row.id} references a missing source`);
+      return [{ homeId: home.id, homeName: home.name, originKind: origin.kind, minutes: row.minutes, miles: row.miles, measured: row.measured, sourceUrl }];
+    });
+    return {
+      destination: destinationId,
+      name: destination.name,
+      label: destination.label,
+      note: destination.note,
+      category: destination.category,
+      drives: drives.sort((a, b) => a.minutes - b.minutes || a.homeName.localeCompare(b.homeName)),
+    };
+  });
+}
+
 /** "15 Nov 2026" from an ISO date, in UTC so the build machine's zone never shifts it. */
 export const formatMeasured = (iso: string): string =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
