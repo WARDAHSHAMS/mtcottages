@@ -200,7 +200,8 @@ test.describe("Memorial Health landing /travel-nurses/memorial-health-marietta/"
     await expect(hero).toHaveAttribute("alt", /Frederick Cottage/);
     await expect(hero).toHaveAttribute("src", /frederick/);
     for (const image of await page.locator("main img").all()) {
-      await expect(image).toHaveAttribute("alt", /\S{10,}/);
+      // A real description: at least 10 characters with a word in them (the same check as the hub's cards).
+      await expect(image).toHaveAttribute("alt", /^(?=.*\w{3}).{10,}$/);
     }
   });
 
