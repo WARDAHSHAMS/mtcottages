@@ -18,7 +18,8 @@
 import { homes } from "./homes";
 import { hasStreetAddress } from "./homes/links";
 import { distancesFor, formatMeasured } from "./distances";
-import { confirmedPriceHomes, type Faq } from "./townLanding";
+import { type Faq } from "./townLanding";
+import { monthlyRateText, termRows } from "./terms";
 import type { HomeMicrosite } from "./homes/types";
 
 export const hubPath = "travel-nurses/index.html";
@@ -74,11 +75,20 @@ export const perDiemMonth = perDiem.lodgingPerNight * perDiem.nights;
 
 export const usd = (amount: number): string => `$${amount.toLocaleString("en-US")}`;
 
-const parseGuide = (priceGuide: string | undefined, id: string): number => {
-  const match = priceGuide?.match(/^\$([\d,]+)\/month$/);
-  if (!match) throw new Error(`Travel-nurse hub: home "${id}" has no "$N/month" priceGuide to chart`);
+// Rates come from src/data/terms.json through terms.ts (#72), the one source every
+// card, microsite and Offer reads, so the chart can never disagree with them.
+const rateAmount = (id: string): number | null => {
+  const text = monthlyRateText(id);
+  if (text === null) return null;
+  const match = text.match(/^\$([\d,]+)\/month$/);
+  if (!match) throw new Error(`Travel-nurse hub: home "${id}" has monthly rate "${text}", expected "$N/month"`);
   return Number.parseInt(match[1].replace(/,/g, ""), 10);
 };
+
+const rateStatus = (id: string): string =>
+  termRows(id).find((row) => row.field === "monthlyRate")?.status === "confirmed"
+    ? "Monthly rate"
+    : "Guide price, confirm on inquiry";
 
 export type ChartRow = {
   id: string;
@@ -94,26 +104,27 @@ export type ChartRow = {
 
 const bedroomWord = (count: number) => `${count} bedroom${count === 1 ? "" : "s"}`;
 
-/** One bar per live home, from its own published guide price, ordered cheapest first. */
+/** One bar per live home with a published rate or guide, ordered cheapest first. */
 export const chartRows: ChartRow[] = homes
-  .map((home: HomeMicrosite): ChartRow => {
-    const amount = parseGuide(home.priceGuide, home.id);
+  .flatMap((home: HomeMicrosite): ChartRow[] => {
+    const amount = rateAmount(home.id);
+    if (amount === null) return [];
     const diff = perDiemMonth - amount;
-    return {
+    return [{
       id: home.id,
       label: home.name,
       detail: `${bedroomWord(home.bedrooms)}, ${home.town.name}, ${home.town.state}`,
       amount,
       share: Math.min(100, (amount / perDiemMonth) * 100),
-      status: confirmedPriceHomes.includes(home.id) ? "Monthly guide" : "Guide price, confirm on inquiry",
+      status: rateStatus(home.id),
       gap: `${usd(Math.abs(diff))} ${diff >= 0 ? "below" : "above"}`,
-    };
+    }];
   })
   .sort((a, b) => a.amount - b.amount || a.label.localeCompare(b.label));
 
 export const chartLabel =
   `Bar chart. The federal lodging per diem for ${perDiem.fiscalYear} is ${usd(perDiem.lodgingPerNight)} a night, which is ${usd(perDiemMonth)} for ${perDiem.nights} nights. ` +
-  `Mt Cottages monthly guide prices: ${chartRows.map((row) => `${row.label} ${usd(row.amount)}`).join(", ")}. Every guide price is below the ${perDiem.nights}-night figure. The same numbers are in the table below.`;
+  `Mt Cottages monthly guide prices: ${chartRows.map((row) => `${row.label} ${usd(row.amount)}`).join(", ")}. ${chartRows.every((row) => row.amount <= perDiemMonth) ? `Every guide price is at or below the ${perDiem.nights}-night figure.` : `${chartRows.filter((row) => row.amount <= perDiemMonth).length} of ${chartRows.length} are at or below the ${perDiem.nights}-night figure.`} The same numbers are in the table below.`;
 
 // ---------------------------------------------------------------------------
 // Hospitals and measured drive times
