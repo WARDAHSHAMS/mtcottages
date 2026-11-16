@@ -159,9 +159,128 @@
             ]
           },
           "actions": {
+            "Route_Canary": {
+              "type": "If",
+              "runAfter": {},
+              "expression": {
+                "equals": ["@triggerOutputs()?['headers']?['X-Intake-Canary-Run']", "1"]
+              },
+              "actions": {
+                "Create_D365_Canary_Lead": {
+                  "type": "ApiConnection",
+                  "runAfter": {},
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": ["inputs", "outputs"]
+                    }
+                  },
+                  "inputs": {
+                    "host": {
+                      "connection": {
+                        "name": "@parameters('$connections')['dynamicscrmonline']['connectionId']"
+                      }
+                    },
+                    "method": "post",
+                    "path": "/datasets/@{encodeURIComponent(encodeURIComponent(parameters('d365Organization')))}/tables/@{encodeURIComponent(encodeURIComponent('leads'))}/items",
+                    "body": {
+                      "_leadqualitycode_label": "Cold",
+                      "_leadsourcecode_label": "Web",
+                      "_statuscode_label": "New",
+                      "address1_country": "United States",
+                      "companyname": "Mt Cottages intake canary",
+                      "description": "Synthetic intake canary (WorldEnterpriseGroup/mtcottages#84). Not a guest. Deleted in the same run.",
+                      "donotemail": true,
+                      "donotphone": true,
+                      "emailaddress1": "@triggerBody()?['email']",
+                      "firstname": "@triggerBody()?['firstName']",
+                      "lastname": "@triggerBody()?['lastName']",
+                      "subject": "@{concat('[canary] Mt Cottages intake check — ', workflow()?['run']?['name'])}"
+                    }
+                  }
+                },
+                "Delete_Canary_D365_Lead": {
+                  "type": "ApiConnection",
+                  "runAfter": {
+                    "Create_D365_Canary_Lead": ["Succeeded"]
+                  },
+                  "inputs": {
+                    "host": {
+                      "connection": {
+                        "name": "@parameters('$connections')['dynamicscrmonline']['connectionId']"
+                      }
+                    },
+                    "method": "delete",
+                    "path": "/datasets/@{encodeURIComponent(encodeURIComponent(parameters('d365Organization')))}/tables/@{encodeURIComponent(encodeURIComponent('leads'))}/items/@{encodeURIComponent(encodeURIComponent(body('Create_D365_Canary_Lead')?['leadid']))}"
+                  }
+                },
+                "Respond_Canary_Success": {
+                  "type": "Response",
+                  "kind": "Http",
+                  "runAfter": {
+                    "Delete_Canary_D365_Lead": ["Succeeded"]
+                  },
+                  "inputs": {
+                    "statusCode": 201,
+                    "headers": {
+                      "Access-Control-Allow-Origin": "https://stay.mtcottages.com",
+                      "Content-Type": "application/json"
+                    },
+                    "body": {
+                      "success": true,
+                      "message": "Mt Cottages application accepted"
+                    }
+                  }
+                },
+                "Stop_Canary": {
+                  "type": "Terminate",
+                  "runAfter": {
+                    "Respond_Canary_Success": ["Succeeded"]
+                  },
+                  "inputs": {
+                    "runStatus": "Succeeded"
+                  }
+                },
+                "Respond_Canary_Failure": {
+                  "type": "Response",
+                  "kind": "Http",
+                  "runAfter": {
+                    "Delete_Canary_D365_Lead": ["Failed", "Skipped", "TimedOut"]
+                  },
+                  "inputs": {
+                    "statusCode": 500,
+                    "headers": {
+                      "Access-Control-Allow-Origin": "https://stay.mtcottages.com",
+                      "Content-Type": "application/json"
+                    },
+                    "body": {
+                      "success": false,
+                      "message": "Application intake failed"
+                    }
+                  }
+                },
+                "Fail_Canary_Run": {
+                  "type": "Terminate",
+                  "runAfter": {
+                    "Respond_Canary_Failure": ["Succeeded"]
+                  },
+                  "inputs": {
+                    "runStatus": "Failed",
+                    "runError": {
+                      "code": "IntakeCanaryFailed",
+                      "message": "The intake canary could not create or delete its synthetic lead."
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
             "Create_D365_Applicant_Lead": {
               "type": "ApiConnection",
-              "runAfter": {},
+              "runAfter": {
+                "Route_Canary": ["Succeeded"]
+              },
               "runtimeConfiguration": {
                 "secureData": {
                   "properties": ["inputs", "outputs"]
@@ -215,33 +334,6 @@
                   "success": true,
                   "message": "Mt Cottages application accepted"
                 }
-              }
-            },
-            "Delete_Canary_Lead": {
-              "type": "If",
-              "runAfter": {
-                "Respond_Success": ["Succeeded"]
-              },
-              "expression": {
-                "equals": ["@triggerOutputs()?['headers']?['X-Intake-Canary-Run']", "1"]
-              },
-              "actions": {
-                "Delete_Canary_D365_Lead": {
-                  "type": "ApiConnection",
-                  "runAfter": {},
-                  "inputs": {
-                    "host": {
-                      "connection": {
-                        "name": "@parameters('$connections')['dynamicscrmonline']['connectionId']"
-                      }
-                    },
-                    "method": "delete",
-                    "path": "/datasets/@{encodeURIComponent(encodeURIComponent(parameters('d365Organization')))}/tables/@{encodeURIComponent(encodeURIComponent('leads'))}/items/@{encodeURIComponent(encodeURIComponent(body('Create_D365_Applicant_Lead')?['leadid']))}"
-                  }
-                }
-              },
-              "else": {
-                "actions": {}
               }
             },
             "Respond_Failure": {

@@ -169,7 +169,7 @@ The canary is never a real application:
 
 - The proxy treats a request as a canary only when its `X-Intake-Canary` header matches `CANARY_TOKEN` (constant-time comparison, at least 32 characters). Only such a request skips Turnstile.
 - The proxy then replaces the name, phone, message and email with fixed synthetic values (`CANARY_LEAD_FIELDS` and `CANARY_GUEST_EMAIL`), whatever was sent.
-- The Logic App deletes the lead only when the proxy's `X-Intake-Canary-Run: 1` header is present, after it has already answered.
+- On the proxy's `X-Intake-Canary-Run: 1` header, the Logic App's `Route_Canary` branch takes over (#84). It still runs the business-unit and owner-team lookups, then creates a `[canary]` lead (Cold, do-not-contact) **without** binding it to the sales team, deletes it, and only then answers 201. If the create or delete fails, the run answers 500 and ends `Failed` (`IntakeCanaryFailed`), so both the canary job and the `RunsFailed` alert fire. The canary never reaches `Create_D365_Applicant_Lead`, the sales queue or a real guest path. Until #18 gives the Logic App its own application user, the canary lead briefly belongs to the Dynamics connection's identity.
 
 Its staff email, Teams card and guest acknowledgment carry a `[canary]` prefix and the note "No action is needed". The guest acknowledgment goes to the canary mailbox, which is the evidence for #14.
 
@@ -185,7 +185,7 @@ Turning it on, in this order:
    - `CANARY_GUEST_EMAIL` set to a mailbox we own, for example a `stay@` alias. It is not a secret.
 
    Canary mode stays off while either one is missing.
-3. **Logic App:** deploy the definition with `Delete_Canary_Lead` (#13), before the first canary runs.
+3. **Logic App:** deploy the definition with `Route_Canary` (#13), before the first canary runs.
 4. **Schedule:** set the CI variable `INTAKE_CANARY_ENABLED=true` on a `gh-pages` pipeline schedule. Every 15 minutes, together with the Logic App `RunsFailed` alert evaluated over 15 minutes, meets the "breaking the Logic App fires an alert within 15 minutes" bar. Use "Run pipeline" on `gh-pages` with the same variable for a one-off check.
 
 When a canary fails, the job log names the step that failed and the `submissionId`. Look up that run in the Logic App run history by its client tracking id. If cleanup failed, delete the `Intake Canary` lead in Dynamics by hand.
