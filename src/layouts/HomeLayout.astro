@@ -10,6 +10,7 @@ import Breadcrumbs from "../components/Breadcrumbs.astro";
 import RelatedLinks from "../components/RelatedLinks.astro";
 import { homeCrumbs, type HomeShell } from "../components/home/shell";
 import { guidesForHome, type RelatedLink } from "../data/site";
+import { hub, hubHref } from "../data/travelNurses";
 import type { ImageMetadata } from "astro";
 import type { SchemaNode } from "../data/schema";
 
@@ -36,6 +37,8 @@ const crumbs = homeCrumbs(shell, Astro.url.pathname);
 // The home's cluster: its town page and the living guides that feature it.
 const related: RelatedLink[] = [
   { href: shell.townHref, label: `Furnished homes in ${shell.townLabel}`, note: `Every listed home in ${shell.townName}, with measured drive times and what living there is like.` },
+  // The travel-nurse hub features every listed home, so every home links back to it.
+  { href: hubHref, label: hub.h1, note: hub.description },
   ...guidesForHome(shell.id).map((guide) => ({ href: `/${guide.path}`, label: guide.title, note: guide.description })),
 ];
 ---

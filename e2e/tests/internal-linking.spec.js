@@ -58,7 +58,7 @@ test("each home links to its town and to the guides that feature it, with descri
   const related = page.locator("[data-related]");
   await expect(related).toBeVisible();
   await expect(related.getByRole("link", { name: /Furnished homes in Parkersburg, West Virginia/ })).toHaveAttribute("href", "/parkersburg/index.html");
-  await expect(related.getByRole("link", { name: /healthcare schedules/ })).toHaveAttribute("href", "/health-professionals.html");
+  await expect(related.getByRole("link", { name: /Travel nurse housing/ })).toHaveAttribute("href", "/travel-nurses/");
   await expect(related.getByRole("link", { name: /season you are in/ })).toHaveAttribute("href", "/living.html");
   for (const name of await related.getByRole("link").allInnerTexts()) {
     expect(name.toLowerCase()).not.toMatch(/^(click here|here|read more|learn more|more)$/);
@@ -66,11 +66,11 @@ test("each home links to its town and to the guides that feature it, with descri
 });
 
 test("guides pass visitors to the homes they feature, and the homes link back", async ({ page }) => {
-  await page.goto("/health-professionals.html");
+  await page.goto("/travel-nurses/");
   const homeLinks = page.locator("main a[href^='/'][href*='-cottage/'], main a[href^='/marietta/frederick/']");
-  expect(await homeLinks.count(), "the healthcare guide links to listed homes").toBeGreaterThanOrEqual(2);
+  expect(await homeLinks.count(), "the travel-nurse hub links to listed homes").toBeGreaterThanOrEqual(2);
   await page.goto("/ravenswood/henrietta-cottage/");
-  await expect(page.locator("[data-related]").getByRole("link", { name: /healthcare schedules/ })).toBeVisible();
+  await expect(page.locator("[data-related]").getByRole("link", { name: /Travel nurse housing/ })).toBeVisible();
 });
 
 test("town pages link to every home in town", async ({ page }) => {

@@ -438,12 +438,13 @@ export const listedHomeIds = ["frederick", "broad", "buck", "oak", "virginia", "
  * The listed homes each living guide features (#35): the guide links to them,
  * and each home's Related block links back. Living and Family stays keep their
  * earlier hand-picked sets; the audience guides show every listed home, since
- * any of them can fit and the inquiry confirms which.
+ * any of them can fit and the inquiry confirms which. The travel-nurse hub
+ * (/travel-nurses/, src/data/travelNurses.ts) lists every home and is linked
+ * from each home's Related block by src/layouts/HomeLayout.astro.
  */
 export const guideHomes: Record<string, string[]> = {
   "living.html": ["frederick", "broad", "buck"],
   "family-stays.html": ["frederick", "oak", "henrietta"],
-  "health-professionals.html": listedHomeIds,
   "work-relocation.html": listedHomeIds,
   "insurance-housing.html": listedHomeIds,
 };
