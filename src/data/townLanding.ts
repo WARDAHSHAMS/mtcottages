@@ -15,6 +15,7 @@ import type { StayTown } from "./stay-link";
 import { homes } from "./homes";
 import type { HomeMicrosite } from "./homes/types";
 import broadLiving from "../../assets/images/cottages/parkersburg-01/photo-44.avif";
+import frederickBackyard from "../../assets/images/cottages/marietta-01/frederick-backyard-cover.jpg";
 
 /** Homes whose monthly price guide the owner confirmed. Only these show a price on a town landing page. */
 export const confirmedPriceHomes: readonly string[] = ["frederick"];
@@ -61,6 +62,8 @@ export type TownLanding = {
   hero: Photo;
   /** Town the page's "Check dates" links pre-select; the links are built with stayLink (#20). */
   stayTown: StayTown;
+  /** When the town has a single home, its "Check dates" links pre-select that home instead. */
+  stayHome?: string;
   inquiryLabel: string;
   homesHeading: string;
   homesIntro: string;
@@ -75,6 +78,8 @@ export type TownLanding = {
     walkRows?: DistanceRow[];
     source: string;
   };
+  /** Optional narrative about the town (history, walkability, the river). */
+  story?: { eyebrow: string; heading: string; paragraphs: string[] };
   included: string[];
   confirm: string[];
   audiences: Audience[];
@@ -93,6 +98,7 @@ export const landingHome = (id: string): HomeMicrosite => {
 };
 
 const osrmSource = "Routes from OpenStreetMap data (OSRM), measured 15 November 2026. Free-flow driving times; allow longer at shift change and in bad weather.";
+const osrmWalkSource = "Routes from OpenStreetMap data (OSRM driving and walking profiles), measured 15 November 2026. Free-flow driving times; allow longer at shift change and in bad weather.";
 
 export const townLandings = {
   parkersburg: {
@@ -158,6 +164,83 @@ export const townLandings = {
     ],
     nearbyTowns: [
       { name: "Marietta, Ohio", href: "/marietta/index.html" },
+      { name: "Ravenswood, West Virginia", href: "/ravenswood/index.html" },
+    ],
+  },
+  marietta: {
+    key: "marietta",
+    path: "marietta/index.html",
+    town: "Marietta, Ohio",
+    shortTown: "Marietta",
+    title: "Furnished Rentals in Marietta, Ohio | Mt Cottages",
+    description: "A furnished three-bedroom home for monthly stays in Marietta, Ohio, minutes from Marietta Memorial Hospital, Marietta College and downtown.",
+    eyebrow: "Marietta, Ohio",
+    h1: "Furnished rentals in Marietta, Ohio",
+    lede: "Looking for a furnished apartment, a monthly rental or a short-term rental in Marietta, Ohio? Frederick Cottage is a furnished three-bedroom house on the city's east side: about ten minutes from Marietta Memorial Hospital, six from Marietta College and eight from the riverfront downtown.",
+    intro: "It comes ready to live in, with a full kitchen, a washer and dryer, fast wired internet and a fenced backyard. Stays start at 30 days, and we confirm the current rate and your dates before you commit to anything.",
+    hero: { src: frederickBackyard, alt: "Frederick Cottage backyard in Marietta, Ohio, with a lawn, a white picket fence, patio seating and autumn trees", focal: "50% 40%" },
+    stayTown: "marietta",
+    // One home in town, so the town CTAs ask about Frederick directly.
+    stayHome: "frederick",
+    inquiryLabel: "Check dates at Frederick Cottage",
+    homesHeading: "Frederick Cottage, our Marietta home",
+    homesIntro: "Frederick has its own site with every photo, the bedrooms room by room, a resident guide and directions. Start there, then ask about your dates.",
+    homes: [
+      { id: "frederick", fit: "Best for a travel nurse who wants room to spread out, a family between homes, or two or three colleagues sharing a house.", facts: ["3 bedrooms: king, double, queen", "1 full bath", "Washer and dryer", "1 Gbps wired internet and wifi", "Fenced backyard"] },
+    ],
+    distance: {
+      heading: "Minutes from work, a short walk to groceries",
+      intro: "Frederick Cottage is on a residential street on the east side of Marietta. Here is how long it takes to reach the places guests ask about, by car and on foot.",
+      mode: "drive-walk",
+      destinations: ["Marietta Memorial Hospital", "Marietta College", "Downtown (Putnam Street)", "Kroger and pharmacy (Acme Street)"],
+      rows: [
+        { homeId: "frederick", times: [{ minutes: 10, miles: 3.5 }, { minutes: 6, miles: 1.7 }, { minutes: 8, miles: 2.3 }, { minutes: 3, miles: 0.6 }] },
+      ],
+      walkRows: [
+        { homeId: "frederick", times: [{ minutes: 67, miles: 3.1 }, { minutes: 35, miles: 1.6 }, { minutes: 44, miles: 2.1 }, { minutes: 14, miles: 0.7 }] },
+      ],
+      source: osrmWalkSource,
+    },
+    story: {
+      eyebrow: "Why Marietta",
+      heading: "Ohio's first city, on two rivers",
+      paragraphs: [
+        "Marietta was founded in 1788 where the Muskingum River meets the Ohio, as the first permanent American settlement in the Northwest Territory. That history is still on the street: brick sidewalks, old churches, river-town storefronts and Marietta College's campus a few blocks from Front Street.",
+        "Downtown is made for walking. Park once and you can spend an evening on Front Street, along the levee and on the paved riverfront trail, then drive home in about eight minutes. Closer to the house, Kroger and its pharmacy are a 14-minute walk, with a short wetland trail behind the store.",
+        "Marietta sits across the Ohio River from Williamstown, West Virginia, a short drive up I-77 from Parkersburg, so the whole Mid-Ohio Valley is within easy reach.",
+      ],
+    },
+    included: [
+      "Furnished throughout, with a bed in each of the three bedrooms",
+      "A full kitchen with a gas range, oven and dishwasher",
+      "Washer and dryer in the home",
+      "1 Gbps wired internet and wifi",
+      "A fenced backyard with patio seating",
+      "A resident guide and a local team for questions during the stay",
+    ],
+    confirm: [
+      "Which utilities the monthly rate covers",
+      "Your exact dates and the current rate",
+      "Parking spaces and street rules",
+      "Pet policy",
+      "Whether the bath has a tub or a shower only",
+    ],
+    audiences: [
+      { title: "Travel nurses at Memorial Health System", body: "About ten minutes to Marietta Memorial Hospital and seven to Selby General, with a full kitchen and a quiet bedroom for days after nights.", href: "/health-professionals.html", linkLabel: "Housing for health professionals" },
+      { title: "Faculty, researchers and visiting staff", body: "Marietta College is a six-minute drive. A semester or a research term is easier from a real home with a kitchen and fast wired internet.", href: "/work-relocation.html", linkLabel: "Work and relocation stays" },
+      { title: "Families between homes", body: "Three bedrooms, a long dining table and a fenced yard give a household room to settle while you find a permanent place in the valley.", href: "/family-stays.html", linkLabel: "Family stays" },
+      { title: "Displaced by a fire or flood", body: "A furnished house nearby while repairs happen. Tell us your timeline and what your insurer needs, and we will check whether Frederick fits.", href: "/insurance-housing.html", linkLabel: "Insurance housing" },
+    ],
+    faqs: [
+      { q: "Do you rent furnished homes by the month in Marietta, Ohio?", a: "Yes. Frederick Cottage is a furnished three-bedroom house in Marietta, Ohio, with a monthly guide of $2,575. Stays start at 30 days. We confirm the current rate, your dates and what the rate covers before you commit." },
+      { q: "Is this Marietta, Ohio, or Marietta, Georgia?", a: "Marietta, Ohio: the river town in Washington County, across the Ohio River from Williamstown, West Virginia. All of our homes are in the Mid-Ohio Valley." },
+      { q: "Can I rent for less than a month?", a: "Frederick's minimum stay is 30 days. Shorter stays are priced on inquiry, so tell us your dates and we will tell you straight away whether they can work." },
+      { q: "How far is Frederick Cottage from the hospitals?", a: "About 10 minutes (3.5 miles) by car to Marietta Memorial Hospital and about 7 minutes (2.4 miles) to Selby General Hospital, on measured routes in normal traffic." },
+      { q: "What is included?", a: "The house is furnished, with a full kitchen, a washer and dryer, 1 Gbps wired internet and wifi, and a fenced backyard. Which utilities the rate covers, parking and the pet policy are confirmed with you in writing first." },
+      { q: "Is sending an inquiry a commitment?", a: "No. An inquiry starts a conversation about current options. Any screening, agreement or payment is a separate step that comes later, with its own documents." },
+    ],
+    nearbyTowns: [
+      { name: "Parkersburg, West Virginia", href: "/parkersburg/index.html" },
       { name: "Ravenswood, West Virginia", href: "/ravenswood/index.html" },
     ],
   },

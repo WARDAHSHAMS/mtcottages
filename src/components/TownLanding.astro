@@ -21,12 +21,14 @@ const { landing, crumbs } = Astro.props;
 // Every inquiry link carries its source page (#20): the town CTAs pre-select the
 // town, and each home's "Ask about" link pre-selects that home instead.
 const page = Astro.url.pathname;
-const townInquiryHref = stayLink({ town: landing.stayTown, page });
+const townInquiryHref = stayLink({ home: landing.stayHome, town: landing.stayTown, page });
 const homeInquiryHref = (id: string) => stayLink({ home: id, page });
 const homes = landing.homes.map((entry) => ({ ...entry, home: landingHome(entry.id) }));
 const rowName = (id: string) => landingHome(id).name;
 const formatTime = (time: RouteTime) => `${time.minutes} min`;
 const formatMiles = (time: RouteTime) => `${time.miles.toFixed(1)} mi`;
+// Sections alternate paper and canvas; the optional story section shifts the rhythm by one.
+const shifted = Boolean(landing.story);
 ---
 
 <section class="guide-hero section--tight tl-hero">
@@ -58,7 +60,7 @@ const formatMiles = (time: RouteTime) => `${time.miles.toFixed(1)} mi`;
       <div><p class="eyebrow">Live homes</p><h2 id="tl-homes-title">{landing.homesHeading}</h2></div>
       <p>{landing.homesIntro}</p>
     </div>
-    <ul class="card-grid tl-homes" role="list">
+    <ul class:list={["card-grid tl-homes", { "tl-homes--single": homes.length === 1 }]} role="list">
       {homes.map(({ home, fit, facts }) => (
         <li class="property-card tl-home" data-home={home.id}>
           <a href={homeHref(home)} tabindex="-1" aria-hidden="true">
@@ -121,7 +123,19 @@ const formatMiles = (time: RouteTime) => `${time.miles.toFixed(1)} mi`;
   </div>
 </section>
 
-<section class="section section--paper" aria-labelledby="tl-included-title">
+{landing.story && (
+  <section class="section section--paper" id="story" aria-labelledby="tl-story-title">
+    <div class="site-width split split--wide">
+      <div>
+        <p class="eyebrow">{landing.story.eyebrow}</p>
+        <h2 id="tl-story-title">{landing.story.heading}</h2>
+      </div>
+      <div class="stack reading">{landing.story.paragraphs.map((paragraph) => <p>{paragraph}</p>)}</div>
+    </div>
+  </section>
+)}
+
+<section class:list={["section", { "section--paper": !shifted }]} aria-labelledby="tl-included-title">
   <div class="site-width split">
     <div class="stack">
       <p class="eyebrow">In every home</p>
@@ -137,7 +151,7 @@ const formatMiles = (time: RouteTime) => `${time.miles.toFixed(1)} mi`;
   </div>
 </section>
 
-<section class="section" aria-labelledby="tl-fit-title">
+<section class:list={["section", { "section--paper": shifted }]} aria-labelledby="tl-fit-title">
   <div class="site-width">
     <div class="section-heading">
       <div><p class="eyebrow">Who stays with us</p><h2 id="tl-fit-title">Who these homes suit</h2></div>
@@ -155,7 +169,7 @@ const formatMiles = (time: RouteTime) => `${time.miles.toFixed(1)} mi`;
   </div>
 </section>
 
-<section class="section section--paper" id="faq" aria-labelledby="tl-faq-title">
+<section class:list={["section", { "section--paper": !shifted }]} id="faq" aria-labelledby="tl-faq-title">
   <div class="site-width split split--wide">
     <div>
       <p class="eyebrow">Questions</p>

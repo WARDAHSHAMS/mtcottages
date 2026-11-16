@@ -32,7 +32,7 @@ const thresholds = {
 const attempts = Number(process.env.LH_ATTEMPTS || 3);
 
 /** The town landing (money) pages from Growth M1 (#24, #28) are gated alongside the microsites. */
-const townLandingPages = ["/parkersburg/index.html"];
+const townLandingPages = ["/parkersburg/index.html", "/marietta/index.html"];
 
 /** Microsite roots are the sitemap's two-level directory URLs, e.g. /marietta/frederick/. */
 async function micrositePages() {

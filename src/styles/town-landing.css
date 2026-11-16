@@ -1,6 +1,11 @@
 /* Town landing pages (src/components/TownLanding.astro). Built on the site tokens in site.css. */
 @layer components {
   .tl-homes { padding: 0; list-style: none; }
+  /* One home (Marietta): the card becomes a wide feature, photo beside the copy. */
+  .tl-homes--single { grid-template-columns: 1fr; }
+  .tl-homes--single .tl-home { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); grid-template-rows: auto; }
+  .tl-homes--single .tl-home figure { height: 100%; aspect-ratio: auto; min-height: 20rem; }
+  .tl-homes--single .property-card-body { align-content: center; padding: var(--space-3); }
   .tl-home h3 { font-size: 1.55rem; }
   .tl-home h3 a { color: inherit; text-decoration: none; }
   .tl-home h3 a:hover, .tl-home h3 a:focus-visible { text-decoration: underline; }
@@ -39,4 +44,6 @@
 
 @media (max-width: 720px) {
   .tl-audiences { grid-template-columns: 1fr; }
+  .tl-homes--single .tl-home { grid-template-columns: 1fr; }
+  .tl-homes--single .tl-home figure { aspect-ratio: 4 / 3; min-height: 0; }
 }

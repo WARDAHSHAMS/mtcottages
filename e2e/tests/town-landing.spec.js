@@ -12,6 +12,8 @@ const towns = [
     alias: "/parkersburg/furnished-rentals/",
     // The stay-form town and the page's source slug (pageSlug in src/data/stay-link.ts).
     src: "parkersburg",
+    // What the town "Check dates" CTAs pre-select on the stay form.
+    cta: "location=parkersburg",
     townPattern: /Parkersburg, WV/,
     // Priority-1 rows in docs/marketing/keyword-universe.csv, phrased the way the lede reads.
     ledePhrases: [/furnished apartment/i, /monthly rental/i, /short-term rental/i, /Parkersburg, WV/],
@@ -24,6 +26,23 @@ const towns = [
     hubs: ["/health-professionals.html", "/work-relocation.html", "/family-stays.html", "/insurance-housing.html"],
     pricedHomes: [],
     linkedFrom: ["/locations.html", "/parkersburg/broad-cottage/", "/parkersburg/oak-cottage/"],
+  },
+  {
+    path: "/marietta/index.html",
+    alias: "/marietta/furnished-rentals/",
+    src: "marietta",
+    // Frederick is the only Marietta home, so the town CTAs ask about it directly.
+    cta: "property=frederick",
+    townPattern: /Marietta, Ohio/,
+    ledePhrases: [/furnished apartment/i, /monthly rental/i, /short-term rental/i, /Marietta, Ohio/],
+    homes: [{ id: "frederick", name: "Frederick Cottage", href: "/marietta/frederick/" }],
+    parked: ["yellow-cottage", "walnut-cottage"],
+    hubs: ["/health-professionals.html", "/work-relocation.html", "/family-stays.html", "/insurance-housing.html"],
+    // Frederick's monthly guide is owner-confirmed (notes/owner-decisions.md).
+    pricedHomes: ["frederick"],
+    linkedFrom: ["/locations.html", "/marietta/frederick/"],
+    // Plain "marietta" searches belong to Marietta, Georgia; this page targets Ohio only.
+    notGeorgia: true,
   },
 ];
 
@@ -73,10 +92,10 @@ for (const town of towns) {
       }
       const hrefs = await page.locator("main a[href]").evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
       for (const parked of town.parked) expect(hrefs.some((href) => href.includes(parked)), `${parked} must not be listed`).toBe(false);
-      const townCtas = page.locator("main").getByRole("link", { name: /Check dates in/ });
+      const townCtas = page.locator("main").getByRole("link", { name: /^Check dates (in|at) / });
       expect(await townCtas.count()).toBeGreaterThanOrEqual(2);
       for (const href of await townCtas.evaluateAll((links) => links.map((link) => link.getAttribute("href")))) {
-        expect(href).toBe(`${STAY}?location=${town.src}&src=${town.src}`);
+        expect(href).toBe(`${STAY}?${town.cta}&src=${town.src}`);
       }
     });
 
@@ -84,10 +103,29 @@ for (const town of towns) {
       await page.goto(town.path);
       const main = (await page.locator("main").textContent()) ?? "";
       if (town.pricedHomes.length === 0) expect(main).not.toMatch(/\$\s?\d/);
-      for (const home of town.homes.filter((entry) => !town.pricedHomes.includes(entry.id))) {
-        await expect(page.locator(`#homes [data-home="${home.id}"] .tl-price`)).toHaveText(/confirm on inquiry/i);
+      for (const home of town.homes) {
+        const price = page.locator(`#homes [data-home="${home.id}"] .tl-price`);
+        if (town.pricedHomes.includes(home.id)) await expect(price).toContainText(/\$\d[\d,]*\/month/);
+        else await expect(price).toHaveText(/confirm on inquiry/i);
       }
     });
+
+    if (town.notGeorgia) {
+      test("targets Ohio, never Marietta, Georgia, in the title, description, H1 and lede", async ({ page }) => {
+        await page.goto(town.path);
+        const targeted = [
+          await page.title(),
+          (await page.locator('meta[name="description"]').getAttribute("content")) ?? "",
+          (await page.locator("h1").textContent()) ?? "",
+          (await page.locator("main h1 + p").textContent()) ?? "",
+        ];
+        for (const text of targeted) {
+          expect(text).not.toMatch(/Georgia|\bGA\b|Atlanta|Cobb/);
+          // Every "Marietta" in the targeted text is the Ohio one.
+          expect(text.match(/Marietta(?!,? (Ohio|OH|Memorial|College))/g) ?? [], `bare Marietta in "${text}"`).toEqual([]);
+        }
+      });
+    }
 
     test("links the audience hubs, including the travel-nurse hub, and is linked from related pages", async ({ page, request }) => {
       await page.goto(town.path);
@@ -120,8 +158,11 @@ for (const town of towns) {
       const faqPage = (await jsonLd(page)).find((node) => node["@type"] === "FAQPage");
       expect(faqPage, "FAQPage JSON-LD").toBeTruthy();
       expect(faqPage.mainEntity.map((entry) => ({ q: entry.name, a: entry.acceptedAnswer.text }))).toEqual(visible);
-      // No answer may promise a stay length or a price the owner has not confirmed.
-      for (const { a } of visible) expect(a).not.toMatch(/\$\s?\d|30\+ days/);
+      // No answer may quote a price unless the town's home has an owner-confirmed one.
+      for (const { a } of visible) {
+        expect(a).not.toMatch(/30\+ days/);
+        if (town.pricedHomes.length === 0) expect(a).not.toMatch(/\$\s?\d/);
+      }
 
       const first = questions.first().locator("summary");
       await first.focus();

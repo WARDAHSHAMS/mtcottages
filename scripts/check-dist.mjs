@@ -8,9 +8,10 @@ import { join, relative, sep } from "node:path";
 
 // Every page counts: 6 home microsites x 5 template pages, Frederick's guide,
 // the microsite redirects (old .html summaries, Frederick's 10 old pages,
-// Broad's 23 old sections, /parkersburg/furnished-rentals/) and the rest of the
-// site. Update it whenever a home, page or redirect is added or removed.
-const EXPECTED_PAGES = 108;
+// Broad's 23 old sections, /parkersburg/furnished-rentals/ and
+// /marietta/furnished-rentals/) and the rest of the site. Update it whenever a
+// home, page or redirect is added or removed.
+const EXPECTED_PAGES = 109;
 const MAX_DIST_MB = 70;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const LEGACY_MARKERS = ["jquery", "bootstrap", "modernizr", "swiper", "owl.carousel", "venobox", "gsap", "hotelhub"];

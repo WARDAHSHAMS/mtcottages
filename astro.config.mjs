@@ -39,6 +39,7 @@ const redirects = {
   // The keyword map (docs/marketing/keyword-universe.csv) names /<town>/furnished-rentals/;
   // the town guide is that page, so the path redirects there instead of competing with it.
   "/parkersburg/furnished-rentals/index": "/parkersburg/index.html",
+  "/marietta/furnished-rentals/index": "/marietta/index.html",
 };
 
 export default defineConfig({
