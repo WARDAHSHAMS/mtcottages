@@ -1,6 +1,11 @@
 ---
 import { locationData } from "../data/site";
 const entries = Object.values(locationData);
+// The lede names the towns that have homes listed today, so it never drifts from the cards.
+const shortName = (town: string) => town.split(",")[0];
+const listedTowns = entries.filter((entry) => entry.cottages?.length).map((entry) => shortName(entry.town));
+const guideTowns = entries.filter((entry) => !entry.cottages?.length).map((entry) => shortName(entry.town));
+const list = (names: string[]) => names.length < 3 ? names.join(" and ") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
 ---
 
 <section class="section location-directory" aria-labelledby="locations-title">
@@ -8,7 +13,7 @@ const entries = Object.values(locationData);
     <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span>Locations</span></nav>
     <div class="section-heading mt-3">
       <div><p class="eyebrow">Mid-Ohio Valley</p><h1 id="locations-title">Choose the community around the stay.</h1></div>
-      <p class="lede">Three communities currently have public cottage listings. Racine and Grantsville remain useful planning guides while current inventory is confirmed directly.</p>
+      <p class="lede" data-testid="locations-lede">{list(listedTowns)} have furnished homes listed today.{guideTowns.length > 0 && ` Our ${list(guideTowns)} ${guideTowns.length === 1 ? "guide helps" : "guides help"} you plan a stay nearby; ask us for the closest options.`}</p>
     </div>
     <div class="location-list">
       {entries.map((entry, index) => {
@@ -16,7 +21,7 @@ const entries = Object.values(locationData);
         return <article class="location-row">
           <span class="location-row__number">{String(index + 1).padStart(2, "0")}</span>
           <div><p class="eyebrow">{count ? `${count} ${count === 1 ? "cottage" : "cottages"} listed` : "Planning guide"}</p><h2>{entry.town}</h2><p>{entry.description}</p></div>
-          <div class="location-row__action"><span>{count ? "Compare listed homes" : "Ask about current options"}</span><a class="button button--ghost" href={`/${entry.path}`}>Explore {entry.town.split(",")[0]} <span aria-hidden="true">↗</span></a></div>
+          <div class="location-row__action"><span>{count ? "Compare listed homes" : "Ask about current options"}</span><a class="button button--ghost" href={`/${entry.path}`}>Explore {shortName(entry.town)} <span aria-hidden="true">↗</span></a></div>
         </article>;
       })}
     </div>

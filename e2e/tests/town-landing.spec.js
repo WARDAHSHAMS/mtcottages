@@ -88,7 +88,8 @@ for (const town of towns) {
         await expect(card.getByRole("heading", { level: 3 })).toHaveText(home.name);
         await expect(card.getByRole("link", { name: `Explore ${home.name}` })).toHaveAttribute("href", home.href);
         await expect(card.getByRole("link", { name: `Ask about ${home.name}` })).toHaveAttribute("href", `${STAY}?property=${home.id}&src=${town.src}`);
-        await expect(card.locator("img")).toHaveAttribute("alt", /\S{10,}/);
+        // A real description, not a bare file name or a blank: at least 10 characters with a word in them.
+        await expect(card.locator("img")).toHaveAttribute("alt", /^(?=.*\w{3}).{10,}$/);
       }
       const hrefs = await page.locator("main a[href]").evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
       for (const parked of town.parked) expect(hrefs.some((href) => href.includes(parked)), `${parked} must not be listed`).toBe(false);

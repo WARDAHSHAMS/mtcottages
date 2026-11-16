@@ -221,6 +221,36 @@ def test_submission_validation_enforces_choices_dates_and_occupants():
     assert function_app._validate_submission(payload) == "One or more fields are too long"
 
 
+FORM_HTML = (FUNCTION_PATH.parent / "index.html").read_text(encoding="utf-8")
+
+
+def test_form_offers_only_towns_with_a_listed_home_and_still_accepts_older_towns():
+    select = re.search(r'<select name="preferredLocation"[^>]*>(.*?)</select>', FORM_HTML, re.S)
+    assert select, "the form lost its preferredLocation select"
+    options = re.findall(r"<option[^>]*>([^<]*)</option>", select.group(1))
+    assert options == ["Preferred community", "Marietta, OH", "Parkersburg, WV", "Ravenswood, WV", "Open to options"]
+    # A form a guest opened before #71 can still send its older town values.
+    for town in ("Grantsville, WV", "Racine, OH", "Athens, OH", "Open to options"):
+        payload = _valid_payload()
+        payload["preferredLocation"] = town
+        assert function_app._validate_submission(payload) is None, town
+
+
+def test_form_property_links_are_live_canonical_home_urls():
+    block = re.search(r"const properties = \{(.*?)\n    \};", FORM_HTML, re.S)
+    assert block, "the form lost its property map"
+    rows = re.findall(r'(\w+): \{ name: "[^"]+", path: "([^"]+)", town: "([a-z]+)" \}', block.group(1))
+    entries = {home: path for home, path, _town in rows}
+    towns = {home: town for home, _path, town in rows}
+    # Parked homes (CEO decision 2026-11-14) are not offered, and every link is a microsite root.
+    assert set(entries) == {"frederick", "broad", "buck", "oak", "virginia", "henrietta"}
+    for home, path in entries.items():
+        assert re.fullmatch(r"[a-z]+/[a-z-]+/", path), f"{home} links to {path}, not a microsite root"
+        # The home's town pre-selects the preferred community, so it must be the town in its path.
+        assert path.split("/")[0] == towns[home], f"{home} is in {towns[home]} but links to {path}"
+    assert entries["frederick"] == "marietta/frederick/"
+
+
 def test_oversized_turnstile_token_is_rejected_before_network(monkeypatch):
     monkeypatch.setenv("TURNSTILE_SITE_KEY", "site-key")
     monkeypatch.setenv("TURNSTILE_SECRET_KEY", "secret-key")

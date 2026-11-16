@@ -25,26 +25,10 @@
       "pets": { "status": "confirm", "ask": "T2" },
       "availableFrom": { "status": "confirm", "ask": "4" }
     },
-    "yellow": {
-      "monthlyRate": { "status": "guide" },
-      "deposit": { "status": "confirm", "ask": "2" },
-      "minimumStay": { "status": "confirm", "ask": "T3" },
-      "utilities": { "status": "confirm", "ask": "T1" },
-      "pets": { "status": "confirm", "ask": "T2" },
-      "availableFrom": { "status": "confirm", "ask": "4" }
-    },
     "oak": {
       "monthlyRate": { "status": "guide" },
       "deposit": { "status": "confirm", "ask": "2" },
       "minimumStay": { "status": "listed", "value": "One month", "source": "Oak Cottage microsite: set up for stays of a month or longer" },
-      "utilities": { "status": "confirm", "ask": "T1" },
-      "pets": { "status": "confirm", "ask": "T2" },
-      "availableFrom": { "status": "confirm", "ask": "4" }
-    },
-    "walnut": {
-      "monthlyRate": { "status": "guide" },
-      "deposit": { "status": "confirm", "ask": "2" },
-      "minimumStay": { "status": "confirm", "ask": "T3" },
       "utilities": { "status": "confirm", "ask": "T1" },
       "pets": { "status": "confirm", "ask": "T2" },
       "availableFrom": { "status": "confirm", "ask": "4" }

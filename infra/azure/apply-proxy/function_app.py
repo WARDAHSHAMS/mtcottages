@@ -121,10 +121,11 @@ CHOICE_FIELDS = {
     "duration": frozenset({
         "One to three months", "Three to twelve months", "A year or more", "Flexible / not sure",
     }),
+    # The form offers only the towns with a listed home (#71). The older town
+    # values stay accepted so a form a guest opened before the change still sends.
     "preferredLocation": frozenset({
-        "Marietta, OH", "Parkersburg, WV", "Ravenswood, WV", "Grantsville, WV", "Racine, OH",
-        "Athens, OH", "Open to options",
-    }),
+        "Marietta, OH", "Parkersburg, WV", "Ravenswood, WV", "Open to options",
+    }) | frozenset({"Grantsville, WV", "Racine, OH", "Athens, OH"}),
     "homeSize": frozenset({
         "Studio or one-bedroom", "Two-bedroom", "Three-bedroom", "Four-bedroom", "Open to options",
     }),

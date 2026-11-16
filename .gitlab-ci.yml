@@ -127,7 +127,10 @@ site-check:
       done
       if [ "$ready" != yes ]; then cat astro-preview.log; exit 1; fi
     # Playwright covers behaviour, privacy and axe (WCAG 2.1 AA) on every public page.
-    - npm --prefix e2e test
+    # Fixed worker count: Playwright's default is half the *node's* CPUs, not the pod's
+    # share, so on a large node it ran 9 browsers against one preview server and the first
+    # tests of each worker timed out with no assertion failing (!36, pipeline 146096).
+    - npm --prefix e2e test -- --workers=4
     # The post-deploy microsite smoke (tests/live.spec.js), against this build: it otherwise first runs
     # after publish, where a failure can only be fixed forward from a red live site.
     - (cd e2e && MARKETING_URL="$BASE_URL" npx playwright test tests/live.spec.js --grep "microsite index loads")

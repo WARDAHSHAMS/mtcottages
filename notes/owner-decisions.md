@@ -11,6 +11,21 @@ Checked 2026-11-01 against the live pages for Frederick, Henrietta, Oak and Broa
 | 5 | Henrietta | Bathrooms | houses.json now says 2 as photographed, count to confirm (#26, 2026-11-15); the microsite says "Two bathrooms appear in the photos" | The official count is unconfirmed | Suzanne or Wardah |
 | 6 | All four | Real front-of-house hero photos | Some heroes use the strongest honest room or outdoor image | Site rule: no generated photography; Wardah picks substitutes | Wardah |
 
+## Price drift for the owner pass (#71, for #70)
+
+Checked 2026-11-15. Row 1 above says only Frederick's monthly guide is owner-confirmed, but the site shows the bedroom-count guide (`publishedLuxuryFurnishedRates` in `src/data/site.ts`) for every listed home: on the home cards (home page, cottages.html, the Ravenswood and guide pages) and as the "Monthly guide" fact on each microsite (`priceGuide`). Nothing was changed: no price moves without the owner's answer. The town landing pages (/parkersburg/, /marietta/) already show only Frederick's price. `e2e/tests/site.spec.js` pins the card prices below, so a change fails until this table is updated with the owner's answer.
+
+| Home | Shown on the site | `_data/houses.json` (12 months / short) | Owner-confirmed? | Drift |
+|---|---|---|---|---|
+| Frederick | $2,575/month | $2,575 / $2,575 | Yes | None |
+| Broad | $1,895/month | $1,895 / $1,895 | No | Shown but unconfirmed |
+| Buck | $1,895/month | $1,895 / $1,895 | No | Shown but unconfirmed |
+| Oak | $2,575/month | $2,575 / $2,575 | No | Shown but unconfirmed |
+| Virginia | $2,295/month | $2,295 / $2,295 | No | Shown but unconfirmed |
+| Henrietta | $2,295/month | $2,295 / $2,295 | No | Shown but unconfirmed |
+
+The figures agree everywhere; the drift is that five homes publish a price the notes call unconfirmed. Deposits and the $75 application fee (row 2) are not published anywhere. Owner question for #70: confirm each guide, or say which homes should show "confirm on inquiry" instead.
+
 ## Virginia Cottage (Ravenswood, #7)
 
 Added 2026-11-13 with the Virginia microsite (/ravenswood/virginia-cottage/). The page marks each of these "Confirm on inquiry" until answered. Rows 1 to 4 above apply to Virginia too.
