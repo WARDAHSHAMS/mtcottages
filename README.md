@@ -48,7 +48,7 @@ git diff --check
 
 `gh-pages` reaches the GitHub copy through the `weg-ghpages-mirror` CronJob (short-lived GitHub App token), not through GitLab CI: the `mirror` job in `.gitlab-ci.yml` runs on `gh-pages` with `GITHUB_MIRROR_EXTERNAL=true` and pushes nothing. GitLab CI also runs a read-only `validate` preflight (form parity, `jq empty` on the Azure JSON, `.nojekyll` and `CNAME`) on `main` and merge requests.
 
-The live site names its own build: `https://mtcottages.com/build.json` holds the commit it was built from (`integrations/build-stamp.mjs`). `scripts/check-live-build.py` is the post-deploy gate on it. The GitHub `live-smoke` job waits for its own commit before testing. The GitLab `verify:site-live` job, on gh-pages and main pushes and schedules, fails when the live build does not reach that commit (or a newer gh-pages commit containing it) within 85 minutes, and fails at once on main when main holds a commit gh-pages lacks.
+The live site names its own build: `https://mtcottages.com/build.json` holds the commit it was built from (`integrations/build-stamp.mjs`). `scripts/check-live-build.py` is the post-deploy gate on it. The GitHub `live-smoke` job waits for its own commit before testing. The GitLab `verify:site-live` job, on gh-pages and main pushes and schedules, fails when the live build does not reach that commit (or a newer gh-pages commit containing it) within 45 minutes (one healthy deploy takes 30 to 35), and fails at once on main when main holds a commit gh-pages lacks.
 
 GitLab CI is the only path that publishes the stay application host: a change under `infra/azure/apply-proxy` on `gh-pages` is tested, packaged, deployed to the Azure Function App and smoke-tested by the `*:apply-proxy` jobs. See `infra/azure/README.md`.
 
