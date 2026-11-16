@@ -128,7 +128,7 @@ test.describe("Memorial Health landing /travel-nurses/memorial-health-marietta/"
     await expect(page.locator('[data-testid="terms-stated"]')).toContainText("$2,575");
     // "Owner-confirmed" only while src/data/terms.json marks Frederick's rate confirmed (#72).
     const termsJson = JSON.parse(fs.readFileSync(path.join(__dirname, "../../src/data/terms.json"), "utf8"));
-    const rateConfirmed = termsJson.frederick.monthlyRate.status === "confirmed";
+    const rateConfirmed = termsJson.homes.frederick.monthlyRate.status === "confirmed";
     const mainText = (await page.locator("main").textContent()) ?? "";
     if (rateConfirmed) expect(mainText).toMatch(/confirmed by the owner/);
     else expect(mainText).not.toMatch(/owner[- ]confirmed|confirmed by the owner|owner has confirmed/i);
