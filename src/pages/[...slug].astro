@@ -4,7 +4,7 @@ import PropertyCard from "../components/PropertyCard.astro";
 import GuidePage from "../components/GuidePage.astro";
 import LocationsDirectory from "../components/LocationsDirectory.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
-import { cottages, guides, homesForGuide, locationData, routePaths, sectionCrumbs, type Guide } from "../data/site";
+import { cottages, guides, homesForGuide, locationData, pageRelated, routePaths, sectionCrumbs, type Guide } from "../data/site";
 import { pageTitle } from "../data/seo";
 import { locationCrumbs, type Crumb } from "../data/schema";
 
@@ -73,7 +73,7 @@ const crumbs: Crumb[] = pageLocation
   ) : routePath === "locations.html" ? (
     <LocationsDirectory crumbs={crumbs} />
   ) : utilityPage && routePath !== "cottages.html" ? (
-    <GuidePage guide={{ ...utilityPage, path: routePath, intro: utilityPage.description, sections: utilityPage.sections }} cottages={[]} crumbs={crumbs} />
+    <GuidePage guide={{ ...utilityPage, path: routePath, intro: utilityPage.description, sections: utilityPage.sections }} cottages={[]} crumbs={crumbs} related={pageRelated[routePath]} />
   ) : routePath === "cottages.html" || routePath === "cozy-places.html" || routePath === "room-to-settle.html" ? (
     <><section class="section"><div class="site-width"><Breadcrumbs items={crumbs} /><p class="eyebrow mt-3">Cottages</p><h1>{routePath === "cozy-places.html" ? "Cozy places." : routePath === "room-to-settle.html" ? "Room to settle in." : "Browse our furnished homes."}</h1><p class="lede mt-2">Browse the listed homes by town, bedroom count, price, and the photographs that help you see the fit.</p><div class="card-grid mt-4">{(routePath === "cozy-places.html" ? cottages.filter((item) => item.bedrooms === "1 Bedroom") : routePath === "room-to-settle.html" ? cottages.filter((item) => item.bedrooms !== "1 Bedroom") : cottages).map((item) => <PropertyCard cottage={item} />)}</div></div></section></>
   ) : (

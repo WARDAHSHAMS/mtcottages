@@ -107,7 +107,7 @@ const hasRooms = home.rooms.length > 0;
   lede={c.lede}
   hero={home.hero}
   chip={street ? address : `${address} · street address on inquiry`}
-  schema={homePageSchema(home, page)}
+  schema={homePageSchema(home)}
 >
   {page === "tour" && (
     <>

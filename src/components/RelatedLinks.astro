@@ -11,13 +11,15 @@ interface Props {
 }
 
 const { links, heading = "Keep exploring.", eyebrow = "Related" } = Astro.props as Props;
+// A page can carry more than one Related block, so each heading id comes from its eyebrow.
+const headingId = `related-${eyebrow.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 ---
 
 {links.length > 0 && (
-  <section class="section related-links" aria-labelledby="related-title" data-related>
+  <section class="section related-links" aria-labelledby={headingId} data-related>
     <div class="site-width">
       <p class="eyebrow">{eyebrow}</p>
-      <h2 id="related-title">{heading}</h2>
+      <h2 id={headingId}>{heading}</h2>
       <ul class="related-links-list">
         {links.map((link) => (
           <li>

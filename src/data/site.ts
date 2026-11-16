@@ -449,6 +449,19 @@ export const guideHomes: Record<string, string[]> = {
   "insurance-housing.html": listedHomeIds,
 };
 
+/**
+ * Related links for pages whose children sit outside the main nav (#35), so
+ * every indexable page has at least one inbound link: the Services page leads
+ * to the services the menu has no room for, and to partner-led housing.
+ */
+export const pageRelated: Record<string, RelatedLink[]> = {
+  "services.html": [
+    { href: "/housekeeping.html", label: "Housekeeping", note: "Ask about housekeeping options and timing for the home you are considering." },
+    { href: "/meal-preparation.html", label: "Meal preparation", note: "Optional help with meals during a furnished stay." },
+    { href: "/partnerships.html", label: "Partner-led housing", note: "Furnished housing arranged with employers, hospitals, research groups and relocation teams." },
+  ],
+};
+
 /** The living guides that feature a home, in nav order. */
 export const guidesForHome = (homeId: string): Guide[] =>
   Object.values(guides).filter((guide) => guideHomes[guide.path]?.includes(homeId));
