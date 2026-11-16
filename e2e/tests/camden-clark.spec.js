@@ -7,6 +7,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { test, expect } = require("@playwright/test");
 const AxeBuilder = require("@axe-core/playwright").default;
+const { stubStayHost } = require("./support/stay-host");
 
 const PAGE = "/travel-nurses/camden-clark/";
 const HUB = "/travel-nurses/";
@@ -127,13 +128,7 @@ test.describe("Camden Clark landing /travel-nurses/camden-clark/", () => {
   });
 
   test("the inquiry links pre-fill the healthcare audience and the nearest home, and never submit", async ({ page, context }) => {
-    const methods = [];
-    await context.route(`${STAY}**`, (route) => {
-      // The live build's analytics beacon posts to /api/collect on the same host; that is not the stay form.
-      if (new URL(route.request().url()).pathname.startsWith("/api/")) return route.fulfill({ status: 202, body: "" });
-      methods.push(route.request().method());
-      return route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: "<!doctype html><title>Stay form stub</title><p>stub</p>" });
-    });
+    const methods = await stubStayHost(context, STAY);
     await page.goto(PAGE);
     const hero = page.locator('main [data-cta="hero"] a.button').first();
     await expect(hero).toHaveAttribute("href", NEAREST_HREF);
