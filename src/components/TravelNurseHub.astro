@@ -84,6 +84,7 @@ const homeCards = homes.map((home) => {
               </ul>
             </div>
           ))}
+          {hospital.guide && <a class="inline-link" href={hospital.guide.href} data-hospital-guide>{hospital.guide.name} <span aria-hidden="true">→</span></a>}
           <a class="inline-link" href={hospital.town.href}>{hospital.town.name} <span aria-hidden="true">→</span></a>
         </li>
       ))}

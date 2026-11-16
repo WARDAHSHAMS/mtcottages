@@ -37,7 +37,14 @@ export type DistanceRow = {
   note?: string;
 };
 
-export type Audience = { title: string; body: string; href: string; linkLabel: string };
+export type Audience = {
+  title: string;
+  body: string;
+  href: string;
+  linkLabel: string;
+  /** A more specific page for this audience in this town, e.g. one hospital's landing (#33). */
+  more?: { href: string; label: string };
+};
 
 export type Faq = { q: string; a: string };
 
@@ -226,7 +233,7 @@ export const townLandings = {
       "Whether the bath has a tub or a shower only",
     ],
     audiences: [
-      { title: "Travel nurses at Memorial Health System", body: "About ten minutes to Marietta Memorial Hospital and seven to Selby General, with a full kitchen and a quiet bedroom for days after nights.", href: "/travel-nurses/", linkLabel: "Travel nurse housing and the stipend guide" },
+      { title: "Travel nurses at Memorial Health System", body: "About ten minutes to Marietta Memorial Hospital and seven to Selby General, with a full kitchen and a quiet bedroom for days after nights.", href: "/travel-nurses/", linkLabel: "Travel nurse housing and the stipend guide", more: { href: "/travel-nurses/memorial-health-marietta/", label: "Housing near Marietta Memorial, for staff and residents" } },
       { title: "Faculty, researchers and visiting staff", body: "Marietta College is a six-minute drive. A semester or a research term is easier from a real home with a kitchen and fast wired internet.", href: "/work-relocation.html", linkLabel: "Work and relocation stays" },
       { title: "Families between homes", body: "Three bedrooms, a long dining table and a fenced yard give a household room to settle while you find a permanent place in the valley.", href: "/family-stays.html", linkLabel: "Family stays" },
       { title: "Displaced by a fire or flood", body: "A furnished house nearby while repairs happen. Tell us your timeline and what your insurer needs, and we will check whether Frederick fits.", href: "/insurance-housing.html", linkLabel: "Insurance housing" },

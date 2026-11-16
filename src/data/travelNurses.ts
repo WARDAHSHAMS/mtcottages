@@ -140,6 +140,8 @@ export type HospitalCard = {
   /** One group of drive lines per hospital campus named in the card. */
   campuses: { label: string; drives: DriveLine[] }[];
   town: { name: string; href: string };
+  /** The hospital's own landing page, once it has one (#32, #33). */
+  guide?: { name: string; href: string };
 };
 
 const microsite = (id: string): HomeMicrosite => {
@@ -149,7 +151,7 @@ const microsite = (id: string): HomeMicrosite => {
 };
 
 /** The measured drive from an approved-address home to a destination in _data/distances.json; throws when it is missing. */
-const drive = (homeId: string, destination: string): DriveLine => {
+export const drive = (homeId: string, destination: string): DriveLine => {
   const home = microsite(homeId);
   if (!hasStreetAddress(home)) throw new Error(`${homeId} has no approved street address, so its hospital drive is not published`);
   const row = distancesFor(home).groups.flatMap((group) => group.rows).find((entry) => entry.destination === destination);
@@ -176,6 +178,7 @@ export const hospitals: HospitalCard[] = [
       { label: "Selby General Hospital", drives: [drive("frederick", "selby-general")] },
     ],
     town: { name: "Furnished rentals in Marietta, Ohio", href: "/marietta/index.html" },
+    guide: { name: "Housing near Marietta Memorial, for staff and residents", href: "/travel-nurses/memorial-health-marietta/" },
   },
   {
     id: "jackson-general",

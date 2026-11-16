@@ -1,0 +1,27 @@
+---
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import MemorialHealthPage from "../../../components/MemorialHealthPage.astro";
+import { faqSchema, type Crumb } from "../../../data/schema";
+import { hubHref } from "../../../data/travelNurses";
+import { faqs, frederick, memorialHref, page } from "../../../data/memorialHealth";
+
+// Memorial Health System landing (#33), under the travel-nurse hub (#29).
+const crumbs: Crumb[] = [
+  { name: "Home", href: "/" },
+  { name: "Travel nurses", href: hubHref },
+  { name: "Memorial Health, Marietta", href: memorialHref },
+];
+// A real front-of-house photo of the nearest home (Frederick Cottage), never a hospital image.
+const hero = { src: frederick.hero.src, alt: frederick.hero.alt, focal: frederick.hero.focal ?? "center" };
+---
+<SiteLayout
+  title={page.title}
+  description={page.description}
+  audience="healthcare"
+  breadcrumbs={crumbs}
+  socialImage={hero.src}
+  socialImageAlt={hero.alt}
+  schema={faqSchema(memorialHref, faqs)}
+>
+  <MemorialHealthPage crumbs={crumbs} hero={hero} />
+</SiteLayout>

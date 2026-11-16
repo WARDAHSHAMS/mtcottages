@@ -31,10 +31,13 @@ const thresholds = {
 // Best of three: a busy CI runner can add a few hundred ms of blocking time to one run.
 const attempts = Number(process.env.LH_ATTEMPTS || 3);
 
-/** The town landing (money) pages from Growth M1 (#24, #28) are gated alongside the microsites. */
-const townLandingPages = ["/parkersburg/index.html", "/marietta/index.html"];
+/**
+ * The town landing (money) pages from Growth M1 (#24, #28) and the travel-nurse
+ * hub with its hospital landing (#29, #33) are gated alongside the microsites.
+ */
+const townLandingPages = ["/parkersburg/index.html", "/marietta/index.html", "/travel-nurses/", "/travel-nurses/memorial-health-marietta/"];
 
-/** Microsite roots are the sitemap's two-level directory URLs, e.g. /marietta/frederick/. */
+/** Microsite roots are the sitemap's two-level directory URLs with a tour page, e.g. /marietta/frederick/. */
 async function micrositePages() {
   if (process.env.LH_PAGES) return process.env.LH_PAGES.split(",").map((page) => page.trim()).filter(Boolean);
   const sitemapUrl = `${base}/sitemap.xml`;
@@ -46,9 +49,11 @@ async function micrositePages() {
   } catch (error) {
     throw new Error(`Could not read ${sitemapUrl} to find the microsites: ${error.message}`);
   }
-  const roots = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)]
-    .map((match) => new URL(match[1]).pathname)
-    .filter((pathname) => /^\/[a-z0-9-]+\/[a-z0-9-]+\/$/.test(pathname))
+  const paths = new Set([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => new URL(match[1]).pathname));
+  // A two-level directory is a home microsite only when its tour page is listed
+  // too: /travel-nurses/memorial-health-marietta/ has the same shape but no tour.
+  const roots = [...paths]
+    .filter((pathname) => /^\/[a-z0-9-]+\/[a-z0-9-]+\/$/.test(pathname) && paths.has(`${pathname}tour.html`))
     .sort();
   if (roots.length === 0) throw new Error(`${sitemapUrl} lists no home microsites`);
   // The home page (#21) is the most visited page, so it is gated with the microsites.
