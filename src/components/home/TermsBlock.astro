@@ -1,7 +1,7 @@
 ---
 import StatusBadge from "./StatusBadge.astro";
 import { termRows } from "../../data/terms";
-import { inquiryUrl } from "../../data/homes/links";
+import { stayLink } from "../../data/stay-link";
 import type { HomeMicrosite } from "../../data/homes/types";
 
 interface Props { home: HomeMicrosite }
@@ -31,7 +31,7 @@ const open = rows.filter((row) => row.status === "confirm").length;
       </div>
     ))}
   </dl>
-  <p class="hm-terms-cta"><a class="text-link" href={inquiryUrl(home.id)}>Ask about rates and dates for {home.name} ↗</a></p>
+  <p class="hm-terms-cta"><a class="text-link" href={stayLink({ home: home.id, page: Astro.url.pathname })} data-cta="terms-block">Ask about rates and dates for {home.name} ↗</a></p>
 </section>
 
 <style>

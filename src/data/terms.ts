@@ -1,3 +1,4 @@
+import type { OfferLeaf, WithContext } from "schema-dts";
 import raw from "./terms.json";
 import { TERM_FIELDS, validateTerms, type TermField } from "../../scripts/lib/terms.mjs";
 import { cottages, publishedLuxuryFurnishedRates, type CottageBedroomLabel } from "./site";
@@ -118,7 +119,7 @@ export function cardTerms(id: string, today: Date = new Date()): CardTerms {
  * A schema.org Offer, only when the owner has confirmed this home's monthly
  * rate. A guide or an unconfirmed rate publishes no Offer.
  */
-export function offerFor(id: string, homeUrl: string, today: Date = new Date()): Record<string, unknown> | null {
+export function offerFor(id: string, homeUrl: string, homeNode: string, today: Date = new Date()): WithContext<OfferLeaf> | null {
   const terms = termsOf(id);
   const rate = terms.monthlyRate;
   if (rate.status !== "confirmed") return null;
@@ -129,7 +130,7 @@ export function offerFor(id: string, homeUrl: string, today: Date = new Date()):
     "@type": "Offer",
     "@id": `${homeUrl}#offer`,
     url: homeUrl,
-    itemOffered: { "@id": `${homeUrl}#home` },
+    itemOffered: { "@id": homeNode },
     businessFunction: "http://purl.org/goodrelations/v1#LeaseOut",
     price,
     priceCurrency: "USD",
