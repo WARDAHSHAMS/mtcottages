@@ -11,6 +11,10 @@ import livingCorner from "../../../assets/images/cottages/parkersburg-01/unique/
 import livingMirror from "../../../assets/images/cottages/parkersburg-01/unique/parkersburg-broad-cottage-img-290-709b0ab4e5-648x470.avif";
 import bedroomBathDoor from "../../../assets/images/cottages/parkersburg-01/unique/parkersburg-broad-cottage-img-279-2becab5554-648x470.avif";
 import bedroomDesk from "../../../assets/images/cottages/parkersburg-01/unique/meal-preparation-img-61-f9a9602b3d-648x470.avif";
+import kitchenWide from "../../../assets/images/cottages/parkersburg-01/broad-kitchen-wide.jpg";
+import kitchenSink from "../../../assets/images/cottages/parkersburg-01/broad-kitchen-sink.jpg";
+import kitchenCooktop from "../../../assets/images/cottages/parkersburg-01/broad-kitchen-cooktop.jpg";
+import kitchenGalley from "../../../assets/images/cottages/parkersburg-01/broad-kitchen-galley.jpg";
 import conceptTopDown from "../../../assets/images/cottages/parkersburg-01/3d/broad-concept-top-down.png";
 import concept45 from "../../../assets/images/cottages/parkersburg-01/3d/broad-concept-45-degree.png";
 
@@ -74,6 +78,26 @@ const photos = {
     alt: "Wood vanity with a lit mirror and sink, upper cabinets, and a white washer and dryer standing side by side next to it",
     caption: "Washer and dryer stand right beside the vanity.",
   },
+  kitchen: {
+    src: kitchenWide,
+    alt: "Kitchen with white cabinets, a patterned tile backsplash, a granite-look counter with a black cooktop and a double stainless sink, a microwave above a white refrigerator, and a wall rail of hanging utensils",
+    caption: "The kitchen: white cabinets, a double sink, a cooktop, and a microwave above the refrigerator.",
+  },
+  kitchenSink: {
+    src: kitchenSink,
+    alt: "Close view of the double stainless sink with a high-arc faucet, a patterned tile backsplash, a wooden cutting board hanging beside a white refrigerator, and white cabinets above",
+    caption: "The double sink, with the patterned tile backsplash behind it.",
+  },
+  kitchenCooktop: {
+    src: kitchenCooktop,
+    alt: "Kitchen counter with a black cooktop set into a granite-look surface, white cabinets below, a wall rack of knives and utensils, and a shelf holding a kettle and hanging pots",
+    caption: "The cooktop, with knives and utensils on the wall beside it.",
+  },
+  kitchenGalley: {
+    src: kitchenGalley,
+    alt: "Galley-style kitchen seen down its length: a white refrigerator on the right, a counter with sink and cooktop ahead, patterned flooring, and a trash bin at the far wall",
+    caption: "Looking down the length of the kitchen toward the far wall.",
+  },
 } as const;
 
 export const broadHome: HomeMicrosite = {
@@ -83,7 +107,7 @@ export const broadHome: HomeMicrosite = {
   town: { name: "Parkersburg", state: "WV", slug: "parkersburg" },
   tagline: "A warm, wood-paneled one-bedroom, furnished and ready to settle into.",
   summary:
-    "Broad Cottage is a furnished one-bedroom, one-bath home in Parkersburg. The photos show a living room with knotty wood paneling, a sectional sofa and a wall-mounted TV, a bedroom with a queen bed and a desk by the window, and a bathroom with a full tub, a curtained shower area and a washer and dryer beside the vanity. A full kitchen and fiber-optic internet are part of the listing. We have not photographed the kitchen or the outside yet, so those details are marked for confirmation.",
+    "Broad Cottage is a furnished one-bedroom, one-bath home in Parkersburg. The photos show a living room with knotty wood paneling, a sectional sofa and a wall-mounted TV, a bedroom with a queen bed and a desk by the window, a bathroom with a full tub, a curtained shower area and a washer and dryer beside the vanity, and a kitchen with white cabinets, a double sink and a cooktop. Fiber-optic internet is part of the listing. We have not photographed the outside yet, so those details are marked for confirmation.",
   address: {
     kind: "street",
     streetAddress: "3113 Broad St",
@@ -118,7 +142,7 @@ export const broadHome: HomeMicrosite = {
     { label: "Bedrooms", value: "1, with a queen bed", status: "listed" },
     { label: "Bathrooms", value: "1 full bathroom with tub", status: "listed" },
     { label: "Furnished", value: "Furnished throughout", status: "listed" },
-    { label: "Kitchen", value: "Full kitchen (not yet photographed)", status: "listed" },
+    { label: "Kitchen", value: "Full kitchen with cooktop, double sink, refrigerator and microwave", status: "photographed" },
     { label: "Laundry", value: "Washer and dryer in the home", status: "photographed" },
     { label: "Internet", value: "Fiber-optic internet (speed to be confirmed)", status: "listed" },
     { label: "Layout", value: "Single level, per the listing", status: "listed" },
@@ -147,11 +171,17 @@ export const broadHome: HomeMicrosite = {
     {
       slug: "kitchen",
       name: "Kitchen",
-      summary: "A full kitchen is part of the listing. We do not have photos of it yet.",
-      photos: [],
+      summary: "A full kitchen with white cabinets, a granite-look counter, a patterned tile backsplash, a cooktop, a double sink, and a microwave above the refrigerator.",
+      photos: [photos.kitchen, photos.kitchenSink, photos.kitchenCooktop, photos.kitchenGalley],
       notes: [
-        { text: "Full kitchen", status: "listed" },
-        { text: "Appliances (refrigerator, stove, oven, microwave)", status: "confirm" },
+        { text: "Full kitchen, not a kitchenette", status: "photographed" },
+        { text: "White upper and lower cabinets with a granite-look laminate counter", status: "photographed" },
+        { text: "Patterned tile backsplash behind the sink and cooktop", status: "photographed" },
+        { text: "Double stainless-steel sink with a high-arc faucet", status: "photographed" },
+        { text: "Electric cooktop set into the counter", status: "photographed" },
+        { text: "Microwave above a top-freezer refrigerator", status: "photographed" },
+        { text: "Wall-mounted rack for knives, utensils, pots and pans", status: "photographed" },
+        { text: "Appliances beyond the cooktop, microwave and refrigerator (oven, dishwasher)", status: "confirm" },
         { text: "Cookware, dishes and utensils", status: "confirm" },
         { text: "Dining table or seating", status: "confirm" },
       ],
@@ -209,7 +239,7 @@ export const broadHome: HomeMicrosite = {
     {
       group: "Kitchen and laundry",
       items: [
-        { name: "Full kitchen", status: "listed" },
+        { name: "Full kitchen", status: "photographed" },
         { name: "Washer and dryer", status: "photographed" },
         { name: "Cookware and dishes", status: "confirm" },
       ],
