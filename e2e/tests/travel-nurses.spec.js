@@ -22,11 +22,12 @@ const measured = (origin, destination) => {
   return row;
 };
 
-// Rates as src/data/terms.json publishes them (#72): every home is on the bedroom-count guide; none is owner-confirmed yet.
+// Rates as src/data/terms.json publishes them (#72): Broad and Oak carry their Furnished Finder rates (#70);
+// the rest are on the bedroom-count guide.
 const homes = [
-  { id: "broad", name: "Broad Cottage", href: "/parkersburg/broad-cottage/", price: "$1,895", confirmed: false },
+  { id: "broad", name: "Broad Cottage", href: "/parkersburg/broad-cottage/", price: "$1,875", confirmed: true },
   { id: "buck", name: "Buck Cottage", href: "/parkersburg/buck-cottage/", price: "$1,895", confirmed: false },
-  { id: "oak", name: "Oak Cottage", href: "/parkersburg/oak-cottage/", price: "$2,575", confirmed: false },
+  { id: "oak", name: "Oak Cottage", href: "/parkersburg/oak-cottage/", price: "$2,585", confirmed: true },
   { id: "frederick", name: "Frederick Cottage", href: "/marietta/frederick/index.html", price: "$2,575", confirmed: false },
   { id: "virginia", name: "Virginia Cottage", href: "/ravenswood/virginia-cottage/", price: "$2,295", confirmed: false },
   { id: "henrietta", name: "Henrietta Cottage", href: "/ravenswood/henrietta-cottage/", price: "$2,295", confirmed: false },
@@ -169,7 +170,7 @@ test.describe("travel-nurse hub /travel-nurses/", () => {
       if (home.confirmed) await expect(row.locator("td").nth(2)).toHaveText("Monthly rate");
       else await expect(row.locator("td").nth(2)).toHaveText(/guide price, confirm on inquiry/i);
       // The price is the same one the home's own card shows.
-      await expect(page.locator(`.tn-card[data-home="${home.id}"] .property-price`)).toHaveText(`${home.price}/month guide`);
+      await expect(page.locator(`.tn-card[data-home="${home.id}"] .property-price`)).toHaveText(`${home.price}/month${home.confirmed ? "" : " guide"}`);
     }
     // The bar widths are proportional: the per diem is the longest and no guide price exceeds it.
     const shares = await chart.locator(".tn-bar-fill").evaluateAll((fills) => fills.map((fill) => Number.parseFloat(fill.style.getPropertyValue("--share"))));
@@ -179,15 +180,16 @@ test.describe("travel-nurse hub /travel-nurses/", () => {
 
   test("states 13-week terms only as far as they are confirmed", async ({ page }) => {
     await page.goto(HUB);
-    await expect(page.locator('[data-testid="terms-stated"]')).toContainText("Frederick Cottage lists a 30-day minimum stay");
+    await expect(page.locator('[data-testid="terms-stated"]')).toContainText("one-month minimum stay");
+    await expect(page.locator('[data-testid="terms-stated"]')).toContainText("Utilities are included");
+    await expect(page.locator('[data-testid="terms-stated"]')).toContainText("No pets");
     await expect(page.locator("#terms")).toContainText(/ask about 13-week stays/i);
     const confirm = page.locator('[data-testid="terms-confirm"] li');
     expect(await confirm.count()).toBeGreaterThanOrEqual(5);
-    await expect(page.locator('[data-testid="terms-confirm"]')).toContainText(/pet policy/i);
-    await expect(page.locator('[data-testid="terms-confirm"]')).toContainText(/minimum stay/i);
-    // No promise ops has not confirmed: reply times, guarantees, pet permissions, blanket minimum stays.
+    await expect(page.locator('[data-testid="terms-confirm"]')).toContainText(/security deposit/i);
+    // No promise ops has not confirmed: reply times, guarantees, pet permissions, stays under a month.
     const main = (await page.locator("main").textContent()) ?? "";
-    expect(main).not.toMatch(/guarantee|within \d+ (hours?|minutes?|days?)|same[- ]day|pets? (are )?(welcome|allowed)|pet[- ]friendly|no minimum|week[- ]to[- ]week|utilities (are )?included/i);
+    expect(main).not.toMatch(/guarantee|within \d+ (hours?|minutes?|days?)|same[- ]day|pets? (are )?(welcome|allowed)|pet[- ]friendly|no minimum|week[- ]to[- ]week/i);
     expect(main).not.toMatch(/more than 10 years/i);
   });
 

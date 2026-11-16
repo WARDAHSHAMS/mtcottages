@@ -12,7 +12,9 @@
  *   of any stipend, and the page says so.
  * - A guide price is labelled "confirm on inquiry" unless the owner confirmed it.
  * - Nothing about minimum stay, pets, utilities, parking, blackout shades or
- *   response time is stated unless a home's own data lists it.
+ *   response time is stated unless a home's own data lists it. The one-month
+ *   minimum, included utilities and no pets were matched to the live Furnished
+ *   Finder listings and the house rules on #70 (2026-11-16).
  * - No affiliation with any hospital or health system is claimed.
  */
 import { homes } from "./homes";
@@ -209,14 +211,15 @@ export const driveSource =
 /** Only what a home's own listing states; everything else is a question to ask. */
 export const terms = {
   stated: [
-    "Frederick Cottage lists a 30-day minimum stay. Shorter stays are priced on inquiry.",
+    "Every home has a one-month minimum stay (30 days), so a 13-week contract fits it.",
+    "Utilities are included in the monthly price at every home.",
+    "No pets, at any home.",
   ],
   confirm: [
     "Whether your 13-week start and end dates fit the home you want",
-    "Minimum stay for every home other than Frederick",
-    "What the monthly price covers, including which utilities",
+    "When the home you want is free",
+    "The security deposit, set when you book",
     "Parking space and street rules",
-    "Pet policy",
     "Which bedroom is quietest and what covers its windows",
   ],
 };
@@ -231,7 +234,7 @@ export const faqs: Faq[] = [
   },
   {
     q: "Can I stay for a 13-week contract?",
-    a: "Ask us, and we will confirm it for the home you want. Frederick Cottage lists a 30-day minimum stay, and thirteen weeks is longer than that; we still confirm your dates before you commit. For the other homes, send your start and end dates and we confirm the minimum stay, the price and what is included in writing.",
+    a: "Yes. Every home has a one-month minimum stay (30 days), and thirteen weeks is longer than that. Send your start and end dates and we confirm in writing that the home you want is free for them before you commit.",
   },
   {
     q: "Is the bedroom quiet enough to sleep through the day?",
@@ -239,7 +242,7 @@ export const faqs: Faq[] = [
   },
   {
     q: "Are utilities and Wi-Fi included?",
-    a: "Fiber-optic internet is listed for Frederick Cottage (1 Gbps wired and wifi), Broad, Oak, Buck and Virginia Cottages, and is to be confirmed for Henrietta Cottage. Which utilities the monthly price covers is not confirmed for every home yet, so we confirm it in writing, home by home, before you commit. Compare the price on this page with that answer, not before it.",
+    a: "Fiber-optic internet is listed for Frederick Cottage (1 Gbps wired and wifi), Broad, Oak, Buck and Virginia Cottages, and is to be confirmed for Henrietta Cottage. Utilities are included in the monthly price at every home, and we confirm the details in writing before you commit.",
   },
   {
     q: "Where do I park, including when I get home at odd hours?",
@@ -247,7 +250,7 @@ export const faqs: Faq[] = [
   },
   {
     q: "Do you allow pets?",
-    a: "The pet policy is confirmed home by home. Tell us what you travel with when you inquire and we will say whether a home can work.",
+    a: "No. Our house rules allow no pets at any home.",
   },
   {
     q: "How do I know Mt Cottages is real and this is not a scam?",
@@ -387,8 +390,6 @@ export const nightConfirm = [
   "Blackout shades or curtains on the bedroom you would sleep in",
   "Which bedroom is farthest from the street, and how quiet the street is in the daytime",
   "Late arrival after a night shift, and how you get in",
-  "What the monthly price covers, including utilities",
-  "Pet policy",
   "Washer and dryer at Oak Cottage",
 ];
 

@@ -11,6 +11,46 @@ Checked 2026-11-01 against the live pages for Frederick, Henrietta, Oak and Broa
 | 5 | Henrietta | Bathrooms | houses.json now says 2 as photographed, count to confirm (#26, 2026-11-15); the microsite says "Two bathrooms appear in the photos" | The official count is unconfirmed | Suzanne or Wardah |
 | 6 | All four | Real front-of-house hero photos | Some heroes use the strongest honest room or outdoor image | Site rule: no generated photography; Wardah picks substitutes | Wardah |
 
+## Listings match (#70, read 2026-11-16)
+
+The CEO ruled on 2026-11-16 that the agents match the site to our own live listings and decide the open owner items, with no questionnaire. The listings were read the ordinary way, read-only, in a normal browser on 2026-11-16. No message was sent to a guest or host.
+
+**What was found.** Furnished Finder carries two of the six site homes under the Mt Cottages name. A third Mt Cottages listing, "Cute Guest House by Mt Cottages" (Marietta, OH, 1 bedroom, $1,750/month, utilities included), is not one of the site's homes and is not published here. No public Airbnb listing under the Mt Cottages name was found, so Furnished Finder (the monthly-stay platform) is the source for every fact below. Under the CEO's rule, Furnished Finder would win for monthly stays anyway, and the site sells only monthly stays. Cloudflare blocked the Marietta and Ravenswood Furnished Finder searches and the property pages after the first search ("Sorry, you have been blocked"); the block was not worked around. The Broad and Oak facts come from the Parkersburg and Belpre search results, which show each listing's card.
+
+| Home | Listing (source) | Monthly rate | Utilities | Available | Minimum stay | Listing bedrooms | Response |
+|---|---|---|---|---|---|---|---|
+| Broad | Furnished Finder 317243, "Broad St Bungalow by Mt Cottages", https://www.furnishedfinder.com/property/317243_1 | $1,875 | Included | Nov 17, 2026 | 30 days (platform minimum) | 2 bed / 1 bath | "Fast responder" badge |
+| Oak | Furnished Finder 920512, "Oak House by Mt Cottages", https://www.furnishedfinder.com/property/920512_1 | $2,585 | Included | Jun 10, 2027 | 30 days (platform minimum) | 4 bed / 1 bath | "Fast responder" badge |
+| Frederick, Buck, Henrietta, Virginia | No public listing found | Unchanged (Frederick confirmed; the others keep the bedroom-count guide) | Included (policy, below) | On inquiry | One month (Frederick's listing says 30 days) | Site counts | — |
+
+**Bedroom drift.** The listings say 2 bedrooms for Broad and 4 for Oak, but the site says 1 and 3. The site counts are backed by the photographs and the floor plans, so the site keeps them. The drift is recorded in `_data/houses.json` (`listing_source.listed_bedrooms`) for the listing owner to correct on Furnished Finder.
+
+**Applied in `src/data/terms.json` and `_data/houses.json`, each fact with its source and date read:**
+
+- **Broad:** rate confirmed at $1,875 (it was the $1,895 guide), utilities included, 30-day minimum, available from Nov 17, 2026. All from listing 317243.
+- **Oak:** rate confirmed at $2,585 (it was the $2,575 guide), utilities included, available from Jun 10, 2027. All from listing 920512. Broad and Oak now publish a schema.org Offer, because their rates are confirmed.
+- **Utilities included, every home** (closes T1): every Mt Cottages Furnished Finder listing includes utilities, and Frederick's rental arrangement already said so.
+- **No pets, every home** (closes T2): from the house rules in the ops SOP "Respond to Inquiry" (no pets, no smoking, no overnight guests, quiet hours, designated parking, trash on Sundays).
+- **One-month minimum, every home** (closes T3): Broad from its listing; Henrietta from policy, the same as every other home. Furnished Finder's own minimum is 30 days, and ops rents month to month or 3 months paid.
+- **Still to confirm, and shown as "confirm on inquiry":** the security deposit (row 2; the deposit is set at booking through KeyCheck) and availability for the four homes without a listing (row 4). Cancellation is not a platform term on Furnished Finder; the lease governs it, so the site states none.
+
+**Decisions on the 11 owner-decision items** (made by the agent under the CEO's 2026-11-16 ruling; the reason for each is also recorded on the issue):
+
+| Issue | Decision | Reason |
+|---|---|---|
+| #70 Owner pass | Settled by this listings match | The CEO replaced the questionnaire with listing evidence |
+| #36 Policies | Publish the matched house rules and terms | They come from the ops SOP and the live listings, not from guesses |
+| #37 Google Business Profile | Service-area profile, no public address | The homes are rentals with no staffed office; the four approved addresses stay on their own pages |
+| #38 People and the "Mt" story | No named people; the "Mt" story is not explained | No owner-approved bios exist, and inventing a story breaks the honesty rule |
+| #34 / #42 Direct billing and ALE | Proceed on the existing KeyCheck / Furnished Finder payment flow; no new direct invoicing | A new billing path is a billing change, which is the CEO's alone |
+| #60 Reshoot | Wardah reshoots, at no cost | Photo curation is already hers, and the hero gaps are known |
+| #80 Video | Wardah films walkthroughs, at no cost | Same owner and the same review flow as the photos |
+| #61 Reviews | Ask for free Google reviews, with consent only; no paid or gated reviews | Platform rules, and no incentive is involved |
+| #68 Stays under 30 nights | Not offered; no short-stay offer or page is added | Furnished Finder's 30-day minimum and ops' month-to-month terms |
+| #27 Brand | Option A ("River & Brick") is chosen on the evidence, but it is **not applied** | Applying it is a public rebrand of a going business, which is the CEO's alone, so #27 keeps `owner-decision` |
+
+**Phone and response time.** The site publishes no phone line, because the business has no public line (Twilio handles bot calls only), so the form and stay@mtcottages.com stay the contact path. Ops replies to an inquiry within minutes (the SOP), and both listings carry Furnished Finder's "Fast responder" badge. That is a practice, not a promise, so the site makes no timed reply promise, and the hub tests keep it that way.
+
 ## Price drift for the owner pass (#71, for #70)
 
 Checked 2026-11-15. Row 1 above says only Frederick's monthly guide is owner-confirmed, but the site shows the bedroom-count guide (`publishedLuxuryFurnishedRates` in `src/data/site.ts`) for every listed home: on the home cards (home page, cottages.html, the Ravenswood and guide pages) and as the "Monthly guide" fact on each microsite (`priceGuide`). Nothing was changed: no price moves without the owner's answer. The town landing pages (/parkersburg/, /marietta/) already show only Frederick's price. `e2e/tests/site.spec.js` pins the card prices below, so a change fails until this table is updated with the owner's answer.
@@ -18,9 +58,9 @@ Checked 2026-11-15. Row 1 above says only Frederick's monthly guide is owner-con
 | Home | Shown on the site | `_data/houses.json` (12 months / short) | Owner-confirmed? | Drift |
 |---|---|---|---|---|
 | Frederick | $2,575/month | $2,575 / $2,575 | Yes | None |
-| Broad | $1,895/month | $1,895 / $1,895 | No | Shown but unconfirmed |
+| Broad | $1,875/month | $1,875 / $1,875 | Yes, from its Furnished Finder listing (#70, 2026-11-16) | None |
 | Buck | $1,895/month | $1,895 / $1,895 | No | Shown but unconfirmed |
-| Oak | $2,575/month | $2,575 / $2,575 | No | Shown but unconfirmed |
+| Oak | $2,585/month | $2,585 / $2,585 | Yes, from its Furnished Finder listing (#70, 2026-11-16) | None |
 | Virginia | $2,295/month | $2,295 / $2,295 | No | Shown but unconfirmed |
 | Henrietta | $2,295/month | $2,295 / $2,295 | No | Shown but unconfirmed |
 

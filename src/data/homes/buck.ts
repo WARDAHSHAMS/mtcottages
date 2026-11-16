@@ -154,7 +154,7 @@ export const buckHome: HomeMicrosite = {
       items: [
         { name: "Laundry access", status: "listed" },
         { name: "Washer and dryer in the home", status: "confirm" },
-        { name: "Utilities included", status: "confirm" },
+        { name: "Utilities included", status: "confirmed" },
       ],
     },
     {

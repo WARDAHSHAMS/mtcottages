@@ -151,14 +151,14 @@ export const residency = {
 export const terms = {
   stated: [
     "Frederick Cottage lists a 30-day minimum stay. Shorter stays are priced on inquiry.",
-    `Frederick Cottage has ${frederickRatePhrase}. We confirm the current price and what it covers before you commit.`,
+    `Frederick Cottage has ${frederickRatePhrase}. We confirm the current price before you commit.`,
+    "Utilities are included in the monthly price. No pets.",
   ],
   confirm: [
     "Whether your 13-week contract dates fit",
     "Terms for a residency year or longer",
-    "What the monthly price covers, including which utilities",
+    "The security deposit, set when you book",
     "Parking space and street rules at the Parkersburg homes",
-    "Pet policy",
     "Which bedroom is quietest and what covers its windows",
   ],
 };
