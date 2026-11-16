@@ -156,7 +156,7 @@ export const townLandings = {
       "How many guests each home sleeps",
     ],
     audiences: [
-      { title: "Travel nurses and Camden Clark staff", body: "A quiet place to sleep after a night shift. Broad and Oak Cottages are 7 to 8 minutes from the hospital, with a full kitchen so a thirteen-week contract is not thirteen weeks of takeout.", href: "/travel-nurses/", linkLabel: "Travel nurse housing and the stipend guide" },
+      { title: "Travel nurses and Camden Clark staff", body: "A quiet place to sleep after a night shift. Broad and Oak Cottages are 7 to 8 minutes from the hospital, with a full kitchen so a thirteen-week contract is not thirteen weeks of takeout.", href: "/travel-nurses/", linkLabel: "Travel nurse housing and the stipend guide", more: { href: "/travel-nurses/camden-clark/", label: "Furnished homes near Camden Clark" } },
       { title: "Crews and project teams", body: "Oak Cottage gives a small team three bedrooms under one roof, with I-77 about ten minutes away for sites up and down the valley.", href: "/work-relocation.html", linkLabel: "Work and relocation stays" },
       { title: "Relocating families", body: "Land in a furnished home while you learn the neighborhoods, sort out schools and look for something permanent.", href: "/family-stays.html", linkLabel: "Family stays" },
       { title: "Displaced by a fire or flood", body: "A furnished home near your own while repairs happen. Tell us your timeline and what your insurer needs, and we will check which home fits.", href: "/insurance-housing.html", linkLabel: "Insurance housing" },

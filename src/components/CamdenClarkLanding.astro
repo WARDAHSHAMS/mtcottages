@@ -1,0 +1,222 @@
+---
+/**
+ * Camden Clark landing page (#32): the hospital-specific child of the travel-nurse hub.
+ * Hero with the nearest home's real photo, the measured drive from each Parkersburg home,
+ * nights and parking as far as each home's own data confirms, an area chart with a table
+ * fallback (only places that have a measured row in _data/distances.json), the two homes,
+ * native FAQ disclosures matching the FAQPage schema, the no-affiliation disclaimer and a
+ * healthcare-audience inquiry that pre-selects the nearest home. Data and honesty rules:
+ * src/data/travelNurses.ts.
+ */
+import "../styles/town-landing.css";
+import "../styles/travel-nurses.css";
+import ResponsivePhoto from "./ResponsivePhoto.astro";
+import PropertyCard from "./PropertyCard.astro";
+import { cottages } from "../data/site";
+import { stayLink } from "../data/stay-link";
+import type { Crumb } from "../data/schema";
+import type { Photo } from "../data/site";
+import {
+  areaChartLabel, areaGap, areaRows, areaSource, camdenClark, camdenDisclaimer, camdenDrives, camdenFaqs, hubHref,
+  nearestHome, nightConfirm, nightNotes, shiftRows,
+} from "../data/travelNurses";
+
+interface Props {
+  crumbs: Crumb[];
+  hero: Photo;
+}
+
+const { crumbs, hero } = Astro.props;
+// The primary inquiry pre-selects the nearest home and the healthcare audience; the page is its source (#20).
+const page = Astro.url.pathname;
+const inquiryHref = stayLink({ home: nearestHome.homeId, audience: "healthcare", page });
+const homeCards = camdenDrives.map((line) => {
+  const cottage = cottages.find((entry) => entry.id === line.homeId);
+  if (!cottage) throw new Error(`The Camden Clark page lists "${line.homeId}", which is not in src/data/site.ts`);
+  return { line, cottage, href: stayLink({ home: line.homeId, audience: "healthcare", page }) };
+});
+const tableHomes = camdenDrives.map((line) => ({ id: line.homeId, name: line.homeName }));
+---
+
+<section class="guide-hero section--tight tl-hero">
+  <div class="site-width guide-hero-grid">
+    <div>
+      <nav class="crumbs" aria-label="Breadcrumb">
+        {crumbs.map((crumb, index) => index < crumbs.length - 1
+          ? <><a href={crumb.href}>{crumb.name}</a><span aria-hidden="true">/</span></>
+          : <span aria-current="page">{crumb.name}</span>)}
+      </nav>
+      <p class="eyebrow mt-3">{camdenClark.eyebrow}</p>
+      <h1>{camdenClark.h1}</h1>
+      <p class="lede" data-testid="cc-lede">{camdenClark.lede}</p>
+      <p class="mt-2 reading">{camdenClark.intro}</p>
+      <div class="cluster mt-3" data-cta="hero">
+        <a class="button" href={inquiryHref}>{camdenClark.inquiryLabel} <span aria-hidden="true">↗</span></a>
+        <a class="button button--ghost" href="#drive">See the drive times</a>
+      </div>
+    </div>
+    <figure class="hero-image-frame">
+      <ResponsivePhoto {...hero} priority sizes="(max-width: 900px) 100vw, 55vw" />
+    </figure>
+  </div>
+</section>
+
+<section class="section section--paper" id="drive" aria-labelledby="cc-drive-title">
+  <div class="site-width">
+    <div class="section-heading">
+      <div><p class="eyebrow">The drive to work</p><h2 id="cc-drive-title">Minutes from your front door to Camden Clark</h2></div>
+      <p>Measured from each home's street address to the hospital, not guessed. Buck Cottage is also in Parkersburg; we give its drive when you inquire.</p>
+    </div>
+    <ul class="card-grid tn-drive-cards" role="list">
+      {camdenDrives.map((line) => (
+        <li class="tn-hospital" data-home={line.homeId}>
+          <p class="location">{line.homeName}, Parkersburg, WV</p>
+          <p class="tn-drive-big"><strong data-testid="drive-minutes">{line.minutes} min</strong> <span>by car, {line.miles.toFixed(1)} mi</span></p>
+        </li>
+      ))}
+    </ul>
+    <p class="details-note mt-2" data-testid="drive-source">{areaSource}</p>
+  </div>
+</section>
+
+<section class="section" id="nights" aria-labelledby="cc-nights-title">
+  <div class="site-width">
+    <div class="section-heading">
+      <div><p class="eyebrow">Nights, parking and sleep</p><h2 id="cc-nights-title">What we know for a shift worker, and what we confirm first</h2></div>
+      <p>Taken from each home's own listing and photos. Where a detail is not confirmed, it says so.</p>
+    </div>
+    <div class="tl-table-scroll" role="region" aria-labelledby="cc-nights-title" tabindex="0">
+      <table class="tl-table tn-table" data-testid="shift-table">
+        <caption class="sr-only">Parking, laundry, internet and setting for Broad Cottage and Oak Cottage, with how well each detail is confirmed</caption>
+        <thead>
+          <tr><th scope="col">Home</th>{shiftRows[0].cells.map((cell) => <th scope="col">{cell.label}</th>)}</tr>
+        </thead>
+        <tbody>
+          {shiftRows.map((row) => (
+            <tr data-home={row.homeId}>
+              <th scope="row"><a href={row.href}>{row.homeName}</a></th>
+              {row.cells.map((cell) => (
+                <td data-confirmed={cell.confirmed ? "yes" : "no"}>{cell.text}{cell.confirmed && <span class="tn-status"> ({cell.status})</span>}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <div class="split mt-4">
+      <div class="stack">
+        <h3>In the listings and photos</h3>
+        <ul class="checklist" role="list" data-testid="night-notes">{nightNotes.map((note) => <li><span>{note}</span></li>)}</ul>
+      </div>
+      <div class="stack">
+        <h3>Confirm on inquiry</h3>
+        <ul class="tl-confirm" role="list" data-testid="night-confirm">{nightConfirm.map((item) => <li>{item}</li>)}</ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section--paper" id="area" aria-labelledby="cc-area-title">
+  <div class="site-width">
+    <div class="section-heading">
+      <div><p class="eyebrow">The area</p><h2 id="cc-area-title">Groceries, a park and the interstate around you</h2></div>
+      <p>The places below each have a measured drive from both homes.</p>
+    </div>
+
+    <figure class="tn-chart" data-testid="area-chart">
+      <figcaption class="tn-chart-title" id="cc-chart-title">Drive minutes from Broad Cottage and Oak Cottage</figcaption>
+      <div class="tn-area" role="img" aria-label={areaChartLabel}>
+        {areaRows.map((row) => (
+          <div class="tn-area-group" aria-hidden="true">
+            <span class="tn-area-place">{row.label}</span>
+            {row.drives.map((entry) => (
+              <div class="tn-bar tn-bar--area">
+                <span class="tn-bar-name">{entry.homeName}</span>
+                <span class="tn-bar-track"><span class={["tn-bar-fill", `tn-bar-fill--${entry.homeId}`]} style={`--share:${entry.share.toFixed(1)}%`}></span></span>
+                <span class="tn-bar-value">{entry.minutes} min</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div class="tl-table-scroll mt-2" role="region" aria-labelledby="cc-chart-title" tabindex="0">
+        <table class="tl-table tn-table" data-testid="drive-table">
+          <caption class="sr-only">The same figures as the chart: drive minutes and miles from each home to Camden Clark and the places around it</caption>
+          <thead>
+            <tr>
+              <th scope="col">Place</th>
+              {tableHomes.map((entry) => <th scope="col" data-home={entry.id}>{entry.name}</th>)}
+              <th scope="col">What it is</th>
+            </tr>
+          </thead>
+          <tbody>
+            {areaRows.map((row) => (
+              <tr data-place={row.id}>
+                <th scope="row">{row.label}</th>
+                {row.drives.map((entry) => <td data-home={entry.homeId}><strong>{entry.minutes} min</strong> <span class="tl-miles">{entry.miles.toFixed(1)} mi</span></td>)}
+                <td>{row.note}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="details-note mt-2" data-testid="area-source">Same routes and measurement date as the drive times above.</p>
+    </figure>
+    <p class="mt-3 reading" data-testid="area-gap">{areaGap}</p>
+  </div>
+</section>
+
+<section class="section" id="homes" aria-labelledby="cc-homes-title">
+  <div class="site-width">
+    <div class="section-heading">
+      <div><p class="eyebrow">The two homes</p><h2 id="cc-homes-title">Broad Cottage and Oak Cottage</h2></div>
+      <p>Both are furnished whole homes on Broad Street. Photos are of the real homes; the guide price is confirmed on inquiry.</p>
+    </div>
+    <div class="card-grid">
+      {homeCards.map(({ cottage, line, href }) => (
+        <div class="tn-card" data-home={line.homeId}>
+          <PropertyCard cottage={cottage} headingLevel={3} />
+          <a class="inline-link tn-inline mt-2" href={href} data-cta={`home-${line.homeId}`}>Ask about {line.homeName} <span aria-hidden="true">↗</span></a>
+        </div>
+      ))}
+    </div>
+    <p class="mt-3">Not working at Camden Clark? <a class="inline-link tn-inline" href={hubHref}>Travel nurse housing across the Mid-Ohio Valley</a> · <a class="inline-link tn-inline" href="/parkersburg/index.html">Furnished rentals in Parkersburg, WV</a></p>
+  </div>
+</section>
+
+<section class="section section--paper" id="faq" aria-labelledby="cc-faq-title">
+  <div class="site-width split split--wide">
+    <div>
+      <p class="eyebrow">Questions</p>
+      <h2 id="cc-faq-title">Housing near Camden Clark, answered</h2>
+    </div>
+    <div class="faq">
+      {camdenFaqs.map((faq) => (
+        <details>
+          <summary>{faq.q}</summary>
+          <p>{faq.a}</p>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="cc-disclaimer-title">
+  <div class="site-width">
+    <h2 id="cc-disclaimer-title" class="tn-small-heading">No affiliation</h2>
+    <p class="details-note mt-2" data-testid="disclaimer">{camdenDisclaimer}</p>
+  </div>
+</section>
+
+<section class="section section--dark" aria-labelledby="cc-next-title">
+  <div class="site-width split split--wide">
+    <div>
+      <p class="eyebrow tl-eyebrow-light">The next step</p>
+      <h2 id="cc-next-title">Tell us your contract dates. We will tell you what fits.</h2>
+    </div>
+    <div>
+      <p class="lede lede--light">Share your start and end dates, your unit's shift pattern and who is coming. We reply with the home that fits, its current price and what is included. An inquiry is a conversation, not a lease.</p>
+      <a class="button button--light mt-3" href={inquiryHref} data-cta="next-step">{camdenClark.inquiryLabel} <span aria-hidden="true">↗</span></a>
+    </div>
+  </div>
+</section>
