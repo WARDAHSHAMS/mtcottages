@@ -262,6 +262,8 @@ for (const home of homes) {
     });
 
     test("there is no horizontal overflow at 390px wide", async ({ page }) => {
+      // Heavy by design (every page of the home, then the 3D model (up to 30 s to be ready)): triple the 45 s budget so a slow CI node is not a failure.
+      test.slow();
       await page.setViewportSize({ width: 390, height: 844 });
       for (const path of pagesOf(home)) {
         await page.goto(path);
