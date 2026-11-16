@@ -47,11 +47,15 @@
   .tn-bar-fill--oak { background: var(--accent-ink); }
   .tn-status { color: var(--muted); font-size: .88em; }
 
-  .tn-card .property-card { height: 100%; }
+  /* A card fills its grid cell by growing in a column, not with height: 100%, so an
+     "Ask about" link under it stays inside the cell. With height: 100% the link
+     overflowed the cell, the next paragraph covered it, and axe reported target-size
+     on a[data-cta="home-oak"] (pipeline 147296). */
+  .tn-card { display: flex; flex-direction: column; }
+  .tn-card > .property-card { flex: 1 1 auto; }
   .tn-inline { margin-top: 0; }
-  /* The "Ask about" link under a card: a 44px tap target with room above it, so it
-     clears WCAG 2.2 target size (24px) next to the card's own link. */
-  .tn-card > .tn-inline { min-height: 2.75rem; margin-top: .5rem; }
+  /* The "Ask about" link under a card: a 44px tap target with room above it. */
+  .tn-card > .tn-inline { align-self: flex-start; min-height: 2.75rem; margin-top: .5rem; }
   .tn-small-heading { font-size: var(--step-1); }
 }
 
