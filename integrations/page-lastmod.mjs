@@ -10,6 +10,8 @@
 //   that module imports (its photos, shared rates), and its own rows of
 //   _data/distances.json. That file holds every home, so its date is the commit that
 //   last changed *this home's* slice of it, found by walking the file's history.
+// * an area guide (/guides/<slug>/): its template, the src/data/guides/ module that
+//   declares the slug, and the content that module imports (#47).
 // * any other page: its .astro source (or the catch-all [...slug].astro) plus the data
 //   modules and JSON it imports directly. Shared layout and components are chrome, not
 //   page content, and do not move the date.
@@ -25,6 +27,9 @@ const HOME_TEMPLATE_INDEX = "src/pages/[town]/[home]/index.astro";
 const HOME_TEMPLATE_PAGE = "src/pages/[town]/[home]/[page].astro";
 const CATCH_ALL = "src/pages/[...slug].astro";
 const HOME_PAGE = /^[a-z0-9-]+\.html$/;
+const GUIDES_DIR = "src/data/guides";
+const GUIDE_TEMPLATE = "src/pages/guides/[slug]/index.astro";
+const GUIDE_PAGE = /^\/guides\/([a-z0-9]+(?:-[a-z0-9]+)*)\/(?:index\.html)?$/;
 // Value imports only: `import type` brings in no content.
 const IMPORT = /^import\s+(?!type\b)[^;]*?\bfrom\s+["'](\.{1,2}\/[^"']+)["']/gm;
 // Content lives in data modules, JSON and images; layout and components are chrome.
@@ -173,6 +178,21 @@ export class PageLastmod {
     });
   }
 
+  /** The src/data/guides/ module that declares a guide's slug, or undefined. */
+  guideModule(slug) {
+    return this.memo(`guide:${slug}`, () => {
+      const dir = path.join(this.root, GUIDES_DIR);
+      if (!existsSync(dir)) return undefined;
+      for (const name of readdirSync(dir).sort()) {
+        if (!name.endsWith(".ts")) continue;
+        const file = `${GUIDES_DIR}/${name}`;
+        if (readFileSync(path.join(this.root, file), "utf8").includes(`slug: "${slug}"`)) return file;
+      }
+      this.logger.warn(`no module in ${GUIDES_DIR} declares the guide slug ${slug}`);
+      return undefined;
+    });
+  }
+
   /** What a page renders: { files, homeId } for a site path such as "/" or "/parkersburg/oak-cottage/tour.html". */
   sourcesFor(pathname) {
     for (const [base, home] of this.homes) {
@@ -183,6 +203,12 @@ export class PageLastmod {
       // The home's distance rows are dated on their own below, not by the whole file.
       const files = [template, home.file, ...this.contentImports(home.file).filter((file) => file !== DISTANCES)];
       return { files, homeId: home.id };
+    }
+    // An area guide (#47) renders its own article module under src/data/guides/.
+    const guide = pathname.match(GUIDE_PAGE);
+    if (guide) {
+      const module = this.guideModule(guide[1]);
+      if (module) return { files: [GUIDE_TEMPLATE, module, ...this.contentImports(module, { followJson: true })] };
     }
     const stem = pathname.endsWith("/") ? `${pathname}index` : pathname.replace(/\.html$/, "");
     for (const candidate of [`src/pages${stem}.astro`, `src/pages${stem}/index.astro`, CATCH_ALL]) {
