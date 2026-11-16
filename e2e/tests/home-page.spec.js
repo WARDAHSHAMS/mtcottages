@@ -33,7 +33,7 @@ test("each audience card links to a live hub", async ({ page, request }) => {
   const cards = page.locator("[data-audience-router] .audience-card");
   await expect(cards).toHaveCount(4);
   const expected = [
-    [/nurses and residents/i, "/health-professionals.html"],
+    [/nurses and residents/i, "/travel-nurses/"],
     [/crews/i, "/work-relocation.html"],
     [/insurance and relocating families/i, "/insurance-housing.html"],
     [/long-term/i, "/living.html"],
@@ -46,7 +46,7 @@ test("each audience card links to a live hub", async ({ page, request }) => {
     expect(response.status(), `${href} resolves`).toBe(200);
   }
   await cards.first().locator("a").click();
-  await expect(page).toHaveURL(/\/health-professionals\.html$/);
+  await expect(page).toHaveURL(/\/travel-nurses\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 

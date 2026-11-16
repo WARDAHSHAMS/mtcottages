@@ -132,7 +132,7 @@ test("the mobile bar is hidden on a desktop viewport", async ({ page }) => {
 
 test("audience hubs and town pages carry their audience or town on every inquiry link", async ({ page }) => {
   const cases = [
-    ["/health-professionals.html", { audience: "healthcare" }],
+    ["/travel-nurses/", { audience: "healthcare" }],
     ["/work-relocation.html", { audience: "crew" }],
     ["/insurance-housing.html", { audience: "insurance" }],
     ["/family-stays.html", { audience: "visiting-family" }],

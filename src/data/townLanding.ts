@@ -124,7 +124,7 @@ export const townLandings = {
     ],
     distance: {
       heading: "Minutes, not miles",
-      intro: "Broad and Oak Cottages sit a few blocks apart on Broad Street, on the city's east side. Here is how long the drive takes to the places most guests ask about.",
+      intro: "Broad and Oak Cottages sit a few blocks apart on Broad Street in North Parkersburg. Here is how long the drive takes to the places most guests ask about.",
       mode: "drive",
       destinations: ["WVU Medicine Camden Clark", "Downtown (Point Park)", "I-77 on-ramp (WV 47)"],
       rows: [
@@ -149,7 +149,7 @@ export const townLandings = {
       "How many guests each home sleeps",
     ],
     audiences: [
-      { title: "Travel nurses and Camden Clark staff", body: "A quiet place to sleep after a night shift. Broad and Oak Cottages are 7 to 8 minutes from the hospital, with a full kitchen so a thirteen-week contract is not thirteen weeks of takeout.", href: "/health-professionals.html", linkLabel: "Housing for health professionals" },
+      { title: "Travel nurses and Camden Clark staff", body: "A quiet place to sleep after a night shift. Broad and Oak Cottages are 7 to 8 minutes from the hospital, with a full kitchen so a thirteen-week contract is not thirteen weeks of takeout.", href: "/travel-nurses/", linkLabel: "Travel nurse housing and the stipend guide" },
       { title: "Crews and project teams", body: "Oak Cottage gives a small team three bedrooms under one roof, with I-77 about ten minutes away for sites up and down the valley.", href: "/work-relocation.html", linkLabel: "Work and relocation stays" },
       { title: "Relocating families", body: "Land in a furnished home while you learn the neighborhoods, sort out schools and look for something permanent.", href: "/family-stays.html", linkLabel: "Family stays" },
       { title: "Displaced by a fire or flood", body: "A furnished home near your own while repairs happen. Tell us your timeline and what your insurer needs, and we will check which home fits.", href: "/insurance-housing.html", linkLabel: "Insurance housing" },
@@ -226,7 +226,7 @@ export const townLandings = {
       "Whether the bath has a tub or a shower only",
     ],
     audiences: [
-      { title: "Travel nurses at Memorial Health System", body: "About ten minutes to Marietta Memorial Hospital and seven to Selby General, with a full kitchen and a quiet bedroom for days after nights.", href: "/health-professionals.html", linkLabel: "Housing for health professionals" },
+      { title: "Travel nurses at Memorial Health System", body: "About ten minutes to Marietta Memorial Hospital and seven to Selby General, with a full kitchen and a quiet bedroom for days after nights.", href: "/travel-nurses/", linkLabel: "Travel nurse housing and the stipend guide" },
       { title: "Faculty, researchers and visiting staff", body: "Marietta College is a six-minute drive. A semester or a research term is easier from a real home with a kitchen and fast wired internet.", href: "/work-relocation.html", linkLabel: "Work and relocation stays" },
       { title: "Families between homes", body: "Three bedrooms, a long dining table and a fenced yard give a household room to settle while you find a permanent place in the valley.", href: "/family-stays.html", linkLabel: "Family stays" },
       { title: "Displaced by a fire or flood", body: "A furnished house nearby while repairs happen. Tell us your timeline and what your insurer needs, and we will check whether Frederick fits.", href: "/insurance-housing.html", linkLabel: "Insurance housing" },

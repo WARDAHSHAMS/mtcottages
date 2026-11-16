@@ -84,7 +84,7 @@ The inventory stated laundry, off-street parking, internet and utilities as fact
 1. Buck Cottage's neighbourhood and drive times (address not approved, so we cannot measure).
 2. Henrietta's official bathroom count (two are photographed).
 3. Which utilities are included, per home.
-4. "Mt Cottages has hosted traveling healthcare professionals for more than 10 years" (`/health-professionals.html`) has no record behind it. It stays live as a business claim; please confirm or correct it.
+4. "Mt Cottages has hosted traveling healthcare professionals for more than 10 years" had no record behind it. It was on the old `/health-professionals.html` guide, which became a redirect to `/travel-nurses/` in #29; the new page does not repeat the claim. If the owner confirms it, it can return.
 
 ## Drive-time chart and table on every location page (#25)
 

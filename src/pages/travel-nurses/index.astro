@@ -1,0 +1,26 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import TravelNurseHub from "../../components/TravelNurseHub.astro";
+import { faqSchema, type Crumb } from "../../data/schema";
+import { faqs, hub, hubHref } from "../../data/travelNurses";
+import oakBedroom from "../../../assets/images/cottages/parkersburg-04/photo-07.avif";
+
+// The travel-nurse hub (#29). /health-professionals.html is a noindex redirect to this page
+// (src/pages/health-professionals.html.ts), so the old guide and the hub are one page.
+const crumbs: Crumb[] = [
+  { name: "Home", href: "/" },
+  { name: "Travel nurses", href: hubHref },
+];
+const hero = { src: oakBedroom, alt: hub.heroAlt, focal: "center 45%" };
+---
+<SiteLayout
+  title={hub.title}
+  description={hub.description}
+  audience="healthcare"
+  breadcrumbs={crumbs}
+  socialImage={hero.src}
+  socialImageAlt={hero.alt}
+  schema={faqSchema(hubHref, faqs)}
+>
+  <TravelNurseHub crumbs={crumbs} hero={hero} />
+</SiteLayout>
