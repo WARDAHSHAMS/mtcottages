@@ -151,7 +151,7 @@ export const hospitals: HospitalCard[] = [
     id: "camden-clark",
     name: "WVU Medicine Camden Clark Medical Center",
     place: "Parkersburg, West Virginia",
-    summary: "Broad and Oak Cottages sit a few blocks apart on Broad Street, on Parkersburg's east side.",
+    summary: "Broad and Oak Cottages sit a few blocks apart on Broad Street in North Parkersburg.",
     campuses: [{ label: "Camden Clark Medical Center", drives: [drive("broad", "camden-clark"), drive("oak", "camden-clark")] }],
     town: { name: "Furnished rentals in Parkersburg, WV", href: "/parkersburg/index.html" },
   },

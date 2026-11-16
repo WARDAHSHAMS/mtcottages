@@ -124,7 +124,7 @@ export const townLandings = {
     ],
     distance: {
       heading: "Minutes, not miles",
-      intro: "Broad and Oak Cottages sit a few blocks apart on Broad Street, on the city's east side. Here is how long the drive takes to the places most guests ask about.",
+      intro: "Broad and Oak Cottages sit a few blocks apart on Broad Street in North Parkersburg. Here is how long the drive takes to the places most guests ask about.",
       mode: "drive",
       destinations: ["WVU Medicine Camden Clark", "Downtown (Point Park)", "I-77 on-ramp (WV 47)"],
       rows: [
