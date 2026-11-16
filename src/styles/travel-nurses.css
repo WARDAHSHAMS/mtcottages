@@ -49,6 +49,9 @@
 
   .tn-card .property-card { height: 100%; }
   .tn-inline { margin-top: 0; }
+  /* The "Ask about" link under a card: a 44px tap target with room above it, so it
+     clears WCAG 2.2 target size (24px) next to the card's own link. */
+  .tn-card > .tn-inline { min-height: 2.75rem; margin-top: .5rem; }
   .tn-small-heading { font-size: var(--step-1); }
 }
 
