@@ -251,7 +251,7 @@ export const henriettaHome: HomeMicrosite = {
       items: [
         { name: "Washing machine", status: "photographed" },
         { name: "Dryer", status: "confirm" },
-        { name: "Utilities included", status: "confirm" },
+        { name: "Utilities included", status: "confirmed" },
       ],
     },
     {

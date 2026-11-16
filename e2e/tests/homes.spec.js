@@ -1,4 +1,5 @@
 const { test, expect } = require("@playwright/test");
+const terms = require("../../src/data/terms.json");
 const AxeBuilder = require("@axe-core/playwright").default;
 
 // The data-driven home microsites share one template; every check loops over them.
@@ -125,7 +126,7 @@ for (const home of homes) {
       await expect(page.locator(".room-card")).not.toHaveCount(0);
     });
 
-    test("the structured data matches the published address level and has no price offer", async ({ page }) => {
+    test("the structured data matches the published address level and offers a price only once it is confirmed", async ({ page }) => {
       await page.goto(home.base);
       const schemas = JSON.parse(await page.locator('script[type="application/ld+json"]').textContent());
       const stay = schemas.find((item) => item["@type"] === "Accommodation");
@@ -141,7 +142,10 @@ for (const home of homes) {
         expect(stay.address.postalCode).toBeUndefined();
         expect(stay.geo).toBeUndefined();
       }
-      expect(schemas.find((item) => item["@type"] === "Offer")).toBeUndefined();
+      // An Offer exists only for a confirmed monthly rate (#72); terms.spec.js checks its figures.
+      const offer = schemas.find((item) => item["@type"] === "Offer");
+      if (terms.homes[home.id].monthlyRate.status === "confirmed") expect(offer).toBeDefined();
+      else expect(offer).toBeUndefined();
       // Breadcrumbs mirror the visible trail: Home / Town / Home name (/ Page).
       const crumbs = schemas.find((item) => item["@type"] === "BreadcrumbList");
       expect(crumbs.itemListElement.map((item) => item.name)).toEqual(["Home", expect.any(String), home.name]);

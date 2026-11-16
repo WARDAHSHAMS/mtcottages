@@ -136,9 +136,10 @@ test.describe("Memorial Health landing /travel-nurses/memorial-health-marietta/"
     const confirm = page.locator('[data-testid="terms-confirm"] li');
     expect(await confirm.count()).toBeGreaterThanOrEqual(5);
     await expect(page.locator('[data-testid="terms-confirm"]')).toContainText(/residency year/i);
-    await expect(page.locator('[data-testid="terms-confirm"]')).toContainText(/pet policy/i);
+    await expect(page.locator('[data-testid="terms-confirm"]')).toContainText(/security deposit/i);
+    await expect(page.locator('[data-testid="terms-stated"]')).toContainText("Utilities are included in the monthly price. No pets.");
     const main = (await page.locator("main").textContent()) ?? "";
-    expect(main).not.toMatch(/guarantee|within \d+ (hours?|minutes?|days?)|same[- ]day|pets? (are )?(welcome|allowed)|pet[- ]friendly|no minimum|week[- ]to[- ]week|utilities (are )?included|blackout/i);
+    expect(main).not.toMatch(/guarantee|within \d+ (hours?|minutes?|days?)|same[- ]day|pets? (are )?(welcome|allowed)|pet[- ]friendly|no minimum|week[- ]to[- ]week|blackout/i);
     expect(main).not.toMatch(/\b(luxury|world-class|paradise|best-in-class|hidden gem|only \d+ left)\b|!/i);
     // No street address on this page, not even an approved one; the home pages carry those.
     expect(main).not.toMatch(/\b\d{2,5} [A-Z][a-z]+ (St|Street|Ave|Avenue|Rd|Road|Dr|Drive|Blvd)\b/);

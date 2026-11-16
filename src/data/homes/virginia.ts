@@ -134,7 +134,7 @@ export const virginiaHome: HomeMicrosite = {
       group: "Laundry & utilities",
       items: [
         { name: "Laundry access", status: "listed" },
-        { name: "Utilities included", status: "confirm" },
+        { name: "Utilities included", status: "confirmed" },
       ],
     },
     {

@@ -188,7 +188,7 @@ export const oakHome: HomeMicrosite = {
       group: "Laundry & utilities",
       items: [
         { name: "Washer and dryer", status: "confirm" },
-        { name: "Utilities included", status: "confirm" },
+        { name: "Utilities included", status: "listed" },
       ],
     },
     {

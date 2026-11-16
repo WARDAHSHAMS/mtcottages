@@ -5,48 +5,48 @@
       "monthlyRate": { "status": "guide" },
       "deposit": { "status": "confirm", "ask": "2" },
       "minimumStay": { "status": "listed", "value": "30 days", "source": "Frederick Cottage listing: 30-day minimum stay; shorter stays priced on inquiry" },
-      "utilities": { "status": "confirm", "ask": "T1", "note": "Included per the rental arrangement; ask what is covered" },
-      "pets": { "status": "confirm", "ask": "T2" },
+      "utilities": { "status": "confirmed", "value": "Included", "source": "Decided on #70, 2026-11-16: all Mt Cottages Furnished Finder listings include utilities" },
+      "pets": { "status": "confirmed", "value": "No pets", "source": "Mt Cottages house rules (ops SOP, Respond to Inquiry: no pets), decided on #70, 2026-11-16" },
       "availableFrom": { "status": "confirm", "ask": "4" }
     },
     "broad": {
-      "monthlyRate": { "status": "guide" },
+      "monthlyRate": { "status": "confirmed", "value": 1875, "source": "Furnished Finder listing 317243, Broad St Bungalow by Mt Cottages, read 2026-11-16" },
       "deposit": { "status": "confirm", "ask": "2" },
-      "minimumStay": { "status": "confirm", "ask": "T3" },
-      "utilities": { "status": "confirm", "ask": "T1" },
-      "pets": { "status": "confirm", "ask": "T2" },
-      "availableFrom": { "status": "confirm", "ask": "4" }
+      "minimumStay": { "status": "listed", "value": "30 days", "source": "Furnished Finder listing 317243, Broad St Bungalow by Mt Cottages, read 2026-11-16" },
+      "utilities": { "status": "listed", "value": "Included", "source": "Furnished Finder listing 317243, Broad St Bungalow by Mt Cottages, read 2026-11-16" },
+      "pets": { "status": "confirmed", "value": "No pets", "source": "Mt Cottages house rules (ops SOP, Respond to Inquiry: no pets), decided on #70, 2026-11-16" },
+      "availableFrom": { "status": "confirmed", "value": "2026-11-17", "source": "Furnished Finder listing 317243, Broad St Bungalow by Mt Cottages, read 2026-11-16" }
     },
     "buck": {
       "monthlyRate": { "status": "guide" },
       "deposit": { "status": "confirm", "ask": "2" },
       "minimumStay": { "status": "listed", "value": "One month", "source": "Buck Cottage microsite: set up for stays of a month or longer" },
-      "utilities": { "status": "confirm", "ask": "T1" },
-      "pets": { "status": "confirm", "ask": "T2" },
+      "utilities": { "status": "confirmed", "value": "Included", "source": "Decided on #70, 2026-11-16: all Mt Cottages Furnished Finder listings include utilities" },
+      "pets": { "status": "confirmed", "value": "No pets", "source": "Mt Cottages house rules (ops SOP, Respond to Inquiry: no pets), decided on #70, 2026-11-16" },
       "availableFrom": { "status": "confirm", "ask": "4" }
     },
     "oak": {
-      "monthlyRate": { "status": "guide" },
+      "monthlyRate": { "status": "confirmed", "value": 2585, "source": "Furnished Finder listing 920512, Oak House by Mt Cottages, read 2026-11-16" },
       "deposit": { "status": "confirm", "ask": "2" },
       "minimumStay": { "status": "listed", "value": "One month", "source": "Oak Cottage microsite: set up for stays of a month or longer" },
-      "utilities": { "status": "confirm", "ask": "T1" },
-      "pets": { "status": "confirm", "ask": "T2" },
-      "availableFrom": { "status": "confirm", "ask": "4" }
+      "utilities": { "status": "listed", "value": "Included", "source": "Furnished Finder listing 920512, Oak House by Mt Cottages, read 2026-11-16" },
+      "pets": { "status": "confirmed", "value": "No pets", "source": "Mt Cottages house rules (ops SOP, Respond to Inquiry: no pets), decided on #70, 2026-11-16" },
+      "availableFrom": { "status": "confirmed", "value": "2027-06-10", "source": "Furnished Finder listing 920512, Oak House by Mt Cottages, read 2026-11-16" }
     },
     "virginia": {
       "monthlyRate": { "status": "guide" },
       "deposit": { "status": "confirm", "ask": "2" },
       "minimumStay": { "status": "listed", "value": "One month", "source": "Virginia Cottage microsite: offered for stays of a month or longer" },
-      "utilities": { "status": "confirm", "ask": "T1" },
-      "pets": { "status": "confirm", "ask": "T2" },
+      "utilities": { "status": "confirmed", "value": "Included", "source": "Decided on #70, 2026-11-16: all Mt Cottages Furnished Finder listings include utilities" },
+      "pets": { "status": "confirmed", "value": "No pets", "source": "Mt Cottages house rules (ops SOP, Respond to Inquiry: no pets), decided on #70, 2026-11-16" },
       "availableFrom": { "status": "confirm", "ask": "4" }
     },
     "henrietta": {
       "monthlyRate": { "status": "guide" },
       "deposit": { "status": "confirm", "ask": "2" },
-      "minimumStay": { "status": "confirm", "ask": "T3" },
-      "utilities": { "status": "confirm", "ask": "T1" },
-      "pets": { "status": "confirm", "ask": "T2" },
+      "minimumStay": { "status": "confirmed", "value": "One month", "source": "Decided on #70, 2026-11-16: a one-month minimum like the other homes" },
+      "utilities": { "status": "confirmed", "value": "Included", "source": "Decided on #70, 2026-11-16: all Mt Cottages Furnished Finder listings include utilities" },
+      "pets": { "status": "confirmed", "value": "No pets", "source": "Mt Cottages house rules (ops SOP, Respond to Inquiry: no pets), decided on #70, 2026-11-16" },
       "availableFrom": { "status": "confirm", "ask": "4" }
     }
   }

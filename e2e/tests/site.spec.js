@@ -128,8 +128,8 @@ test("the cottages and locations indexes expose useful property details", async 
   await expect(page.locator(".property-card")).toHaveCount(listedHomes.length);
   // #71: prices change only with the owner's answer (see "Price drift" in notes/owner-decisions.md).
   const shownPrices = {
-    "Frederick Cottage": "$2,575/month", "Broad Cottage": "$1,895/month", "Buck Cottage": "$1,895/month",
-    "Oak Cottage": "$2,575/month", "Virginia Cottage": "$2,295/month", "Henrietta Cottage": "$2,295/month",
+    "Frederick Cottage": "$2,575/month", "Broad Cottage": "$1,875/month", "Buck Cottage": "$1,895/month",
+    "Oak Cottage": "$2,585/month", "Virginia Cottage": "$2,295/month", "Henrietta Cottage": "$2,295/month",
   };
   // #72: a rate that is still the bedroom-count guide carries the word "guide" (src/data/terms.ts).
   for (const [name, price] of Object.entries(shownPrices)) {
