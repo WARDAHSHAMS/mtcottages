@@ -13,7 +13,7 @@
  * until prices are owner-confirmed. e2e/tests/schema.spec.js enforces these on
  * the built pages.
  */
-import type { BreadcrumbListLeaf, CityLeaf, JsonLdObject, ListItemLeaf, LodgingBusinessLeaf, WithContext } from "schema-dts";
+import type { BreadcrumbListLeaf, CityLeaf, FAQPageLeaf, JsonLdObject, ListItemLeaf, LodgingBusinessLeaf, QuestionLeaf, WithContext } from "schema-dts";
 import { homes } from "./homes";
 import { homeBase } from "./homes/links";
 
@@ -64,6 +64,18 @@ export const locationCrumbs = (guide: { town: string; path: string }): Crumb[] =
   { name: "Locations", href: "/locations.html" },
   { name: guide.town, href: `/${guide.path}` },
 ];
+
+/** An FAQPage for questions that are shown, word for word, on the same page. */
+export const faqSchema = (url: string, faqs: { q: string; a: string }[]): WithContext<FAQPageLeaf> => ({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "@id": `${new URL(url, origin).toString()}#faq`,
+  mainEntity: faqs.map(({ q, a }): QuestionLeaf => ({
+    "@type": "Question",
+    name: q,
+    acceptedAnswer: { "@type": "Answer", text: a },
+  })),
+});
 
 /** A BreadcrumbList that matches the visible trail; hrefs are site paths or absolute URLs. */
 export const breadcrumbSchema = (trail: Crumb[]): WithContext<BreadcrumbListLeaf> => ({

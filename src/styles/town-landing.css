@@ -1,0 +1,42 @@
+/* Town landing pages (src/components/TownLanding.astro). Built on the site tokens in site.css. */
+@layer components {
+  .tl-homes { padding: 0; list-style: none; }
+  .tl-home h3 { font-size: 1.55rem; }
+  .tl-home h3 a { color: inherit; text-decoration: none; }
+  .tl-home h3 a:hover, .tl-home h3 a:focus-visible { text-decoration: underline; }
+  .tl-home .location { color: var(--muted); font-size: .92rem; }
+  .tl-facts { display: flex; flex-wrap: wrap; gap: .45rem; padding: 0; list-style: none; color: var(--muted); font-size: .8rem; }
+  .tl-facts li { padding: .2rem .55rem; border: 1px solid var(--line); border-radius: 99rem; }
+  .tl-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem; color: var(--forest); }
+  .tl-price span { color: var(--muted); font-size: .8rem; }
+  .tl-price strong { font-variant-numeric: tabular-nums; }
+  .tl-price--confirm { color: var(--accent-deep); font-size: .9rem; font-weight: 700; }
+  .tl-home-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-top: auto; }
+  .tl-ask { padding: .55rem .9rem; font-size: .88rem; }
+
+  .tl-table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+  .tl-table-scroll:focus-visible { outline: 3px solid var(--accent-ink); outline-offset: 3px; }
+  .tl-table { width: 100%; min-width: 36rem; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .tl-table th, .tl-table td { padding: .9rem 1rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  .tl-table thead th { color: var(--muted); font-family: var(--mono); font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .tl-table tbody th { color: var(--forest); }
+  .tl-table tbody tr:last-child > * { border-bottom: 0; }
+  .tl-table strong { color: var(--ink); font-size: 1.1rem; }
+  .tl-miles, .tl-walk { display: block; color: var(--muted); font-size: .85rem; }
+
+  .tl-confirm { display: grid; gap: .55rem; padding: 0; list-style: none; }
+  .tl-confirm li { padding: .7rem .8rem; border: 1px dashed var(--accent); border-radius: .7rem; background: color-mix(in srgb, var(--sun) 60%, var(--paper)); color: var(--accent-deep); }
+
+  .tl-audiences { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0; list-style: none; }
+  .tl-audiences .story-card { display: grid; align-content: start; gap: .8rem; min-height: 0; }
+  .tl-audiences .story-card h3 { margin: 0; }
+  .tl-audiences .inline-link { color: var(--forest); font-weight: 800; }
+
+  .tl-eyebrow-light { color: var(--gold); }
+  .tl-nearby { color: rgb(247 245 235 / .82); }
+  .tl-nearby a { color: var(--gold); }
+}
+
+@media (max-width: 720px) {
+  .tl-audiences { grid-template-columns: 1fr; }
+}

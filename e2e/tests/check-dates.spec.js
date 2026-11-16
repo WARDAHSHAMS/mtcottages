@@ -49,13 +49,18 @@ const stayHrefs = (page) =>
   page.locator(`a[href^="${STAY}"]`).evaluateAll((links) => links.map((link) => link.getAttribute("href")));
 const ALLOWED_PARAMS = ["property", "audience", "location", "src"];
 
-const expectEveryStayLink = async (page, pathname, expected) => {
+// `homes`: listed homes a page may also offer one by one (a town money page's
+// "Ask about <home>" links); each such link carries that home instead of the town.
+const expectEveryStayLink = async (page, pathname, expected, homes = []) => {
   const hrefs = await stayHrefs(page);
   expect(hrefs.length, `${pathname} stay links`).toBeGreaterThanOrEqual(4);
+  const src = pageSlug(pathname);
   for (const href of hrefs) {
     const params = new URL(href).searchParams;
     expect([...params.keys()].every((key) => ALLOWED_PARAMS.includes(key)), `${pathname}: ${href}`).toBe(true);
-    expect(Object.fromEntries(params), `${pathname}: ${href}`).toEqual({ ...expected, src: pageSlug(pathname) });
+    const actual = Object.fromEntries(params);
+    const allowed = [{ ...expected, src }, ...homes.map((home) => ({ property: home, src }))];
+    expect(allowed, `${pathname}: ${href}`).toContainEqual(actual);
   }
 };
 
@@ -139,15 +144,15 @@ test("audience hubs and town pages carry their audience or town on every inquiry
     ["/insurance-housing.html", { audience: "insurance" }],
     ["/family-stays.html", { audience: "visiting-family" }],
     ["/marietta/index.html", { location: "marietta" }],
-    ["/parkersburg/index.html", { location: "parkersburg" }],
+    ["/parkersburg/index.html", { location: "parkersburg" }, ["broad", "buck", "oak"]],
     ["/ravenswood/index.html", { location: "ravenswood" }],
     ["/racine/index.html", { location: "racine" }],
     ["/grantsville/index.html", { location: "grantsville" }],
     ["/about.html", {}],
   ];
-  for (const [pathname, expected] of cases) {
+  for (const [pathname, expected, homes] of cases) {
     await page.goto(pathname);
-    await expectEveryStayLink(page, pathname, expected);
+    await expectEveryStayLink(page, pathname, expected, homes);
   }
 });
 

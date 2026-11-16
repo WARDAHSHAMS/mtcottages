@@ -32,9 +32,14 @@ const broadSectionTargets = {
 // Under build.format "preserve" a redirect from ".../<section>/index" is written to ".../<section>/index.html",
 // which keeps the old directory URLs working. The old summary pages (/parkersburg/broad-cottage.html,
 // oak-cottage.html, henrietta-cottage.html) are emitted by src/pages/[town]/[home].html.ts.
-const redirects = Object.fromEntries(
-  Object.entries(broadSectionTargets).map(([section, target]) => [`${broadBase}/${section}/index`, `${broadBase}/${target}`]),
-);
+const redirects = {
+  ...Object.fromEntries(
+    Object.entries(broadSectionTargets).map(([section, target]) => [`${broadBase}/${section}/index`, `${broadBase}/${target}`]),
+  ),
+  // The keyword map (docs/marketing/keyword-universe.csv) names /<town>/furnished-rentals/;
+  // the town guide is that page, so the path redirects there instead of competing with it.
+  "/parkersburg/furnished-rentals/index": "/parkersburg/index.html",
+};
 
 export default defineConfig({
   site: "https://mtcottages.com",
