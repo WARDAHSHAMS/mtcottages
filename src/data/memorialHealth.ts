@@ -16,6 +16,7 @@
  */
 import { homes } from "./homes";
 import { drive, driveSource, faqs as hubFaqs, hubHref, type DriveLine } from "./travelNurses";
+import { monthlyRateText, termRows } from "./terms";
 import type { Faq } from "./townLanding";
 import type { HomeMicrosite } from "./homes/types";
 
@@ -28,6 +29,25 @@ const home = (id: string): HomeMicrosite => {
 };
 
 export const frederick = home("frederick");
+
+/**
+ * Frederick's monthly price from src/data/terms.json (#72), the one source every
+ * card, microsite and Offer reads. The copy says "confirmed by the owner" only
+ * while terms.json marks the rate confirmed; a guide price is called a guide.
+ */
+const frederickRateText = monthlyRateText("frederick");
+if (frederickRateText === null) throw new Error("The Memorial page quotes Frederick Cottage's monthly price, but src/data/terms.json has it as still to confirm");
+export const frederickRate = {
+  text: frederickRateText,
+  confirmed: termRows("frederick").find((row) => row.field === "monthlyRate")?.status === "confirmed",
+};
+const frederickRatePhrase = frederickRate.confirmed
+  ? `a monthly rate of ${frederickRate.text}, confirmed by the owner`
+  : `a monthly guide price of ${frederickRate.text}`;
+/** The pricing footnote under the drive table. */
+export const rateNote = frederickRate.confirmed
+  ? "Guide prices are for planning; we confirm the current price and what it covers before you commit. Frederick Cottage's rate is owner-confirmed."
+  : "Guide prices are for planning; we confirm the current price and what it covers before you commit.";
 
 // ---------------------------------------------------------------------------
 // Measured drives to both Memorial Health System hospitals in Marietta, Ohio
@@ -77,7 +97,7 @@ export const frederickFacts = [
   `${toMemorial.minutes} minutes by car to Marietta Memorial Hospital (${toMemorial.miles.toFixed(1)} mi) and ${toSelby.minutes} minutes to Selby General Hospital (${toSelby.miles.toFixed(1)} mi)`,
   `${frederick.bedrooms} bedrooms, a full kitchen and fiber-optic internet (1 Gbps, wired and wifi)`,
   "A driveway and free parking on the premises and on the street, as the listing states",
-  `A 30-day minimum stay, with a monthly guide price of ${frederick.priceGuide} that the owner has confirmed`,
+  `A 30-day minimum stay, with ${frederickRatePhrase}`,
 ];
 
 // ---------------------------------------------------------------------------
@@ -131,7 +151,7 @@ export const residency = {
 export const terms = {
   stated: [
     "Frederick Cottage lists a 30-day minimum stay. Shorter stays are priced on inquiry.",
-    `Frederick Cottage's monthly guide price is ${frederick.priceGuide}, confirmed by the owner. We confirm the current price and what it covers before you commit.`,
+    `Frederick Cottage has ${frederickRatePhrase}. We confirm the current price and what it covers before you commit.`,
   ],
   confirm: [
     "Whether your 13-week contract dates fit",

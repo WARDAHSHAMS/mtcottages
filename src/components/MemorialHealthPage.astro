@@ -17,7 +17,7 @@ import { stayLink } from "../data/stay-link";
 import type { Crumb } from "../data/schema";
 import type { Photo } from "../data/site";
 import {
-  campuses, disclaimer, driveRows, driveSource, faqs, frederick, frederickFacts, hubHref, page, residency, terms,
+  campuses, disclaimer, driveRows, driveSource, faqs, frederick, frederickFacts, hubHref, page, rateNote, residency, terms,
 } from "../data/memorialHealth";
 
 interface Props {
@@ -165,7 +165,7 @@ const frederickHref = `/${frederick.town.slug}/${frederick.slug}/`;
   <div class="site-width">
     <div class="section-heading">
       <div><p class="eyebrow">Nearby homes</p><h2 id="mh-homes-title">Furnished homes within a short drive of Memorial</h2></div>
-      <p>Guide prices are for planning; we confirm the current price and what it covers before you commit. Only Frederick's guide price is owner-confirmed.</p>
+      <p>{rateNote}</p>
     </div>
     <div class="card-grid">
       {homeCards.map(({ home, cottage }) => (
