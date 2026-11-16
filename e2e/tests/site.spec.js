@@ -267,6 +267,9 @@ test("on the live host the beacon goes to the collector as test traffic and stay
   await expect.poll(() => collected).toContainEqual(pageview);
   await expect.poll(() => beacons(page)).toContainEqual(pageview);
   await expectNothingStored(page, context);
+  // The page keeps loading photos through the route above; one still in flight when the test ends
+  // throws "route.fetch: Test ended" into the next test on this worker (GitHub Pages run 122).
+  await page.unrouteAll({ behavior: "ignoreErrors" });
 });
 
 test("the privacy notice explains the cookieless visit counts", async ({ page }) => {
