@@ -393,7 +393,7 @@ drift:intake-logicapp:
   needs: []
   rules:
     - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "schedule" && $INTAKE_LOGICAPP_DRIFT == "true"'
-    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "web" && $INTAKE_LOGICAPP_DRIFT == "true"'
+    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && ($CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "api") && $INTAKE_LOGICAPP_DRIFT == "true"'
     - when: never
   script:
     - bash infra/azure/intake-logicapp.sh drift
@@ -412,7 +412,7 @@ canary:intake:
   resource_group: intake-canary-mtcottages
   rules:
     - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "schedule" && $INTAKE_CANARY_ENABLED == "true"'
-    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "web" && $INTAKE_CANARY_ENABLED == "true"'
+    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && ($CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "api") && $INTAKE_CANARY_ENABLED == "true"'
     - when: never
   timeout: 10m
   script:
@@ -469,7 +469,8 @@ roadmap:
 
 # Lost-inquiry count (#12): read-only, aggregates only (Front Door POST
 # /api/apply attempts per day and status, Logic App runs per day and status).
-# Run by hand: "Run pipeline" on gh-pages with INTAKE_LOSS_COUNT=true, and
+# Run by hand: "Run pipeline" on gh-pages (UI, or `glab ci run`, which GitLab
+# reports as source "api") with INTAKE_LOSS_COUNT=true, and
 # optionally INTAKE_LOSS_SINCE=YYYY-MM-DD (default 2026-07-01).
 count:intake-loss:
   extends: .intake-logicapp:azure
@@ -477,7 +478,7 @@ count:intake-loss:
   needs: []
   resource_group: intake-loss-count-mtcottages
   rules:
-    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "web" && $INTAKE_LOSS_COUNT == "true"'
+    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_COMMIT_REF_PROTECTED == "true" && ($CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "api") && $INTAKE_LOSS_COUNT == "true"'
     - when: never
   timeout: 10m
   script:
