@@ -266,7 +266,6 @@ export type Guide = {
 const guidePhotos: Record<string, Photo> = {
   living: photo(mariettaLiving, "A furnished living room with natural light and comfortable seating"),
   family: photo(oakDining, "A bright dining room with room for a household to gather"),
-  work: photo(buckLiving, "A furnished cottage living room with natural light and comfortable seating"),
   insurance: photo(henriettaLiving, "A furnished living and dining space for a transitional stay"),
   services: photo(oakKitchen, "A furnished kitchen with full-size appliances and storage"),
 };
@@ -301,23 +300,6 @@ export const guides: Record<string, Guide> = {
     ],
     cta: "Plan a family stay",
     audience: "visiting-family",
-  },
-  work: {
-    path: "work-relocation.html",
-    title: "Furnished housing for work assignments and relocation",
-    metaTitle: "Furnished housing for work and relocation",
-    metaDescription: "Furnished homes in Marietta, Ohio and Parkersburg, WV for a new role, a regional project or a move, with a kitchen, laundry and fiber internet.",
-    eyebrow: "Arrive ready",
-    description: "A new role or regional project already comes with a full to-do list.",
-    intro: "Mt Cottages offers furnished homes across Mid-Ohio Valley communities so you can focus on the work and the transition around it.",
-    photo: guidePhotos.work,
-    sections: [
-      { title: "A practical base while work is changing", body: "A furnished home gives a new hire, project team, or relocating household a place to land while the next decision takes shape." },
-      { title: "Projects, contracts, and field work", body: "Share the worksite, likely timing, household, and preferred community so we can compare the practical fit." },
-      { title: "For employers and coordinators", body: "We can discuss partner-led housing, timing, furnishing needs, and the information needed to make a placement workable." },
-    ],
-    cta: "Plan a work stay",
-    audience: "crew",
   },
   insurance: {
     path: "insurance-housing.html",
@@ -427,13 +409,13 @@ export const locationData: Record<string, Guide & { town: string; cottages?: Cot
 export const navGroups = [
   { label: "Cottages", href: "cottages.html", items: [["Find your place", "cottages.html"], ["Available now", "available.html"], ["Cozy places", "cozy-places.html"], ["Room to settle in", "room-to-settle.html"]] },
   { label: "Locations", href: "locations.html", items: [["Marietta", "marietta/index.html"], ["Parkersburg", "parkersburg/index.html"], ["Ravenswood", "ravenswood/index.html"], ["Racine", "racine/index.html"], ["Grantsville", "grantsville/index.html"]] },
-  { label: "Living", href: "living.html", items: [["Travel nurses", "travel-nurses/"], ["Work & relocation", "work-relocation.html"], ["Insurance housing", "insurance-housing.html"], ["Family stays", "family-stays.html"]] },
+  { label: "Living", href: "living.html", items: [["Travel nurses", "travel-nurses/"], ["Corporate & crew housing", "corporate-housing/"], ["Insurance housing", "insurance-housing.html"], ["Family stays", "family-stays.html"]] },
   { label: "Services", href: "services.html", items: [["Fully furnished homes", "fully-furnished-homes.html"], ["Home amenities", "home-amenities.html"], ["Guest services", "guest-services.html"], ["Property care", "property-care.html"]] },
   { label: "Residents", href: "residents.html", items: [["Resident portal", "resident-portal.html"], ["Pay rent", "pay-rent.html"], ["Maintenance", "maintenance.html"], ["Emergency maintenance", "emergency-maintenance.html"]] },
 ];
 
 export const routePaths = [
-  "about.html", "available.html", "contact.html", "cottages.html", "cozy-places.html", "emergency-maintenance.html", "family-stays.html", "faq.html", "fully-furnished-homes.html", "guest-services.html", "home-amenities.html", "housekeeping.html", "insurance-housing.html", "living.html", "locations.html", "maintenance.html", "meal-preparation.html", "partnerships.html", "pay-rent.html", "privacy.html", "property-care.html", "resident-portal.html", "residents.html", "room-to-settle.html", "services.html", "work-relocation.html",
+  "about.html", "available.html", "contact.html", "cottages.html", "cozy-places.html", "emergency-maintenance.html", "family-stays.html", "faq.html", "fully-furnished-homes.html", "guest-services.html", "home-amenities.html", "housekeeping.html", "insurance-housing.html", "living.html", "locations.html", "maintenance.html", "meal-preparation.html", "partnerships.html", "pay-rent.html", "privacy.html", "property-care.html", "resident-portal.html", "residents.html", "room-to-settle.html", "services.html",
 ];
 
 // Homes that are not listed (CEO decision 2026-11-14: Yellow is not ready and

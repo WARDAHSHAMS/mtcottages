@@ -1,0 +1,18 @@
+/* Corporate and crew hub (src/components/CorporateHousingHub.astro). Chart, table and card primitives (.tn-*) come from travel-nurses.css; this file adds only what is specific to the crew-capacity and terms tables. */
+@layer components {
+  .ch-table { min-width: 48rem; }
+  .ch-town { display: block; color: var(--muted); font-size: .82rem; font-weight: 400; }
+  .ch-value { display: block; font-weight: 700; color: var(--ink); }
+  .ch-value--confirm { color: var(--accent-deep); font-weight: 600; }
+  .ch-detail { display: block; color: var(--muted); font-size: .85rem; font-weight: 400; }
+  .ch-area { display: block; color: var(--muted); font-size: .78rem; font-weight: 400; }
+  .step-grid.ch-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+  .step-grid.ch-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .step-grid.ch-steps { grid-template-columns: 1fr; }
+}

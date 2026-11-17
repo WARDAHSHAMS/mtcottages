@@ -1,0 +1,27 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import CorporateHousingHub from "../../components/CorporateHousingHub.astro";
+import { faqSchema, type Crumb } from "../../data/schema";
+import { faqs, hub, hubAudience, hubHref } from "../../data/corporateHousing";
+import { frederickHome } from "../../data/homes/frederick";
+
+// The corporate and project-crew hub (#34). /work-relocation.html is a noindex redirect to this page
+// (src/pages/work-relocation.html.ts), so the old generic guide and the hub are one page.
+// The hero is Frederick Cottage's own front-of-house photo from its microsite data, a real portfolio photo.
+const crumbs: Crumb[] = [
+  { name: "Home", href: "/" },
+  { name: "Corporate and crew housing", href: hubHref },
+];
+const hero = { src: frederickHome.hero.src, alt: frederickHome.hero.alt, focal: frederickHome.hero.focal };
+---
+<SiteLayout
+  title={hub.title}
+  description={hub.description}
+  audience={hubAudience}
+  breadcrumbs={crumbs}
+  socialImage={hero.src}
+  socialImageAlt={hero.alt}
+  schema={faqSchema(hubHref, faqs)}
+>
+  <CorporateHousingHub crumbs={crumbs} hero={hero} />
+</SiteLayout>
