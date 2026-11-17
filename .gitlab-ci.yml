@@ -361,7 +361,9 @@ smoke:apply-proxy:
   script:
     - cd e2e
     - npm ci
-    - npx playwright test tests/live.spec.js --grep-invert microsite
+    # Xvfb (shipped in the Playwright image) gives the real-browser Turnstile
+    # check (#85) a headed Chromium; the spec runs headless when DISPLAY is unset.
+    - xvfb-run -a npx playwright test tests/live.spec.js --grep-invert microsite
   artifacts:
     when: on_failure
     paths:

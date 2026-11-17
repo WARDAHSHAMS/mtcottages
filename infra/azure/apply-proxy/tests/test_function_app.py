@@ -261,7 +261,135 @@ def test_oversized_turnstile_token_is_rejected_before_network(monkeypatch):
         request,
         {"cf-turnstile-response": "x" * (function_app.MAX_TURNSTILE_TOKEN_LENGTH + 1)},
     )
-    assert result == (400, "Please complete the human verification")
+    assert result == (400, "Please complete the human verification", "token-too-long")
+
+
+# ---------------------------------------------------------------------------
+# Which stage refused an inquiry (#85)
+# ---------------------------------------------------------------------------
+
+class SiteverifyAnswer:
+    def __init__(self, result):
+        self._body = json.dumps(result).encode("utf-8")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def read(self, *_args):
+        return self._body
+
+
+@pytest.fixture
+def siteverify(monkeypatch):
+    """A configured Turnstile whose siteverify answer each test chooses; Logic App calls are recorded."""
+    function_app._last_submission.clear()
+    function_app._accepted_submissions.clear()
+    for name in NOTIFY_SETTINGS:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("TURNSTILE_SITE_KEY", "0x4AAAAAAAsite-key")
+    monkeypatch.setenv("TURNSTILE_SECRET_KEY", "0x4AAAAAAAsecret-key")
+    monkeypatch.setenv("TURNSTILE_ALLOWED_HOSTNAMES", "stay.mtcottages.com")
+    monkeypatch.setenv("TURNSTILE_EXPECTED_ACTION", "stay-inquiry")
+    monkeypatch.setenv("LOGICAPP_URL_APPLICATION", "https://logic.example.test/callback")
+    state = SimpleNamespace(
+        result={"success": True, "hostname": "stay.mtcottages.com", "action": "stay-inquiry"},
+        verify_calls=[],
+        intake_calls=[],
+    )
+
+    def urlopen(request, timeout):
+        del timeout
+        if request.full_url == function_app.TURNSTILE_VERIFY_URL:
+            state.verify_calls.append(urllib.parse.parse_qs(request.data.decode("utf-8")))
+            return SiteverifyAnswer(state.result)
+        state.intake_calls.append(request)
+        return CallbackResponse()
+
+    monkeypatch.setattr(function_app.urllib.request, "urlopen", urlopen)
+    return state
+
+
+def _rejection(response):
+    body = json.loads(response.body)
+    assert body["success"] is False
+    return response.status_code, body
+
+
+def test_a_verified_token_with_an_incomplete_inquiry_stops_at_validation(siteverify):
+    """The live smoke's proof (#85): Turnstile passed, nothing reached the Logic App."""
+    response = _apply(_form_request({"cf-turnstile-response": "real-browser-token"}))
+    status, body = _rejection(response)
+    assert status == 400
+    assert body == {"success": False, "message": "Please complete the required fields", "stage": "validation"}
+    assert len(siteverify.verify_calls) == 1
+    assert siteverify.intake_calls == []
+
+
+@pytest.mark.parametrize(
+    ("result", "reason"),
+    [
+        ({"success": False, "error-codes": ["invalid-input-response"]}, "rejected:invalid-input-response"),
+        ({"success": False, "error-codes": ["timeout-or-duplicate"]}, "rejected:timeout-or-duplicate"),
+        ({"success": False, "error-codes": ["<script>", 7]}, "rejected:none"),
+        ({"success": False}, "rejected:none"),
+        ({"success": True, "hostname": "evil.example", "action": "stay-inquiry"}, "hostname-mismatch"),
+        ({"success": True, "hostname": "stay.mtcottages.com", "action": "other"}, "action-mismatch"),
+    ],
+)
+def test_a_turnstile_refusal_names_its_reason_and_never_delivers(siteverify, result, reason, caplog):
+    siteverify.result = result
+    with caplog.at_level("WARNING"):
+        response = _apply(_form_request(_valid_payload()))
+    status, body = _rejection(response)
+    assert status == 400
+    assert body == {
+        "success": False,
+        "message": "Please complete the human verification",
+        "stage": "verification",
+        "reason": reason,
+    }
+    assert siteverify.intake_calls == []
+    assert "Ada" not in caplog.text and "ada@example.com" not in caplog.text
+    assert "<script>" not in caplog.text
+
+
+def test_a_missing_token_is_refused_before_the_fields_without_calling_cloudflare(siteverify):
+    payload = _valid_payload()
+    payload.pop("cf-turnstile-response")
+    status, body = _rejection(_apply(_form_request(payload)))
+    assert status == 400
+    assert (body["stage"], body["reason"]) == ("verification", "missing-token")
+    assert siteverify.verify_calls == []
+
+
+def test_the_honeypot_is_screened_before_any_siteverify_call(siteverify):
+    status, body = _rejection(_apply(_form_request({"website": "ci-probe", "cf-turnstile-response": "t"})))
+    assert status == 400
+    assert body == {"success": False, "message": "Invalid submission", "stage": "screening"}
+    assert siteverify.verify_calls == []
+
+
+def test_a_validation_refusal_is_logged_with_its_fixed_message_only(siteverify, caplog):
+    payload = _valid_payload()
+    payload["phone"] = "call me maybe"
+    with caplog.at_level("WARNING"):
+        status, body = _rejection(_apply(_form_request(payload)))
+    assert status == 400
+    assert body["stage"] == "validation"
+    assert "Inquiry rejected at validation: Please provide a valid phone number" in caplog.text
+    assert "call me maybe" not in caplog.text
+
+
+def test_a_verified_complete_inquiry_is_delivered(siteverify):
+    response = _apply(_form_request(_valid_payload(), headers=_request_from("192.0.2.40")))
+    assert response.status_code == 200
+    assert len(siteverify.intake_calls) == 1
+    sent = siteverify.verify_calls[0]
+    assert sent["response"] == ["turnstile-token"]
+    assert sent["remoteip"] == ["192.0.2.40"]
 
 
 def test_form_csp_has_nonce_and_turnstile_sources(monkeypatch):
@@ -292,7 +420,7 @@ def test_missing_site_key_rejects_turnstile_verification_before_network(monkeypa
     monkeypatch.setenv("TURNSTILE_SECRET_KEY", "secret-key")
     monkeypatch.setattr(function_app.urllib.request, "urlopen", lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("network call")))
     result = function_app._verify_turnstile(Request(), {"cf-turnstile-response": "turnstile-token"})
-    assert result == (503, "Human verification is not configured")
+    assert result == (503, "Human verification is not configured", "not-configured")
 
 
 def test_missing_secret_key_fails_closed_without_rendering_form(monkeypatch):
@@ -806,6 +934,8 @@ STORAGE_KEY = "a2V5LWZvci10ZXN0cy1vbmx5"  # base64 of a dummy key, not a credent
 def deep(monkeypatch):
     """A configured host whose Logic App GET and queue metadata answers each test chooses."""
     function_app.deep_health.reset_cache()
+    monkeypatch.setenv("TURNSTILE_SITE_KEY", "0x4AAAAAAAsite-key")
+    monkeypatch.setenv("TURNSTILE_SECRET_KEY", "0x4AAAAAAAsecret-key")
     monkeypatch.setenv("LOGICAPP_URL_APPLICATION", "https://logic.example.test/callback?sig=secret")
     monkeypatch.setenv(
         "AzureWebJobsStorage",
@@ -910,6 +1040,31 @@ def test_unreadable_storage_is_reported_but_does_not_page(deep, monkeypatch):
     response, body = _health()
     assert response.status_code == 200
     assert set(body["queues"].values()) == {"unknown"}
+
+
+@pytest.mark.parametrize(
+    ("setting", "value", "label"),
+    [
+        ("TURNSTILE_SITE_KEY", "1x00000000000000000000AA", "test_key"),
+        ("TURNSTILE_SITE_KEY", "3x00000000000000000000FF", "test_key"),
+        ("TURNSTILE_SECRET_KEY", "2x0000000000000000000000000000000AA", "test_key"),
+        ("TURNSTILE_SECRET_KEY", "", "not_configured"),
+    ],
+)
+def test_a_turnstile_test_key_or_missing_value_fails_deep_health(deep, monkeypatch, setting, value, label):
+    """#85: a Cloudflare test key on the live host means no real token can ever verify."""
+    monkeypatch.setenv(setting, value)
+    response, body = _health()
+    assert response.status_code == 503
+    assert body["turnstile"] == label
+    assert value not in response.body or not value
+
+
+def test_production_turnstile_keys_pass_deep_health(deep):
+    response, body = _health()
+    assert response.status_code == 200
+    assert body["turnstile"] == "ok"
+    assert "0x4AAAAAAAsecret-key" not in response.body
 
 
 def test_deep_health_is_cached_against_bursts(deep):
