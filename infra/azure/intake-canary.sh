@@ -87,7 +87,7 @@ page_failure() {
   }' > "${dir}/page.json"
   local code
   code="$(curl --silent --show-error --max-time 30 --config "${dir}/page-curl.conf" \
-    --output /dev/null --write-out '%{http_code}' --request POST \
+    --user-agent "mtcottages-intake-canary" --output /dev/null --write-out '%{http_code}' --request POST \
     --header "Content-Type: application/json" --data-binary @"${dir}/page.json")" || code="error"
   rm -f "${dir}/page-curl.conf"
   case "${code}" in
