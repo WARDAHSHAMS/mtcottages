@@ -9,6 +9,7 @@ import { homes } from "../../../data/homes";
 import CheckDates from "../../../components/CheckDates.astro";
 import { fullAddress, hasStreetAddress, homeHref } from "../../../data/homes/links";
 import { homePageSchema } from "../../../data/homes/schema";
+import { pageTitle, placeName } from "../../../data/seo";
 import type { HomeMicrosite } from "../../../data/homes/types";
 
 export function getStaticPaths() {
@@ -24,7 +25,7 @@ const bedLabel = `${home.bedrooms} ${home.bedrooms === 1 ? "bedroom" : "bedrooms
 
 <HomeLayout
   shell={shell}
-  title={`${home.name} | Furnished home in ${home.town.name}, ${home.town.state} | Mt Cottages`}
+  title={pageTitle(`${home.name}: furnished home in ${placeName(home.town)}`)}
   description={`${home.tagline} ${address}.`}
   eyebrow={`${home.town.name}, ${home.town.state} · ${bedLabel}`}
   heading={home.name}

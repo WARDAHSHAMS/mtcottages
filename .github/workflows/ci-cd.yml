@@ -56,6 +56,8 @@ jobs:
           node scripts/check-dist.mjs dist
           # Proximity claims cite dated measurements; wrong claims stay out (#26).
           node scripts/check-claims.mjs dist
+          # On-page SEO: titles, descriptions, one H1, alt text, no duplicates (#69).
+          node scripts/seo-audit.mjs dist
           # Unit tests for the distances schema and the banned-claim patterns (#25).
           node --test scripts/tests/*.test.mjs
           # Unit tests for the live-build gate (#19).
