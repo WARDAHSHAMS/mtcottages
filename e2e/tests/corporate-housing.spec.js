@@ -296,7 +296,8 @@ test.describe("corporate and crew hub /corporate-housing/", () => {
     for (const home of homes) {
       const card = page.locator(`#homes .tn-card[data-home="${home.id}"]`);
       await expect(card.getByRole("heading", { level: 3 })).toHaveText(home.name);
-      await expect(card.getByRole("link", { name: home.name }).first()).toHaveAttribute("href", home.href);
+      // Property cards use the explicit index.html form, the convention every card on the site follows.
+      await expect(card.getByRole("link", { name: home.name }).first()).toHaveAttribute("href", new RegExp(`^${home.href.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(index\\.html)?$`));
       await expect(card.locator("img")).toHaveAttribute("alt", /^(?=.*\w{3}).{10,}$/);
       expect((await request.get(home.href)).status(), `${home.href} status`).toBe(200);
     }

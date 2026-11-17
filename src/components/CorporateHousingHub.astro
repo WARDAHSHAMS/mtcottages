@@ -122,7 +122,7 @@ const homeCards = capacityRows.map((row) => {
             {group.drives.map((line) => (
               <div class="tn-bar tn-bar--area">
                 <span class="tn-bar-name">{line.homeName}</span>
-                <span class="tn-bar-track"><span class={["tn-bar-fill", `tn-bar-fill--${line.homeId}`]} style={`--share:${line.share.toFixed(1)}%`}></span></span>
+                <span class="tn-bar-track"><span class:list={["tn-bar-fill", `tn-bar-fill--${line.homeId}`]} style={`--share:${line.share.toFixed(1)}%`}></span></span>
                 <span class="tn-bar-value">{line.minutes} min</span>
               </div>
             ))}
