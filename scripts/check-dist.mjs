@@ -126,6 +126,9 @@ for (const page of pages) {
     errors.push(`${page} shows an AI concept image without an AI-generated concept label`);
   }
   if (LEGACY_MARKERS.some((marker) => markup.includes(marker))) errors.push(`${page} contains a legacy runtime marker`);
+  // An array passed to class= (instead of class:list) renders as "a,b", so no CSS rule matches it (#34).
+  const joinedClass = markup.match(/\sclass="[^"]*,[^"]*"/);
+  if (joinedClass) errors.push(`${page} has a comma-joined class attribute (${joinedClass[0].trim()}); use class:list`);
   const canonicalCount = (markup.match(/<link[^>]+rel="canonical"/g) ?? []).length;
   if (canonicalCount !== 1) errors.push(`${page} has ${canonicalCount} canonical links; every page needs exactly one`);
   const sources = [...markup.matchAll(/<img[^>]+src="([^"]+)"/g)].map((match) => match[1]);
