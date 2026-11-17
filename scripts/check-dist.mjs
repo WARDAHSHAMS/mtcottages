@@ -6,14 +6,15 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
-// Every page counts: 6 home microsites x 5 template pages, Frederick's guide,
+// Every page counts: 6 home microsites x 5 template pages, a resident guide
+// for each of the six homes (#89),
 // the microsite redirects (old .html summaries, Frederick's 10 old pages,
 // Broad's 23 old sections, /parkersburg/furnished-rentals/ and
 // /marietta/furnished-rentals/), the travel-nurse hub and its Camden Clark (#32) and Memorial Health (#33) pages,
 // the corporate and crew hub (#34), the /health-professionals.html and /work-relocation.html redirect stubs
 // and the rest of the site. Update it
 // whenever a home, page or redirect is added or removed.
-const EXPECTED_PAGES = 113;
+const EXPECTED_PAGES = 118;
 const MAX_DIST_MB = 70;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const LEGACY_MARKERS = ["jquery", "bootstrap", "modernizr", "swiper", "owl.carousel", "venobox", "gsap", "hotelhub"];
