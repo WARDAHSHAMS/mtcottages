@@ -56,7 +56,8 @@ const expectEveryStayLink = async (page, pathname, expected, homes = []) => {
     const params = new URL(href).searchParams;
     expect([...params.keys()].every((key) => ALLOWED_PARAMS.includes(key)), `${pathname}: ${href}`).toBe(true);
     const actual = Object.fromEntries(params);
-    const allowed = [{ ...expected, src }, ...homes.map((home) => ({ property: home, src }))];
+    // A home link names the home; on an audience hub it also keeps the audience (corporate-housing).
+    const allowed = [{ ...expected, src }, ...homes.map((home) => (typeof home === "string" ? { property: home, src } : { property: home.id, ...home.params, src }))];
     expect(allowed, `${pathname}: ${href}`).toContainEqual(actual);
   }
 };
@@ -133,7 +134,7 @@ test("the mobile bar is hidden on a desktop viewport", async ({ page }) => {
 test("audience hubs and town pages carry their audience or town on every inquiry link", async ({ page }) => {
   const cases = [
     ["/travel-nurses/", { audience: "healthcare" }],
-    ["/work-relocation.html", { audience: "crew" }],
+    ["/corporate-housing/", { audience: "crew" }, ["frederick", "broad", "buck", "oak", "virginia", "henrietta"].map((id) => ({ id, params: { audience: "crew" } }))],
     ["/insurance-housing.html", { audience: "insurance" }],
     ["/family-stays.html", { audience: "visiting-family" }],
     ["/marietta/index.html", { location: "marietta" }, ["frederick"]],

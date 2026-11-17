@@ -132,7 +132,7 @@ const tableHomes = camdenDrives.map((line) => ({ id: line.homeId, name: line.hom
             {row.drives.map((entry) => (
               <div class="tn-bar tn-bar--area">
                 <span class="tn-bar-name">{entry.homeName}</span>
-                <span class="tn-bar-track"><span class={["tn-bar-fill", `tn-bar-fill--${entry.homeId}`]} style={`--share:${entry.share.toFixed(1)}%`}></span></span>
+                <span class="tn-bar-track"><span class:list={["tn-bar-fill", `tn-bar-fill--${entry.homeId}`]} style={`--share:${entry.share.toFixed(1)}%`}></span></span>
                 <span class="tn-bar-value">{entry.minutes} min</span>
               </div>
             ))}

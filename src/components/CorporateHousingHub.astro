@@ -1,0 +1,272 @@
+---
+/**
+ * Corporate and project-crew hub (#34), structured like the travel-nurse hub
+ * (TravelNurseHub.astro): hero with one CTA, a crew-capacity table per home, the
+ * measured drive to the plants and the interstate (a labelled chart with a table
+ * fallback), how company-paid stays work with the terms read from terms.json,
+ * relocating new hires, native FAQ disclosures that match the page's FAQPage schema,
+ * the live homes, and the no-affiliation disclaimer. Data and honesty rules:
+ * src/data/corporateHousing.ts. The chart and card primitives (.tn-*) are shared
+ * with the travel-nurse hub, so both import src/styles/travel-nurses.css.
+ */
+import "../styles/town-landing.css";
+import "../styles/travel-nurses.css";
+import "../styles/corporate-housing.css";
+import ResponsivePhoto from "./ResponsivePhoto.astro";
+import PropertyCard from "./PropertyCard.astro";
+import { cottages } from "../data/site";
+import { stayLink } from "../data/stay-link";
+import type { Crumb } from "../data/schema";
+import type { Photo } from "../data/site";
+import {
+  capacityCaption, capacityNote, capacityRows, confirmTerms, disclaimer, driveChartLabel, driveGap, driveGroups, driveSource,
+  faqs, homesNote, hub, hubAudience, process, relocation, statedTerms, termsRows,
+} from "../data/corporateHousing";
+
+interface Props {
+  crumbs: Crumb[];
+  hero: Photo;
+}
+
+const { crumbs, hero } = Astro.props;
+// Every inquiry link carries the crew audience and this page as its source (#20).
+const page = Astro.url.pathname;
+const inquiryHref = stayLink({ audience: hubAudience, page });
+const homeCards = capacityRows.map((row) => {
+  const cottage = cottages.find((entry) => entry.id === row.id);
+  if (!cottage) throw new Error(`The corporate-housing hub lists "${row.id}", which is not in src/data/site.ts`);
+  return { row, cottage, href: stayLink({ home: row.id, audience: hubAudience, page }) };
+});
+---
+
+<section class="guide-hero section--tight tl-hero">
+  <div class="site-width guide-hero-grid">
+    <div>
+      <nav class="crumbs" aria-label="Breadcrumb">
+        {crumbs.map((crumb, index) => index < crumbs.length - 1
+          ? <><a href={crumb.href}>{crumb.name}</a><span aria-hidden="true">/</span></>
+          : <span aria-current="page">{crumb.name}</span>)}
+      </nav>
+      <p class="eyebrow mt-3">{hub.eyebrow}</p>
+      <h1>{hub.h1}</h1>
+      <p class="lede" data-testid="hub-lede">{hub.lede}</p>
+      <p class="mt-2 reading">{hub.intro}</p>
+      <div class="cluster mt-3" data-cta="hero">
+        <a class="button" href={inquiryHref}>{hub.inquiryLabel} <span aria-hidden="true">↗</span></a>
+        <a class="button button--ghost" href="#company-paid">How company-paid stays work</a>
+      </div>
+    </div>
+    <figure class="hero-image-frame">
+      <ResponsivePhoto {...hero} priority sizes="(max-width: 900px) 100vw, 55vw" />
+    </figure>
+  </div>
+</section>
+
+<section class="section section--paper" id="capacity" aria-labelledby="ch-capacity-title">
+  <div class="site-width">
+    <div class="section-heading">
+      <div><p class="eyebrow">Crew capacity</p><h2 id="ch-capacity-title">What each home holds</h2></div>
+      <p>Bedrooms, beds, parking, laundry and internet for every home, side by side. A detail we have not confirmed says so instead of guessing.</p>
+    </div>
+    <div class="tl-table-scroll" role="region" aria-labelledby="ch-capacity-title" tabindex="0">
+      <table class="tl-table tn-table ch-table" data-testid="capacity-table">
+        <caption class="sr-only">{capacityCaption}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Home</th>
+            <th scope="col">Bedrooms</th>
+            <th scope="col">Beds and sleeps</th>
+            <th scope="col">Parking</th>
+            <th scope="col">Laundry</th>
+            <th scope="col">Wi-Fi and internet</th>
+          </tr>
+        </thead>
+        <tbody>
+          {capacityRows.map((row) => (
+            <tr data-home={row.id}>
+              <th scope="row"><a href={row.href}>{row.name}</a><span class="ch-town">{row.town}</span></th>
+              <td data-cell="bedrooms"><strong>{row.bedrooms}</strong></td>
+              <td data-cell="sleeps" data-confirmed={row.sleeps.confirmed ? "yes" : "no"}>
+                <span class:list={["ch-value", { "ch-value--confirm": !row.sleeps.confirmed }]}>{row.sleeps.text}</span>
+                {row.beds && <span class="ch-detail" data-cell="beds">{row.beds}</span>}
+                {row.sleeps.status && <span class="tn-status"> ({row.sleeps.status})</span>}
+              </td>
+              {[{ cell: "parking", value: row.parking }, { cell: "laundry", value: row.laundry }, { cell: "internet", value: row.internet }].map(({ cell, value }) => (
+                <td data-cell={cell} data-confirmed={value.confirmed ? "yes" : "no"}>
+                  <span class:list={["ch-value", { "ch-value--confirm": !value.confirmed }]}>{value.text}</span>
+                  {value.status && <span class="tn-status"> ({value.status})</span>}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p class="details-note mt-2" data-testid="capacity-note">{capacityNote}</p>
+  </div>
+</section>
+
+<section class="section" id="drives" aria-labelledby="ch-drives-title">
+  <div class="site-width">
+    <div class="section-heading">
+      <div><p class="eyebrow">Minutes to the job</p><h2 id="ch-drives-title">Drive minutes to the plants and the interstate</h2></div>
+      <p>Measured from each home's street address, not guessed. The chart shows the shortest drives as the shortest bars; the same numbers are in the table.</p>
+    </div>
+
+    <figure class="tn-chart" data-testid="drive-chart">
+      <figcaption class="tn-chart-title" id="ch-chart-title">Drive minutes from each home to the plants and I-77</figcaption>
+      <div class="tn-area" role="img" aria-label={driveChartLabel}>
+        {driveGroups.map((group) => (
+          <div class="tn-area-group" aria-hidden="true" data-destination={group.id}>
+            <span class="tn-area-place">{group.label} <span class="ch-area">{group.area}</span></span>
+            {group.drives.map((line) => (
+              <div class="tn-bar tn-bar--area">
+                <span class="tn-bar-name">{line.homeName}</span>
+                <span class="tn-bar-track"><span class:list={["tn-bar-fill", `tn-bar-fill--${line.homeId}`]} style={`--share:${line.share.toFixed(1)}%`}></span></span>
+                <span class="tn-bar-value">{line.minutes} min</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div class="tl-table-scroll mt-2" role="region" aria-labelledby="ch-chart-title" tabindex="0">
+        <table class="tl-table tn-table" data-testid="drive-table">
+          <caption class="sr-only">The same figures as the chart: drive minutes and miles from each home to the plants and the I-77 access points, and what each measurement is to</caption>
+          <thead>
+            <tr><th scope="col">Destination</th><th scope="col">Home</th><th scope="col">Drive</th><th scope="col">Miles</th><th scope="col">What it measures</th></tr>
+          </thead>
+          <tbody>
+            {driveGroups.flatMap((group) => group.drives.map((line) => (
+              <tr data-place={group.id} data-home={line.homeId}>
+                <th scope="row">{group.label}</th>
+                <td>{line.homeName}</td>
+                <td data-cell="minutes"><strong>{line.minutes} min</strong></td>
+                <td data-cell="miles">{line.miles.toFixed(1)} mi</td>
+                <td>{group.note}</td>
+              </tr>
+            )))}
+          </tbody>
+        </table>
+      </div>
+      <p class="details-note mt-2" data-testid="drive-source">{driveSource}</p>
+    </figure>
+    {driveGap && <p class="mt-3 reading" data-testid="drive-gap">{driveGap}</p>}
+  </div>
+</section>
+
+<section class="section section--paper" id="company-paid" aria-labelledby="ch-process-title">
+  <div class="site-width">
+    <div class="section-heading">
+      <div><p class="eyebrow">{process.eyebrow}</p><h2 id="ch-process-title">{process.heading}</h2></div>
+      <p>{process.intro}</p>
+    </div>
+    <ol class="step-grid ch-steps" data-testid="process-steps">
+      {process.steps.map((step) => (
+        <li><strong>{step.title}</strong><p>{step.body}</p></li>
+      ))}
+    </ol>
+    <p class="details-note mt-2" data-testid="process-limits">{process.limits}</p>
+
+    <div class="split mt-4">
+      <div class="stack">
+        <h3>What we state, for every home</h3>
+        <ul class="checklist" role="list" data-testid="terms-stated">{statedTerms.map((item) => <li><span>{item}</span></li>)}</ul>
+      </div>
+      <div class="stack">
+        <h3>Confirm on inquiry</h3>
+        <ul class="tl-confirm" role="list" data-testid="terms-confirm">{confirmTerms.map((item) => <li>{item}</li>)}</ul>
+      </div>
+    </div>
+
+    <div class="tl-table-scroll mt-4" role="region" aria-labelledby="ch-terms-title" tabindex="0">
+      <table class="tl-table tn-table" data-testid="terms-table">
+        <caption id="ch-terms-title" class="sr-only">Monthly rate or guide price, minimum stay, utilities, pets and security deposit for each home</caption>
+        <thead>
+          <tr><th scope="col">Home</th><th scope="col">Monthly rate</th><th scope="col">Minimum stay</th><th scope="col">Utilities</th><th scope="col">Pets</th><th scope="col">Security deposit</th></tr>
+        </thead>
+        <tbody>
+          {termsRows.map((row) => (
+            <tr data-home={row.id}>
+              <th scope="row">{row.name}</th>
+              <td data-cell="rate"><strong>{row.rate.text}</strong>{row.rate.note && <span class="ch-detail">{row.rate.note}</span>}</td>
+              <td data-cell="minimum-stay">{row.minimumStay.text}</td>
+              <td data-cell="utilities">{row.utilities.text}</td>
+              <td data-cell="pets">{row.pets.text}</td>
+              <td data-cell="deposit">{row.deposit.text}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p class="details-note mt-2">A monthly rate is the home's listed rate; a guide price is the bedroom-count guide Mt Cottages publishes, shown for planning and not as an offer. We confirm each home's price for your dates when you ask.</p>
+  </div>
+</section>
+
+<section class="section" id="new-hires" aria-labelledby="ch-hires-title">
+  <div class="site-width split split--wide">
+    <div class="stack">
+      <p class="eyebrow">{relocation.eyebrow}</p>
+      <h2 id="ch-hires-title">{relocation.heading}</h2>
+    </div>
+    <div class="stack">
+      <p class="reading">{relocation.body}</p>
+      <p><a class="inline-link tn-inline" href={relocation.linkHref}>{relocation.linkLabel} <span aria-hidden="true">→</span></a></p>
+    </div>
+  </div>
+</section>
+
+<section class="section section--paper" id="faq" aria-labelledby="ch-faq-title">
+  <div class="site-width split split--wide">
+    <div>
+      <p class="eyebrow">Questions</p>
+      <h2 id="ch-faq-title">Crew housing, answered</h2>
+    </div>
+    <div class="faq">
+      {faqs.map((faq) => (
+        <details>
+          <summary>{faq.q}</summary>
+          <p>{faq.a}</p>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="section" id="homes" aria-labelledby="ch-homes-title">
+  <div class="site-width">
+    <div class="section-heading">
+      <div><p class="eyebrow">Live homes</p><h2 id="ch-homes-title">Our furnished homes, most bedrooms first</h2></div>
+      <p>{homesNote}</p>
+    </div>
+    <div class="card-grid">
+      {homeCards.map(({ row, cottage, href }) => (
+        <div class="tn-card" data-home={row.id}>
+          <PropertyCard cottage={cottage} headingLevel={3} />
+          <a class="inline-link tn-inline" href={href} data-cta={`home-${row.id}`}>Ask about {row.name} <span aria-hidden="true">↗</span></a>
+        </div>
+      ))}
+    </div>
+    <p class="mt-3">Related: <a class="inline-link tn-inline" href="/travel-nurses/">Travel nurse housing</a> · <a class="inline-link tn-inline" href="/insurance-housing.html">Insurance housing</a> · <a class="inline-link tn-inline" href="/family-stays.html">Family stays</a></p>
+    <p class="mt-3">Or start from the town: <a class="inline-link tn-inline" href="/parkersburg/index.html">Parkersburg, WV</a> · <a class="inline-link tn-inline" href="/marietta/index.html">Marietta, Ohio</a> · <a class="inline-link tn-inline" href="/ravenswood/index.html">Ravenswood, WV</a></p>
+  </div>
+</section>
+
+<section class="section section--paper" aria-labelledby="ch-disclaimer-title">
+  <div class="site-width">
+    <h2 id="ch-disclaimer-title" class="tn-small-heading">No affiliation</h2>
+    <p class="details-note mt-2" data-testid="disclaimer">{disclaimer}</p>
+  </div>
+</section>
+
+<section class="section section--dark" aria-labelledby="ch-next-title">
+  <div class="site-width split split--wide">
+    <div>
+      <p class="eyebrow tl-eyebrow-light">The next step</p>
+      <h2 id="ch-next-title">Tell us the site, the dates and the headcount. We will tell you what fits.</h2>
+    </div>
+    <div>
+      <p class="lede lede--light">Share the plant or project, your start and end dates and how many people are coming. We reply with the homes that fit, their current price and what is included. An inquiry is a conversation, not a lease.</p>
+      <a class="button button--light mt-3" href={inquiryHref} data-cta="next-step">{hub.inquiryLabel} <span aria-hidden="true">↗</span></a>
+    </div>
+  </div>
+</section>

@@ -34,7 +34,7 @@ test("each audience card links to a live hub", async ({ page, request }) => {
   await expect(cards).toHaveCount(4);
   const expected = [
     [/nurses and residents/i, "/travel-nurses/"],
-    [/crews/i, "/work-relocation.html"],
+    [/crews/i, "/corporate-housing/"],
     [/insurance and relocating families/i, "/insurance-housing.html"],
     [/long-term/i, "/living.html"],
   ];

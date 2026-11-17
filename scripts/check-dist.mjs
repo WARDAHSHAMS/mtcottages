@@ -10,9 +10,10 @@ import { join, relative, sep } from "node:path";
 // the microsite redirects (old .html summaries, Frederick's 10 old pages,
 // Broad's 23 old sections, /parkersburg/furnished-rentals/ and
 // /marietta/furnished-rentals/), the travel-nurse hub and its Camden Clark (#32) and Memorial Health (#33) pages,
-// the /health-professionals.html redirect stub and the rest of the site. Update it
+// the corporate and crew hub (#34), the /health-professionals.html and /work-relocation.html redirect stubs
+// and the rest of the site. Update it
 // whenever a home, page or redirect is added or removed.
-const EXPECTED_PAGES = 112;
+const EXPECTED_PAGES = 113;
 const MAX_DIST_MB = 70;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const LEGACY_MARKERS = ["jquery", "bootstrap", "modernizr", "swiper", "owl.carousel", "venobox", "gsap", "hotelhub"];
@@ -125,6 +126,9 @@ for (const page of pages) {
     errors.push(`${page} shows an AI concept image without an AI-generated concept label`);
   }
   if (LEGACY_MARKERS.some((marker) => markup.includes(marker))) errors.push(`${page} contains a legacy runtime marker`);
+  // An array passed to class= (instead of class:list) renders as "a,b", so no CSS rule matches it (#34).
+  const joinedClass = markup.match(/\sclass="[^"]*,[^"]*"/);
+  if (joinedClass) errors.push(`${page} has a comma-joined class attribute (${joinedClass[0].trim()}); use class:list`);
   const canonicalCount = (markup.match(/<link[^>]+rel="canonical"/g) ?? []).length;
   if (canonicalCount !== 1) errors.push(`${page} has ${canonicalCount} canonical links; every page needs exactly one`);
   const sources = [...markup.matchAll(/<img[^>]+src="([^"]+)"/g)].map((match) => match[1]);
