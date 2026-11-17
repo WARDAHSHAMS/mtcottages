@@ -48,6 +48,7 @@
     "parkersburg-high-school": { "name": "Parkersburg High School", "label": "Parkersburg High School", "category": "school", "lat": 39.2783659, "lng": -81.544861 },
     "ravenswood-high-school": { "name": "Ravenswood High School (grades 9 to 12, Plaza Drive)", "label": "Ravenswood High School", "category": "school", "lat": 38.9520879, "lng": -81.7604397 },
     "kroger-7th-parkersburg": { "name": "Kroger on 7th Street, Parkersburg", "label": "Kroger, 7th Street", "category": "grocery", "address": "2007 7th St, Parkersburg, WV 26101", "lat": 39.2698011, "lng": -81.521367 },
+    "kroger-acme-marietta": { "name": "Kroger on Acme Street, Marietta", "label": "Kroger, Acme Street", "category": "grocery", "address": "40 Acme St, Marietta, OH 45750", "lat": 39.4122728, "lng": -81.4285942 },
     "foodfair-ravenswood": { "name": "Ravenswood Foodfair", "label": "Ravenswood Foodfair", "category": "grocery", "address": "423 Washington St, Ravenswood, WV 26164", "lat": 38.9524972, "lng": -81.7617659 },
     "downtown-marietta": { "name": "Downtown Marietta (Washington County Courthouse, Putnam Street)", "label": "Downtown Marietta", "category": "attraction", "lat": 39.4158798, "lng": -81.4546369 },
     "campus-martius": { "name": "Campus Martius Museum, Marietta", "label": "Campus Martius Museum", "category": "attraction", "lat": 39.421435, "lng": -81.4612631 },
@@ -62,7 +63,8 @@
   "sources": {
     "table": "https://router.project-osrm.org/table/v1/driving/-81.4233393,39.4158196;-81.5287416,39.2819327;-81.5301764,39.2793150;-81.7578990,38.9490150;-81.761,38.9481;-81.5615,39.2667;-81.4645367,39.4317032;-81.4546369,39.4158798;-81.4484225,39.4160950;-81.5602114,39.2709358;-81.5606099,39.2664760;-81.7298948,38.8228835;-81.7617659,38.9524972;-81.5213670,39.2698011?sources=0;1;2;3;4;5&destinations=4;5;6;7;8;9;10;11;12;13&annotations=duration,distance",
     "table-work-school": "https://router.project-osrm.org/table/v1/driving/-81.4233393,39.4158196;-81.5287416,39.2819327;-81.5301764,39.2793150;-81.7578990,38.9490150;-81.761,38.9481;-81.5615,39.2667;-81.4440309,39.4397733;-81.4344353,39.4311947;-81.4520203,39.4397800;-81.4612631,39.4214350;-81.6707037,39.2687727;-81.5638242,39.2646308;-81.5067184,39.2155950;-81.5448610,39.2783659;-81.5289815,39.2716352;-81.8107382,38.9405314;-81.7604397,38.9520879;-81.7591832,38.9434849?sources=0;1;2;3;4;5&destinations=6;7;8;9;10;11;12;13;14;15;16;17&annotations=duration,distance",
-    "route-frederick-i77": "https://router.project-osrm.org/route/v1/driving/-81.4233393,39.4158196;-81.5606099,39.2664760?overview=false&steps=true",
+    "table-grocery-downtown": "https://router.project-osrm.org/table/v1/driving/-81.4233393,39.4158196;-81.7578990,38.9490150;-81.761,38.9481;-81.4285942,39.4122728;-81.5606099,39.2664760?sources=0;1;2&destinations=3;4&annotations=duration,distance",
+    "route-frederick-i77":"https://router.project-osrm.org/route/v1/driving/-81.4233393,39.4158196;-81.5606099,39.2664760?overview=false&steps=true",
     "route-broad-i77": "https://router.project-osrm.org/route/v1/driving/-81.5287416,39.2819327;-81.7578990,38.9490150?overview=false&steps=true",
     "route-oak-i77": "https://router.project-osrm.org/route/v1/driving/-81.5301764,39.2793150;-81.7578990,38.9490150?overview=false&steps=true",
     "route-henrietta-i77": "https://router.project-osrm.org/route/v1/driving/-81.7578990,38.9490150;-81.7298948,38.8228835?overview=false&steps=true",
@@ -83,6 +85,7 @@
     { "id": "frederick:chemours-washington-works", "origin": "frederick", "destination": "chemours-washington-works", "seconds": 1919.7, "meters": 37119.8, "minutes": 32, "miles": 23.1, "method": "osrm", "source": "table-work-school", "measured": "2026-11-15" },
     { "id": "frederick:fiscal-service-parkersburg", "origin": "frederick", "destination": "fiscal-service-parkersburg", "seconds": 1355.5, "meters": 26115.8, "minutes": 23, "miles": 16.2, "method": "osrm", "source": "table-work-school", "measured": "2026-11-15" },
     { "id": "frederick:wvu-parkersburg", "origin": "frederick", "destination": "wvu-parkersburg", "seconds": 1396.1, "meters": 26019.2, "minutes": 24, "miles": 16.2, "method": "osrm", "source": "table-work-school", "measured": "2026-11-15" },
+    { "id": "frederick:kroger-acme-marietta", "origin": "frederick", "destination": "kroger-acme-marietta", "seconds": 167.4, "meters": 966.6, "minutes": 3, "miles": 0.6, "method": "osrm", "source": "table-grocery-downtown", "measured": "2026-11-17" },
 
     { "id": "broad:camden-clark", "origin": "broad", "destination": "camden-clark", "seconds": 406.7, "meters": 4103, "minutes": 7, "miles": 2.5, "method": "osrm", "source": "table", "measured": "2026-11-15" },
     { "id": "broad:downtown-parkersburg", "origin": "broad", "destination": "downtown-parkersburg", "seconds": 410.8, "meters": 4389.2, "minutes": 7, "miles": 2.7, "method": "osrm", "source": "table", "measured": "2026-11-15" },
@@ -118,6 +121,7 @@
     { "id": "henrietta:riverfront-park-ravenswood", "origin": "henrietta", "destination": "riverfront-park-ravenswood", "seconds": 84.7, "meters": 899.2, "minutes": 2, "miles": 0.6, "method": "osrm", "source": "table-work-school", "measured": "2026-11-15" },
     { "id": "henrietta:wvu-parkersburg", "origin": "henrietta", "destination": "wvu-parkersburg", "seconds": 2421.9, "meters": 52371.2, "minutes": 41, "miles": 32.5, "method": "osrm", "source": "table-work-school", "measured": "2026-11-15" },
     { "id": "henrietta:chemours-washington-works", "origin": "henrietta", "destination": "chemours-washington-works", "seconds": 3192.1, "meters": 66179.1, "minutes": 54, "miles": 41.1, "method": "osrm", "source": "table-work-school", "measured": "2026-11-15" },
+    { "id": "henrietta:downtown-parkersburg", "origin": "henrietta", "destination": "downtown-parkersburg", "seconds": 2560.5, "meters": 54817.1, "minutes": 43, "miles": 34.1, "method": "osrm", "source": "table-grocery-downtown", "measured": "2026-11-17" },
 
     { "id": "ravenswood-centre:jackson-general", "origin": "ravenswood-centre", "destination": "jackson-general", "seconds": 906.6, "meters": 18668.1, "minutes": 16, "miles": 11.6, "method": "osrm", "source": "table", "measured": "2026-11-15" },
     { "id": "ravenswood-centre:foodfair-ravenswood", "origin": "ravenswood-centre", "destination": "foodfair-ravenswood", "seconds": 57.7, "meters": 590.7, "minutes": 1, "miles": 0.4, "method": "osrm", "source": "table", "measured": "2026-11-15" },
@@ -128,6 +132,7 @@
     { "id": "ravenswood-centre:riverfront-park-ravenswood", "origin": "ravenswood-centre", "destination": "riverfront-park-ravenswood", "seconds": 52.1, "meters": 589.1, "minutes": 1, "miles": 0.4, "method": "osrm", "source": "table-work-school", "measured": "2026-11-15" },
     { "id": "ravenswood-centre:wvu-parkersburg", "origin": "ravenswood-centre", "destination": "wvu-parkersburg", "seconds": 2404.5, "meters": 52997.7, "minutes": 41, "miles": 32.9, "method": "osrm", "source": "table-work-school", "measured": "2026-11-15" },
     { "id": "ravenswood-centre:chemours-washington-works", "origin": "ravenswood-centre", "destination": "chemours-washington-works", "seconds": 3174.7, "meters": 66805.7, "minutes": 53, "miles": 41.5, "method": "osrm", "source": "table-work-school", "measured": "2026-11-15" },
+    { "id": "ravenswood-centre:downtown-parkersburg", "origin": "ravenswood-centre", "destination": "downtown-parkersburg", "seconds": 2543.1, "meters": 55443.6, "minutes": 43, "miles": 34.5, "method": "osrm", "source": "table-grocery-downtown", "measured": "2026-11-17" },
 
     { "id": "parkersburg-centre:camden-clark", "origin": "parkersburg-centre", "destination": "camden-clark", "seconds": 124.1, "meters": 726.9, "minutes": 3, "miles": 0.5, "method": "osrm", "source": "table", "measured": "2026-11-15" },
     { "id": "parkersburg-centre:kroger-7th-parkersburg", "origin": "parkersburg-centre", "destination": "kroger-7th-parkersburg", "seconds": 408.2, "meters": 4134.8, "minutes": 7, "miles": 2.6, "method": "osrm", "source": "table", "measured": "2026-11-15" },
