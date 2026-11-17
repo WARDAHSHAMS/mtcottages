@@ -244,7 +244,19 @@
         submit.disabled = true;
         status.dataset.state = "pending";
         status.textContent = "Sending your inquiry…";
-        const send = async (token) => {
+        // Front Door answers 502 to the first request that reaches an idle origin
+        // (#85). A throwaway GET to the health route takes that hit instead of
+        // the inquiry; its own answer is ignored.
+        const warmOrigin = async () => {
+          try {
+            await fetch(new URL("/api/health", form.action), { cache: "no-store" });
+          } catch (error) {
+            console.warn("Origin warm-up failed", error);
+          }
+        };
+        const GATEWAY_STATUS = new Set([502, 503, 504]);
+        const GATEWAY_BACKOFF_MS = [1_500, 4_000];
+        const post = async (token) => {
           const formData = new FormData(form);
           formData.set("cf-turnstile-response", token);
           // siteverify accepts a token once: whatever the answer, this one is spent.
@@ -254,8 +266,24 @@
           const result = await response.json().catch(() => ({ success: false, message: "Application intake failed" }));
           return { response, result };
         };
+        // A gateway error or a dropped connection is sent again after a short
+        // wait, with the same token and submissionId: the proxy delivers each
+        // submissionId once, so this can never create a second lead. If the
+        // first attempt did spend the token, the answer is timeout-or-duplicate
+        // and the caller takes a new one.
+        const send = async (token) => {
+          for (let attempt = 0; ; attempt += 1) {
+            try {
+              const outcome = await post(token);
+              if (!GATEWAY_STATUS.has(outcome.response.status) || attempt >= GATEWAY_BACKOFF_MS.length) return outcome;
+            } catch (error) {
+              if (!(error instanceof TypeError) || attempt >= GATEWAY_BACKOFF_MS.length) throw error;
+            }
+            await new Promise((resolve) => setTimeout(resolve, GATEWAY_BACKOFF_MS[attempt]));
+          }
+        };
         try {
-          const token = await freshTurnstileToken();
+          const [token] = await Promise.all([freshTurnstileToken(), warmOrigin()]);
           if (!token) {
             status.dataset.state = "error";
             status.textContent = "Please complete the human verification before sending your inquiry.";

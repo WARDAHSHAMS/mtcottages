@@ -41,14 +41,24 @@ const TURNSTILE_STUB = `
 
 async function openForm(page, answers) {
   const posted = [];
+  // Every request to the proxy, in order: "health" for the warm-up, "apply" for a send.
+  const requests = [];
+  posted.requests = requests;
   await page.route("https://challenges.cloudflare.com/**", (route) =>
     route.fulfill({ contentType: "text/javascript", body: TURNSTILE_STUB }));
   await page.route("https://stay.mtcottages.com/api/collect", (route) => route.fulfill({ status: 204, body: "" }));
+  await page.route("https://stay.mtcottages.com/api/health", (route) => {
+    requests.push("health");
+    // The warm-up is the request that meets the idle origin's 502.
+    return route.fulfill({ status: 502, contentType: "text/html", body: "<h1>Bad Gateway</h1>" });
+  });
   await page.route("https://stay.mtcottages.com/api/apply", (route) => {
+    requests.push("apply");
     const body = new URLSearchParams(route.request().postData() || "");
     posted.push({ token: body.get("cf-turnstile-response"), submissionId: body.get("submissionId") });
     const answer = answers[Math.min(posted.length - 1, answers.length - 1)];
-    return route.fulfill({ status: answer.status, contentType: "application/json", body: JSON.stringify(answer.body) });
+    if (answer.abort) return route.abort("connectionreset");
+    return route.fulfill({ status: answer.status, contentType: answer.html ? "text/html" : "application/json", body: answer.html || JSON.stringify(answer.body) });
   });
   await page.route("https://stay.mtcottages.com/", (route) => route.fulfill({ contentType: "text/html", body: FORM }));
   await page.goto("https://stay.mtcottages.com/");
@@ -76,12 +86,54 @@ const spent = {
   body: { success: false, message: "Please complete the human verification", stage: "verification", reason: "rejected:timeout-or-duplicate" },
 };
 
-test("a fresh token is sent as is", async ({ page }) => {
+const badGateway = { status: 502, html: "<h1>Bad Gateway</h1>" };
+const dropped = { abort: true };
+
+test("a fresh token is sent as is, after one origin warm-up", async ({ page }) => {
   const posted = await openForm(page, [accepted]);
   await fillInquiry(page);
   await page.click('[type="submit"]');
   await expect(page.locator("[data-form-status]")).toHaveAttribute("data-state", "success");
   expect(posted.map((entry) => entry.token)).toEqual(["token-1"]);
+  // The warm-up's own 502 is ignored and lands before the inquiry.
+  expect(posted.requests).toEqual(["health", "apply"]);
+});
+
+test("a gateway 502 on the inquiry is sent again with the same submission id", async ({ page }) => {
+  const posted = await openForm(page, [badGateway, accepted]);
+  await fillInquiry(page);
+  await page.click('[type="submit"]');
+  await expect(page.locator("[data-form-status]")).toHaveAttribute("data-state", "success", { timeout: 15_000 });
+  expect(posted).toHaveLength(2);
+  expect(posted[1].submissionId).toBe(posted[0].submissionId);
+  expect(posted[1].token).toBe(posted[0].token);
+});
+
+test("a dropped connection is sent again", async ({ page }) => {
+  const posted = await openForm(page, [dropped, accepted]);
+  await fillInquiry(page);
+  await page.click('[type="submit"]');
+  await expect(page.locator("[data-form-status]")).toHaveAttribute("data-state", "success", { timeout: 15_000 });
+  expect(posted).toHaveLength(2);
+  expect(posted[1].submissionId).toBe(posted[0].submissionId);
+});
+
+test("a gateway that keeps failing stops after three sends and lets the guest try again", async ({ page }) => {
+  const posted = await openForm(page, [badGateway]);
+  await fillInquiry(page);
+  await page.click('[type="submit"]');
+  await expect(page.locator("[data-form-status]")).toHaveAttribute("data-state", "error", { timeout: 15_000 });
+  expect(posted).toHaveLength(3);
+  await expect(page.locator('[type="submit"]')).toBeEnabled();
+});
+
+test("a 502 whose send spent the token falls through to a fresh token", async ({ page }) => {
+  const posted = await openForm(page, [badGateway, spent, accepted]);
+  await fillInquiry(page);
+  await page.click('[type="submit"]');
+  await expect(page.locator("[data-form-status]")).toHaveAttribute("data-state", "success", { timeout: 15_000 });
+  expect(posted.map((entry) => entry.token)).toEqual(["token-1", "token-1", "token-2"]);
+  expect(new Set(posted.map((entry) => entry.submissionId)).size).toBe(1);
 });
 
 test("a token older than four minutes is replaced before sending", async ({ page }) => {
