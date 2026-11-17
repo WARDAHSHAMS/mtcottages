@@ -172,6 +172,9 @@ test("a microsite visit and its inquiry click reach the collector, and the marke
   expect(statuses.every(({ status, cookie }) => status === 202 && !cookie), JSON.stringify(statuses)).toBe(true);
 });
 
+// #85: the real-browser Turnstile check lives in tests/live-turnstile.spec.js,
+// because its headed launch options are worker-scoped and cannot sit in this file's tests.
+
 test("the canonical stay host redirects HTTP to HTTPS", async ({ request }) => {
   const stayHttp = await request.get("http://stay.mtcottages.com/", { maxRedirects: 0 });
   expect(stayHttp.status()).toBe(307);

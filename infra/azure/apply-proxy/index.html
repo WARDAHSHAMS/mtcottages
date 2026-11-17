@@ -51,7 +51,7 @@
           <label class="full">Tell us about your timing, household, pets, and what would make a place fit.<span id="message-help">A few sentences are enough. Please leave out Social Security numbers, payment details, and other sensitive documents.</span><textarea name="message" rows="6" aria-describedby="message-help" required></textarea></label>
         </div></fieldset>
         <fieldset class="consent"><legend>Before you send</legend><label><input type="checkbox" name="screeningConsent" value="yes"> I understand screening may be part of a later application step.</label><label><input type="checkbox" name="termsAccepted" value="yes" required> I confirm this is an inquiry and the information is accurate.</label></fieldset>
-        <div class="human-check" data-human-verification><div><p class="eyebrow">One small check</p><p>Cloudflare helps keep the inquiry path open for real people and the messages useful for everyone.</p></div><div class="cf-turnstile" data-sitekey="__TURNSTILE_SITE_KEY__" data-action="stay-inquiry" data-theme="light" data-language="en"></div></div>
+        <div class="human-check" data-human-verification><div><p class="eyebrow">One small check</p><p>Cloudflare helps keep the inquiry path open for real people and the messages useful for everyone.</p></div><div class="cf-turnstile" data-sitekey="__TURNSTILE_SITE_KEY__" data-action="stay-inquiry" data-theme="light" data-language="en" data-error-callback="mtcTurnstileError"></div></div>
         <noscript><p class="form-notice">JavaScript is required for the human verification check before you can send an inquiry.</p></noscript>
         <p class="form-notice"><strong>What happens next:</strong> Mt Cottages reviews the timing and household details, then follows up about current availability, pricing, and whether a later screening or agreement makes sense. Please do not enter Social Security numbers, payment-card details, bank information, or other highly sensitive documents. <a href="https://mtcottages.com/privacy.html">Read the privacy notice.</a></p>
         <div class="trap" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
@@ -65,6 +65,12 @@
   </main>
   <footer class="site-footer"><div class="wrap">Mt Cottages · Marietta · Parkersburg · Ravenswood</div></footer>
   <script nonce="__INLINE_SCRIPT_NONCE__">
+    // Turnstile's client error code (e.g. 110200, domain not allowed) is kept on
+    // the widget so a guest report or the live smoke can name it (#85).
+    window.mtcTurnstileError = (code) => {
+      const widget = document.querySelector(".cf-turnstile");
+      if (widget) widget.dataset.turnstileError = String(code || "unknown").slice(0, 16);
+    };
     const form = document.querySelector("[data-application-form]");
     const params = new URLSearchParams(window.location.search);
     const properties = {

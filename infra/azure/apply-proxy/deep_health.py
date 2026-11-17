@@ -11,6 +11,8 @@ FocusApiary/form-intake-proxy `function/src/upstream-check.js`):
 - **queues**: the approximate depth of the retry queue and of the two poison
   queues (#15, #14). Any message in a poison queue is a lead or a notification
   that exhausted its retries and needs staff, so the check fails.
+- **turnstile**: ``not_configured`` or ``test_key`` when the site key or secret
+  is missing or is one of Cloudflare's test keys (#85); either fails the check.
 
 The answer is 200 when every check passes and 503 otherwise, and is cached for
 a short time so a burst of public calls cannot multiply outbound requests.
@@ -41,6 +43,11 @@ CACHE_SECONDS = 30
 MAX_ERROR_BYTES = 2_000
 STORAGE_API_VERSION = "2021-12-02"
 ERROR_CODE_PATTERN = re.compile(r"[A-Za-z0-9_]{1,60}")
+TURNSTILE_SITE_KEY_SETTING = "TURNSTILE_SITE_KEY"
+TURNSTILE_SECRET_SETTING = "TURNSTILE_SECRET_KEY"
+# Cloudflare's published Turnstile test site keys and secrets, e.g.
+# 1x00000000000000000000AA and 2x0000000000000000000000000000000AA.
+TURNSTILE_TEST_KEY_PATTERN = re.compile(r"[1-3]x0{20,}[A-Z]{2}")
 
 _cache_lock = threading.Lock()
 _cache = {"result": None, "expires_at": 0.0}
@@ -174,13 +181,31 @@ def check_queues(connection_string):
     return depths
 
 
+def check_turnstile(environ):
+    """``ok``, ``not_configured`` or ``test_key`` for the Turnstile settings (#85).
+
+    Cloudflare's documented test keys (`1x…`, `2x…`, `3x…` followed by zeros)
+    always pass, always fail or always report a spent token. A test site key or
+    secret on the live host means no real guest token can ever verify, so it
+    fails deep health. Only the label is returned, never a value.
+    """
+    site_key = str(environ.get(TURNSTILE_SITE_KEY_SETTING, "") or "").strip()
+    secret = str(environ.get(TURNSTILE_SECRET_SETTING, "") or "").strip()
+    if not site_key or not secret:
+        return "not_configured"
+    if TURNSTILE_TEST_KEY_PATTERN.fullmatch(site_key) or TURNSTILE_TEST_KEY_PATTERN.fullmatch(secret):
+        return "test_key"
+    return "ok"
+
+
 def evaluate(environ, prepare=None):
     """(healthy, details) for the current settings. Not cached."""
     upstream = {UPSTREAM_SETTING: check_upstream(environ.get(UPSTREAM_SETTING, ""), prepare)}
     queues = check_queues(environ.get(STORAGE_SETTING, ""))
+    turnstile = check_turnstile(environ)
     poisoned = any(isinstance(queues.get(queue), int) and queues[queue] > 0 for queue in POISON_QUEUES)
-    healthy = all(value == "ok" for value in upstream.values()) and not poisoned
-    return healthy, {"upstream": upstream, "queues": queues}
+    healthy = all(value == "ok" for value in upstream.values()) and not poisoned and turnstile == "ok"
+    return healthy, {"upstream": upstream, "queues": queues, "turnstile": turnstile}
 
 
 def cached_evaluate(environ, prepare=None, now=None):

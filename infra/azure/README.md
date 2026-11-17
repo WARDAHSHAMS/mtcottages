@@ -26,6 +26,20 @@ LOGICAPP_URL_APPLICATION=<logic-app-trigger-url>
 
 If either Turnstile value is missing, the Function returns `503 Application form unavailable` rather than rendering a disabled form or advertising an email fallback.
 
+The site key and the secret must come from **the same widget**. A secret from another widget, or one of Cloudflare's test keys (`1x…`, `2x…`, `3x…` followed by zeros), makes siteverify refuse every real guest token with `invalid-input-response` (#85). `/api/health?deep=1` reports a test key as `turnstile: test_key`. No IaC owns the widget or these two app settings yet. Change them only through Key Vault `omlab-secrets` (see the rotation runbook below) and record the change on the issue.
+
+### Which stage refused an inquiry (#85)
+
+`POST /api/apply` checks an inquiry in this order. Every 400 says which stage refused it in a `stage` field and in a log line, with fixed labels only and never a field value:
+
+| Order | `stage` | Refused when | Log line |
+| --- | --- | --- | --- |
+| 1 | `screening` | the body does not parse, a field is not text, or the honeypot is filled | `Inquiry rejected at screening` |
+| 2 | `verification` | Turnstile refuses. `reason` is `missing-token`, `token-too-long`, `rejected:<Cloudflare error-codes>`, `hostname-mismatch` or `action-mismatch` (`not-configured` and `siteverify-unavailable` answer 503) | `Turnstile rejected an inquiry: <codes>` |
+| 3 | `validation` | a required field is missing or a value is invalid | `Inquiry rejected at validation: <fixed message>` |
+
+Turnstile runs before the field checks, so the live smoke can prove that a real-browser token verifies. It posts the token with an incomplete inquiry, which stops at `validation` and never reaches the Logic App.
+
 ## Dynamics 365 / Dataverse ownership
 
 Deploy `mtcottages-intake.definition.json` with `mtcottages-intake.parameters.json`. The workflow parameter `d365BusinessUnitName` is explicitly set to `MtCottages`. Before deployment, confirm that the Dataverse business unit display name matches that value exactly.
@@ -132,7 +146,7 @@ A push to `gh-pages` that changes `infra/azure/apply-proxy/` or `.gitlab-ci.yml`
 | `test:apply-proxy` | Compiles `function_app.py` and runs the unit tests in `apply-proxy/tests`. |
 | `package:apply-proxy` | Builds `apply-proxy.zip` with `function_app.py`, `host.json`, `requirements.txt`, `index.html` and `BUILD_COMMIT` (the commit SHA) at the archive root. |
 | `deploy:apply-proxy` | Publishes the zip with the launch-sequence `.deploy:azure-function` template (Kudu remote build), then waits for `https://stay.mtcottages.com/api/health` to return HTTP 200. |
-| `smoke:apply-proxy` | Runs the stay tests in `e2e/tests/live.spec.js` against the live host. It waits for `/api/health` to report the published commit, loads the form and posts one honeypot probe that the proxy rejects with HTTP 400. It never submits a valid application. |
+| `smoke:apply-proxy` | Runs the stay tests in `e2e/tests/live.spec.js` against the live host. It waits for `/api/health` to report the published commit, loads the form and posts one honeypot probe that the proxy rejects with HTTP 400. Under Xvfb, a headed Chromium also gets a token from the production widget and posts it with an incomplete inquiry. The test passes only on `stage: validation`, which proves the token passed siteverify (#85). If Cloudflare issues the CI browser no token, the result is reported as inconclusive, while a widget configuration error (`110xxx`/`400xxx`) fails the test. It never submits a valid application. |
 
 `/api/health` returns `{"status": "ok", "service": "mtcottages-apply-proxy", "commit": "<sha>"}`. `commit` is the `BUILD_COMMIT` from the package; a package not built by the pipeline reports `unknown`. This plain answer is constant and makes no outbound call: the Front Door origin probe and the deploy gate use it.
 
@@ -142,6 +156,7 @@ A push to `gh-pages` that changes `infra/azure/apply-proxy/` or `.gitlab-ci.yml`
 
 - `upstream.LOGICAPP_URL_APPLICATION`: a GET on the trigger, with no payload, so no workflow runs. `ok` means Logic Apps refused the method (400 `TriggerRequestMethodNotValid`), which proves that the URL, signature and caller IP are accepted. `status_401_AuthorizationFailed` means a rotated key or a caller-IP restriction. `status_404` means the workflow or trigger is gone. `unreachable_*` means a network failure, and `not_configured` means the setting is missing.
 - `queues`: the approximate depth of `intake-retry` (informational) and of the two poison queues. Any message in `intake-retry-poison` or `intake-notify-poison` fails the check: a lead or a notification has run out of retries and needs staff (below). It reads the depth with the host storage connection string. If that setting is not key-based, the depths read `unknown` and do not fail the check.
+- `turnstile`: `ok`, `not_configured`, or `test_key`. `test_key` means the site key or the secret is a Cloudflare test key, so no real guest token can verify. Either failure label fails the check (#85).
 
 The body holds labels and counts only, never a URL, key or lead field. The hourly in-cluster blackbox probe (`check=upstream-health`, FocusApiary/monitoring-k8s) is what turns a 503 into an alert.
 

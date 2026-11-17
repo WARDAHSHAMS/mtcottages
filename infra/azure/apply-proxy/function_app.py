@@ -77,6 +77,9 @@ MAX_BODY_BYTES = 200_000
 MAX_CONFIG_LIST_BYTES = 4_096
 MAX_TURNSTILE_TOKEN_LENGTH = 2_048
 MAX_TURNSTILE_RESPONSE_BYTES = 64 * 1_024
+MAX_TURNSTILE_ERROR_CODES = 4
+TURNSTILE_ERROR_CODE_PATTERN = re.compile(r"[a-z0-9-]{1,48}")
+TURNSTILE_ACTION_LABEL_PATTERN = re.compile(r"[A-Za-z0-9_-]{1,64}")
 MAX_CLIENT_IP_LENGTH = 64
 MAX_RATE_LIMIT_ENTRIES = 4_096
 MIN_MOVE_IN_DATE = date(1900, 1, 1)
@@ -411,18 +414,48 @@ def _client_ip(req):
     return "unknown"
 
 
+def _turnstile_error_codes(result):
+    """Cloudflare's siteverify ``error-codes`` as one short label, e.g. ``invalid-input-response``.
+
+    The codes are Cloudflare's fixed vocabulary (no token, secret or guest data),
+    so they can be logged and returned: they are what tells a wrong secret
+    (``invalid-input-response`` on every real token) from an expired or reused
+    token (``timeout-or-duplicate``), #85.
+    """
+    codes = result.get("error-codes") if isinstance(result, dict) else None
+    if not isinstance(codes, list):
+        return "none"
+    labels = [code for code in codes if isinstance(code, str) and TURNSTILE_ERROR_CODE_PATTERN.fullmatch(code)]
+    return ",".join(labels[:MAX_TURNSTILE_ERROR_CODES]) or "none"
+
+
+def _label(value, pattern):
+    """A logged value reduced to a fixed character set, or ``other``."""
+    return value if isinstance(value, str) and pattern.fullmatch(value) else "other"
+
+
 def _verify_turnstile(req, payload):
-    """Return an error response tuple, or None when Turnstile accepts the token."""
+    """Return (status, message, reason) when Turnstile refuses, or None when it accepts the token.
+
+    ``reason`` is a short fixed label (plus Cloudflare's error codes) that is
+    logged and returned with ``stage: verification``, so a rejection can be
+    told apart from a validation error in App Insights and in the browser (#85).
+    """
     if not _turnstile_is_configured():
         logger.error("Turnstile validation is not configured")
-        return 503, "Human verification is not configured"
+        return 503, "Human verification is not configured", "not-configured"
 
     token_value = payload.get("cf-turnstile-response", "")
     if not isinstance(token_value, str):
-        return 400, "Please complete the human verification"
+        logger.warning("Turnstile rejected an inquiry: missing-token")
+        return 400, "Please complete the human verification", "missing-token"
     token = token_value.strip()
-    if not token or len(token) > MAX_TURNSTILE_TOKEN_LENGTH:
-        return 400, "Please complete the human verification"
+    if not token:
+        logger.warning("Turnstile rejected an inquiry: missing-token")
+        return 400, "Please complete the human verification", "missing-token"
+    if len(token) > MAX_TURNSTILE_TOKEN_LENGTH:
+        logger.warning("Turnstile rejected an inquiry: token-too-long (%d)", len(token))
+        return 400, "Please complete the human verification", "token-too-long"
 
     secret = os.environ["TURNSTILE_SECRET_KEY"].strip()
     verification_data = {"secret": secret, "response": token}
@@ -441,22 +474,39 @@ def _verify_turnstile(req, payload):
             result = json.loads(response.read(MAX_TURNSTILE_RESPONSE_BYTES).decode("utf-8", errors="replace"))
     except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
         logger.error("Turnstile validation request failed: %s", type(error).__name__)
-        return 503, "Human verification is temporarily unavailable"
+        return 503, "Human verification is temporarily unavailable", "siteverify-unavailable"
 
     if not isinstance(result, dict) or result.get("success") is not True:
-        logger.warning("Turnstile rejected an inquiry")
-        return 400, "Please complete the human verification"
+        codes = _turnstile_error_codes(result)
+        logger.warning("Turnstile rejected an inquiry: %s", codes)
+        return 400, "Please complete the human verification", f"rejected:{codes}"
 
     hostname = _normalize_hostname(result.get("hostname", ""))
     if hostname not in _turnstile_hostnames():
-        logger.warning("Turnstile returned an unexpected hostname")
-        return 400, "Please complete the human verification"
+        logger.warning("Turnstile returned an unexpected hostname: %s", hostname or "none")
+        return 400, "Please complete the human verification", "hostname-mismatch"
 
     expected_action = _turnstile_expected_action()
     if expected_action is None or result.get("action") != expected_action:
-        logger.warning("Turnstile returned an unexpected action")
-        return 400, "Please complete the human verification"
+        logger.warning(
+            "Turnstile returned an unexpected action: %s",
+            _label(result.get("action"), TURNSTILE_ACTION_LABEL_PATTERN),
+        )
+        return 400, "Please complete the human verification", "action-mismatch"
 
+    return None
+
+
+def _screen_submission(payload):
+    """The cheap bot screen that runs before Turnstile: wrong types and the honeypot.
+
+    Kept ahead of verification so a bot probe never costs a siteverify call.
+    """
+    known_fields = ALLOWED_FIELDS | {"cf-turnstile-response"}
+    if any(field in payload and not isinstance(payload[field], str) for field in known_fields):
+        return "Invalid submission"
+    if _text_value(payload, "website"):
+        return "Invalid submission"
     return None
 
 
@@ -759,17 +809,33 @@ def apply(req: func.HttpRequest, retry: func.Out[str], notify: func.Out[typing.L
     try:
         payload = _request_payload(req)
     except (TypeError, ValueError, UnicodeError, json.JSONDecodeError):
-        return _response({"success": False, "message": "Invalid submission"}, 400, origin)
+        logger.warning("Inquiry rejected at screening: unparseable body")
+        return _response({"success": False, "message": "Invalid submission", "stage": "screening"}, 400, origin)
 
-    validation_error = _validate_submission(payload)
-    if validation_error:
-        return _response({"success": False, "message": validation_error}, 400, origin)
+    # Order (#85): bot screen, then Turnstile, then the fields. Verifying the
+    # token before the fields means a 400 always says which stage refused it,
+    # and the live smoke can prove a real-browser token passes verification by
+    # sending it with a deliberately incomplete inquiry, which then stops at
+    # validation and never reaches the Logic App.
+    screening_error = _screen_submission(payload)
+    if screening_error:
+        logger.warning("Inquiry rejected at screening")
+        return _response({"success": False, "message": screening_error, "stage": "screening"}, 400, origin)
 
     canary = _canary_request(req)
     turnstile_error = None if canary else _verify_turnstile(req, payload)
     if turnstile_error:
-        status_code, message = turnstile_error
-        return _response({"success": False, "message": message}, status_code, origin)
+        status_code, message, *details = turnstile_error
+        body = {"success": False, "message": message, "stage": "verification"}
+        if details:
+            body["reason"] = details[0]
+        return _response(body, status_code, origin)
+
+    validation_error = _validate_submission(payload)
+    if validation_error:
+        # The message is one of _validate_submission's fixed strings, never a field value.
+        logger.warning("Inquiry rejected at validation: %s", validation_error)
+        return _response({"success": False, "message": validation_error, "stage": "validation"}, 400, origin)
 
     callback_url = os.environ.get("LOGICAPP_URL_APPLICATION", "")
     if not callback_url:
