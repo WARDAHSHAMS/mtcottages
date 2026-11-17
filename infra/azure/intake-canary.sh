@@ -27,10 +27,75 @@
 #   - Logic App Operator (read runs) on mtcottages/mtcottages-intake.
 # The token is read into a 0600 header file and passed to curl with -H @file,
 # so it never appears in argv, the job log or the environment.
+#
+# Paging (#84): any failure, including a failure before the POST, also posts
+# an Adaptive Card to the Teams intake channel. The Teams Workflows webhook URL
+# is a credential, so it is read from Key Vault by name
+# (the CI variable INTAKE_CANARY_PAGE_SECRET_NAME; unset means not configured)
+# into a 0600 file and handed to curl through a --config file, never argv or
+# the log. The card carries only the step that
+# failed and the pipeline link: the canary is synthetic, no guest data exists.
 set +x
 set -euo pipefail
 
-fail() { echo "ERROR: $*" >&2; exit 1; }
+FAILURE_REASON=""
+fail() { FAILURE_REASON="$*"; echo "ERROR: $*" >&2; exit 1; }
+
+PAGE_SECRET_NAME="${INTAKE_CANARY_PAGE_SECRET_NAME:-}"
+
+# Posts the failure card. Never fails the job a second time: a paging error is
+# printed, and the job is already red.
+page_failure() {
+  local reason="${FAILURE_REASON:-the canary job stopped unexpectedly (exit ${1})}"
+  local dir="${WORK:-}"
+  if [ -z "${PAGE_SECRET_NAME}" ]; then
+    echo "PAGE: not configured (set INTAKE_CANARY_PAGE_SECRET_NAME to the Key Vault secret holding the Teams intake webhook)" >&2
+    return 0
+  fi
+  case "${PAGE_SECRET_NAME}" in
+    *[!A-Za-z0-9-]*) echo "PAGE: INTAKE_CANARY_PAGE_SECRET_NAME is not a Key Vault secret name" >&2; return 0 ;;
+  esac
+  if [ -z "${dir}" ] || [ ! -d "${dir}" ] || ! az account show --output none --only-show-errors >/dev/null 2>&1; then
+    echo "PAGE: not sent (no Azure session to read ${PAGE_SECRET_NAME}); the red scheduled pipeline is the only signal" >&2
+    return 0
+  fi
+  if ! az keyvault secret show --vault-name "${VAULT}" --name "${PAGE_SECRET_NAME}" \
+       --query value --output tsv --only-show-errors > "${dir}/page-url" 2>/dev/null \
+     || [ ! -s "${dir}/page-url" ]; then
+    echo "PAGE: not sent (cannot read ${PAGE_SECRET_NAME} from ${VAULT}; grant Key Vault Secrets User on it)" >&2
+    return 0
+  fi
+  printf 'url = "%s"\n' "$(tr -d '[:space:]' < "${dir}/page-url")" > "${dir}/page-curl.conf"
+  rm -f "${dir}/page-url"
+  jq -n --arg reason "${reason:0:400}" --arg link "${CI_PIPELINE_URL:-}" '{
+    type: "message",
+    attachments: [{
+      contentType: "application/vnd.microsoft.card.adaptive",
+      content: {
+        type: "AdaptiveCard", version: "1.4",
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        body: [
+          {type: "TextBlock", size: "Large", weight: "Bolder", wrap: true, color: "Attention",
+           text: "Stay inquiry intake is failing"},
+          {type: "TextBlock", wrap: true,
+           text: "The end-to-end canary (stay.mtcottages.com → apply proxy → Logic App → Dynamics) failed. Real guest inquiries may not be reaching sales."},
+          {type: "FactSet", facts: [{title: "Failed step", value: $reason}]}
+        ],
+        actions: (if $link == "" then [] else [{type: "Action.OpenUrl", title: "Open the pipeline", url: $link}] end)
+      }
+    }]
+  }' > "${dir}/page.json"
+  local code
+  code="$(curl --silent --show-error --max-time 30 --config "${dir}/page-curl.conf" \
+    --output /dev/null --write-out '%{http_code}' --request POST \
+    --header "Content-Type: application/json" --data-binary @"${dir}/page.json")" || code="error"
+  rm -f "${dir}/page-curl.conf"
+  case "${code}" in
+    2??) echo "PAGE: sent to the Teams intake channel (HTTP ${code})" >&2 ;;
+    *) echo "PAGE: the Teams webhook answered ${code}; the red scheduled pipeline is the only signal" >&2 ;;
+  esac
+  return 0
+}
 
 APPLY_URL="${INTAKE_CANARY_URL:-https://stay.mtcottages.com/api/apply}"
 ORIGIN="${INTAKE_CANARY_ORIGIN:-https://stay.mtcottages.com}"
@@ -68,6 +133,10 @@ AZURE_CONFIG_DIR="$(mktemp -d "${TMPDIR:-/tmp}/azcfg.XXXXXXXX")"
 export AZURE_CONFIG_DIR
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/canary.XXXXXXXX")"
 cleanup() {
+  local status=$?
+  if [ "${status}" -ne 0 ]; then
+    page_failure "${status}" || true
+  fi
   az logout >/dev/null 2>&1 || true
   rm -rf "${AZURE_CONFIG_DIR}" "${WORK}"
 }

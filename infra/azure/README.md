@@ -203,6 +203,10 @@ Turning it on, in this order:
 3. **Logic App:** deploy the definition with `Route_Canary` (#13), before the first canary runs.
 4. **Schedule:** set the CI variable `INTAKE_CANARY_ENABLED=true` on a `gh-pages` pipeline schedule. Every 15 minutes, together with the Logic App `RunsFailed` alert evaluated over 15 minutes, meets the "breaking the Logic App fires an alert within 15 minutes" bar. Use "Run pipeline" on `gh-pages` with the same variable for a one-off check.
 
+**Paging (#84).** A failed canary also posts an Adaptive Card ("Stay inquiry intake is failing", the failed step and the pipeline link) to the Teams intake channel. The job reads the Teams Workflows webhook URL from `omlab-secrets` by the name in the CI variable `INTAKE_CANARY_PAGE_SECRET_NAME` (set it to the secret behind the Function's `TEAMS_INTAKE_WEBHOOK_URL` reference; unset, the job logs "PAGE: not configured"), so the runner SP needs Key Vault Secrets User on that secret too. It keeps the URL in a 0600 curl config file, never in argv or the log. If the secret cannot be read, the job says so and stays red; a paging problem never hides the canary failure.
+
+The canary skips Turnstile, so it cannot see a guest-only failure like #85. The real-browser `smoke:apply-proxy` Turnstile check and the stage-labelled 400s cover that path.
+
 When a canary fails, the job log names the step that failed and the `submissionId`. Look up that run in the Logic App run history by its client tracking id. If cleanup failed, delete the `Intake Canary` lead in Dynamics by hand.
 
 To publish the current commit again without a code change, start a pipeline on `gh-pages` from the GitLab UI ("Run pipeline").
