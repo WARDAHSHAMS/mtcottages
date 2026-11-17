@@ -51,7 +51,7 @@
           <label class="full">Tell us about your timing, household, pets, and what would make a place fit.<span id="message-help">A few sentences are enough. Please leave out Social Security numbers, payment details, and other sensitive documents.</span><textarea name="message" rows="6" aria-describedby="message-help" required></textarea></label>
         </div></fieldset>
         <fieldset class="consent"><legend>Before you send</legend><label><input type="checkbox" name="screeningConsent" value="yes"> I understand screening may be part of a later application step.</label><label><input type="checkbox" name="termsAccepted" value="yes" required> I confirm this is an inquiry and the information is accurate.</label></fieldset>
-        <div class="human-check" data-human-verification><div><p class="eyebrow">One small check</p><p>Cloudflare helps keep the inquiry path open for real people and the messages useful for everyone.</p></div><div class="cf-turnstile" data-sitekey="__TURNSTILE_SITE_KEY__" data-action="stay-inquiry" data-theme="light" data-language="en" data-error-callback="mtcTurnstileError"></div></div>
+        <div class="human-check" data-human-verification><div><p class="eyebrow">One small check</p><p>Cloudflare helps keep the inquiry path open for real people and the messages useful for everyone.</p></div><div class="cf-turnstile" data-sitekey="__TURNSTILE_SITE_KEY__" data-action="stay-inquiry" data-theme="light" data-language="en" data-refresh-expired="auto" data-callback="mtcTurnstileToken" data-expired-callback="mtcTurnstileExpired" data-error-callback="mtcTurnstileError"></div></div>
         <noscript><p class="form-notice">JavaScript is required for the human verification check before you can send an inquiry.</p></noscript>
         <p class="form-notice"><strong>What happens next:</strong> Mt Cottages reviews the timing and household details, then follows up about current availability, pricing, and whether a later screening or agreement makes sense. Please do not enter Social Security numbers, payment-card details, bank information, or other highly sensitive documents. <a href="https://mtcottages.com/privacy.html">Read the privacy notice.</a></p>
         <div class="trap" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
@@ -70,6 +70,36 @@
     window.mtcTurnstileError = (code) => {
       const widget = document.querySelector(".cf-turnstile");
       if (widget) widget.dataset.turnstileError = String(code || "unknown").slice(0, 16);
+    };
+    // A Turnstile token lives 300 s and siteverify accepts it once (#85). A
+    // guest who takes longer to fill the form, or whose phone suspends the tab
+    // (so the widget's own refresh timer never runs), would otherwise send a
+    // dead token. The page records when the current token was issued and asks
+    // for a new one at send time when it is old, missing or already spent.
+    const TOKEN_FRESH_MS = 240_000;
+    let tokenIssuedAt = 0;
+    window.mtcTurnstileToken = () => {
+      tokenIssuedAt = Date.now();
+    };
+    window.mtcTurnstileExpired = () => {
+      tokenIssuedAt = 0;
+    };
+    const turnstileField = () => document.querySelector('[name="cf-turnstile-response"]');
+    const freshTurnstileToken = async ({ force = false } = {}) => {
+      const current = turnstileField()?.value || "";
+      if (!force && current && tokenIssuedAt && Date.now() - tokenIssuedAt < TOKEN_FRESH_MS) return current;
+      if (!window.turnstile?.reset) return force ? "" : current;
+      tokenIssuedAt = 0;
+      const status = document.querySelector("[data-form-status]");
+      if (status) status.textContent = "Refreshing the human verification… If a checkbox appears below, please tick it.";
+      window.turnstile.reset();
+      const deadline = Date.now() + 45_000;
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        const value = turnstileField()?.value || "";
+        if (value && tokenIssuedAt) return value;
+      }
+      return "";
     };
     const form = document.querySelector("[data-application-form]");
     const params = new URLSearchParams(window.location.search);
@@ -211,18 +241,35 @@
       const submit = form.querySelector('[type="submit"]');
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
-        const formData = new FormData(form);
-        if (!formData.get("cf-turnstile-response")) {
-          status.dataset.state = "error";
-          status.textContent = "Please complete the human verification before sending your inquiry.";
-          return;
-        }
         submit.disabled = true;
         status.dataset.state = "pending";
         status.textContent = "Sending your inquiry…";
-        try {
+        const send = async (token) => {
+          const formData = new FormData(form);
+          formData.set("cf-turnstile-response", token);
+          // siteverify accepts a token once: whatever the answer, this one is spent.
+          tokenIssuedAt = 0;
+          status.textContent = "Sending your inquiry…";
           const response = await fetch(form.action, { method: "POST", body: new URLSearchParams(formData), headers: { Accept: "application/json" } });
           const result = await response.json().catch(() => ({ success: false, message: "Application intake failed" }));
+          return { response, result };
+        };
+        try {
+          const token = await freshTurnstileToken();
+          if (!token) {
+            status.dataset.state = "error";
+            status.textContent = "Please complete the human verification before sending your inquiry.";
+            submit.disabled = false;
+            return;
+          }
+          let { response, result } = await send(token);
+          // A token Cloudflare calls expired or already used: take a new one and
+          // send once more. The submissionId is unchanged, so this can never
+          // create a second lead.
+          if (response.status === 400 && result.stage === "verification" && String(result.reason || "").includes("timeout-or-duplicate")) {
+            const retryToken = await freshTurnstileToken({ force: true });
+            if (retryToken) ({ response, result } = await send(retryToken));
+          }
           if (!response.ok || !result.success) throw new Error(result.message || "Application intake failed");
           status.dataset.state = "success";
           status.textContent = "Thanks — your inquiry is on its way. Mt Cottages will follow up about availability and next steps.";
