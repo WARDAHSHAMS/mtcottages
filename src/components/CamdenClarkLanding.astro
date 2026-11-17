@@ -85,9 +85,9 @@ const tableHomes = camdenDrives.map((line) => ({ id: line.homeId, name: line.hom
       <div><p class="eyebrow">Nights, parking and sleep</p><h2 id="cc-nights-title">What we know for a shift worker, and what we confirm first</h2></div>
       <p>Taken from each home's own listing and photos. Where a detail is not confirmed, it says so.</p>
     </div>
-    <div class="tl-table-scroll" role="region" aria-labelledby="cc-nights-title" tabindex="0">
+    <div class="tl-table-scroll" role="region" aria-labelledby="cc-nights-caption" tabindex="0">
       <table class="tl-table tn-table" data-testid="shift-table">
-        <caption class="sr-only">Parking, laundry, internet and setting for Broad Cottage and Oak Cottage, with how well each detail is confirmed</caption>
+        <caption id="cc-nights-caption" class="sr-only">Parking, laundry, internet and setting for Broad Cottage and Oak Cottage, with how well each detail is confirmed</caption>
         <thead>
           <tr><th scope="col">Home</th>{shiftRows[0].cells.map((cell) => <th scope="col">{cell.label}</th>)}</tr>
         </thead>
