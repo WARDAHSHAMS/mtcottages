@@ -13,6 +13,7 @@ import {
   homeBase, homePages, nearbyKindLabel, nearbyKindOrder, planKindColor, planKindLabel, privateAddressNote, statusHelp, statusLabel,
   type HomePage,
 } from "../../../data/homes/links";
+import { pageTitle, placeName } from "../../../data/seo";
 import { homePageSchema } from "../../../data/homes/schema";
 import type { FactStatus, HomeMicrosite } from "../../../data/homes/types";
 
@@ -42,7 +43,7 @@ const { home, page } = props;
 const shell = homeShell(home);
 const address = fullAddress(home);
 const street = hasStreetAddress(home);
-const where = `${home.town.name}, ${home.town.state}`;
+const where = placeName(home.town);
 const guide = home.guide ?? [];
 
 const copy: Record<HomePage, { eyebrow: string; heading: string; lede: string; title: string; description: string }> = {
@@ -57,7 +58,7 @@ const copy: Record<HomePage, { eyebrow: string; heading: string; lede: string; t
     eyebrow: `${home.name} · Plan & 3D`,
     heading: "See how it fits together.",
     lede: "A concept floor plan and an interactive 3D model, both generated from the room list. They show how the rooms relate, not exact sizes.",
-    title: `Concept floor plan and 3D model of ${home.name}, ${where}`,
+    title: `Concept floor plan: ${home.name}, ${where}`,
     description: `Concept floor plan and 3D model of ${home.name}. Concept illustrations generated from the room list, not to scale and not a measured survey.`,
   },
   amenities: {
@@ -73,14 +74,14 @@ const copy: Record<HomePage, { eyebrow: string; heading: string; lede: string; t
     lede: street
       ? `${address}. Directions, a map, measured drive times and nearby places to get started.`
       : `${home.name} is in ${address}. ${privateAddressNote} Here are directions to town, a map, drive times from the town centre and nearby places to get started.`,
-    title: `Location, directions and nearby places for ${home.name}`,
-    description: `Directions to ${home.name} ${addressPhrase(home)}, measured drive times to hospitals, employers and schools, and nearby groceries, food and parks.`,
+    title: `Location and directions: ${home.name}, ${where}`,
+    description: `Directions to ${home.name} ${addressPhrase(home)}, drive times to hospitals, work and schools, and nearby groceries and parks.`,
   },
   guide: {
     eyebrow: `${home.name} · Guide`,
     heading: "How living here works.",
     lede: "Utilities, arrival, the house handbook and who to call, each marked with where the detail comes from.",
-    title: `Resident guide for ${home.name}, ${where}`,
+    title: `Resident guide: ${home.name}, ${where}`,
     description: `Utilities, arrival, house rules and maintenance contacts for ${home.name} ${addressPhrase(home)}.`,
   },
 };
@@ -99,7 +100,7 @@ const hasRooms = home.rooms.length > 0;
 
 <HomeLayout
   shell={shell}
-  title={`${c.title} | Mt Cottages`}
+  title={pageTitle(c.title)}
   description={c.description}
   eyebrow={c.eyebrow}
   heading={c.heading}

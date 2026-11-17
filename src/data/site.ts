@@ -256,6 +256,9 @@ export type Guide = {
   inquiryCta?: boolean;
   /** The persona this guide speaks to; its stay links pre-select the matching reason for the stay. */
   audience?: Audience;
+  /** Search-result title and description when the visible title or description does not fit the 60/70-160 character limits (#69). */
+  metaTitle?: string;
+  metaDescription?: string;
   /** The town its stay links pre-select. */
   stayTown?: StayTown;
 };
@@ -302,6 +305,8 @@ export const guides: Record<string, Guide> = {
   work: {
     path: "work-relocation.html",
     title: "Furnished housing for work assignments and relocation",
+    metaTitle: "Furnished housing for work and relocation",
+    metaDescription: "Furnished homes in Marietta, Ohio and Parkersburg, WV for a new role, a regional project or a move, with a kitchen, laundry and fiber internet.",
     eyebrow: "Arrive ready",
     description: "A new role or regional project already comes with a full to-do list.",
     intro: "Mt Cottages offers furnished homes across Mid-Ohio Valley communities so you can focus on the work and the transition around it.",
@@ -317,6 +322,7 @@ export const guides: Record<string, Guide> = {
   insurance: {
     path: "insurance-housing.html",
     title: "Temporary furnished housing after a covered loss",
+    metaTitle: "Temporary housing after a covered loss",
     eyebrow: "A home during repairs",
     description: "When fire, water, storm, or another damaging event makes home temporarily unlivable, the next question is often simple: where can daily life continue?",
     intro: "Mt Cottages helps households and authorized claim contacts think through a furnished bridge with room for meals, sleep, belongings, and the details of ordinary life.",
