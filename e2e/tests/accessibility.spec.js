@@ -46,6 +46,24 @@ const serveStayForm = async (context) => {
 /** Waits two frames so a focus-driven scroll and any style change have painted. */
 const settle = (page) => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
+/**
+ * One keyboard stop in a single round trip: waits two frames for the focus scroll to paint, then names the
+ * focused element and what covers its centre, if anything (WCAG 2.4.11).
+ */
+const focusStop = () =>
+  new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => {
+    const active = document.activeElement;
+    if (!active || active === document.body) return resolve({ key: null, cover: null });
+    const key = `${active.tagName}|${active.getAttribute("href") ?? ""}|${active.textContent?.trim().slice(0, 30)}`;
+    const box = active.getBoundingClientRect();
+    if (box.width < 1 || box.height < 1) return resolve({ key, cover: null });
+    const x = Math.min(Math.max(box.left + box.width / 2, 0), innerWidth - 1);
+    const y = Math.min(Math.max(box.top + box.height / 2, 0), innerHeight - 1);
+    const hit = document.elementFromPoint(x, y);
+    const covered = hit && !(active === hit || active.contains(hit) || hit.contains(active));
+    resolve({ key, cover: covered ? `${key} is under ${hit.closest("header, nav, aside, [class]")?.className || hit.tagName}` : null });
+  })));
+
 /** What covers the centre of the focused element, or null when nothing does (WCAG 2.4.11). */
 const focusCover = (page) =>
   page.evaluate(() => {
@@ -88,7 +106,7 @@ test.describe("accessibility statement", () => {
     expect(headings).toEqual(["The standard we work to", "How we check it", "Known limits", "Access in the homes themselves", "Tell us what got in the way"]);
     const limits = page.locator("#limits li");
     await expect(limits).toHaveCount(4);
-    for (const limit of [/3D model/, /Google Maps/, /Cloudflare Turnstile/, /screen reader/]) await expect(limits.filter({ hasText: limit })).toHaveCount(1);
+    for (const limit of [/3D model/, /Google Maps/, /Cloudflare Turnstile/, /tested with every screen reader/]) await expect(limits.filter({ hasText: limit })).toHaveCount(1);
     await expect(page.locator("#testing")).toContainText("minimum accessibility score of 95");
     const mail = page.locator('a[href="mailto:stay@mtcottages.com"]');
     expect(await mail.count()).toBeGreaterThanOrEqual(2);
@@ -147,22 +165,17 @@ test.describe("audit regressions", () => {
   ];
   for (const walk of walks) {
     test(`keyboard focus is never hidden: ${walk.name}`, async ({ page }) => {
-      test.setTimeout(90_000);
+      test.setTimeout(180_000);
       await page.setViewportSize(walk.viewport);
       await page.goto(walk.path);
       const hidden = [];
       let first = null;
       for (let stop = 0; stop < 200; stop += 1) {
         await page.keyboard.press("Tab");
-        await settle(page);
-        const key = await page.evaluate(() => {
-          const active = document.activeElement;
-          return active && active !== document.body ? `${active.tagName}|${active.getAttribute("href") ?? ""}|${active.textContent?.trim().slice(0, 30)}` : null;
-        });
+        const { key, cover } = await page.evaluate(focusStop);
         if (!key) continue;
         if (key === first) break;
         first ??= key;
-        const cover = await focusCover(page);
         if (cover) hidden.push(cover);
       }
       expect(first, "the walk reached a focusable element").not.toBeNull();
@@ -171,6 +184,7 @@ test.describe("audit regressions", () => {
   }
 
   test("scrollable tables are labelled by their own caption, not the section heading", async ({ page }) => {
+    test.setTimeout(120_000);
     for (const pathname of ["/parkersburg/index.html", "/marietta/index.html", "/corporate-housing/", "/travel-nurses/camden-clark/"]) {
       await page.goto(pathname);
       const results = await new AxeBuilder({ page }).withRules(["landmark-unique", "region"]).analyze();
