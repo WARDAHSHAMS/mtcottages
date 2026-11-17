@@ -7,12 +7,14 @@ const AxeBuilder = require("@axe-core/playwright").default;
 // town-level only (`street: null`): no house number, pin, postcode or geo point.
 const homes = [
   { id: "frederick", name: "Frederick Cottage", base: "/marietta/frederick/", street: "125 Frederick St", address: "125 Frederick St, Marietta, OH 45750", concepts: true, guide: true },
-  { id: "henrietta", name: "Henrietta Cottage", base: "/ravenswood/henrietta-cottage/", street: "200 Henrietta St", address: "200 Henrietta St, Ravenswood, WV 26164", concepts: true },
-  { id: "oak", name: "Oak Cottage", base: "/parkersburg/oak-cottage/", street: "2712 Broad St", address: "2712 Broad St, Parkersburg, WV 26101", concepts: true },
-  { id: "broad", name: "Broad Cottage", base: "/parkersburg/broad-cottage/", street: "3113 Broad St", address: "3113 Broad St, Parkersburg, WV 26104", concepts: true },
-  { id: "buck", name: "Buck Cottage", base: "/parkersburg/buck-cottage/", street: null, address: "Parkersburg, WV", concepts: false },
-  { id: "virginia", name: "Virginia Cottage", base: "/ravenswood/virginia-cottage/", street: null, address: "Ravenswood, WV", concepts: false },
+  { id: "henrietta", name: "Henrietta Cottage", base: "/ravenswood/henrietta-cottage/", street: "200 Henrietta St", address: "200 Henrietta St, Ravenswood, WV 26164", concepts: true, guide: true },
+  { id: "oak", name: "Oak Cottage", base: "/parkersburg/oak-cottage/", street: "2712 Broad St", address: "2712 Broad St, Parkersburg, WV 26101", concepts: true, guide: true },
+  { id: "broad", name: "Broad Cottage", base: "/parkersburg/broad-cottage/", street: "3113 Broad St", address: "3113 Broad St, Parkersburg, WV 26104", concepts: true, guide: true },
+  { id: "buck", name: "Buck Cottage", base: "/parkersburg/buck-cottage/", street: null, address: "Parkersburg, WV", concepts: false, guide: true },
+  { id: "virginia", name: "Virginia Cottage", base: "/ravenswood/virginia-cottage/", street: null, address: "Ravenswood, WV", concepts: false, guide: true },
 ];
+// Flagship standard item 5 (#65, #88): the "what's near me" depth Frederick set.
+const nearbyMinimum = { places: 15, kinds: 5 };
 const familySize = homes.length;
 const approvedStreets = ["200 Henrietta St", "2712 Broad St", "3113 Broad St", "125 Frederick St"];
 const pageNames = ["tour", "plan", "amenities", "location"];
@@ -65,7 +67,7 @@ for (const home of homes) {
         expect(href).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&origin=.+&destination=/);
         expect(href).toContain(`destination=${encodeURIComponent(home.address)}`);
       }
-      const nearby = page.locator(".hm-nearby-group a:not(.hm-walk)");
+      const nearby = page.locator(".hm-nearby-group a:not(.hm-walk):not(.hm-source a)");
       expect(await nearby.count()).toBeGreaterThanOrEqual(1);
       for (const link of await nearby.all()) {
         await expect(link).toHaveAttribute("href", /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=/);
@@ -404,8 +406,55 @@ test("every home tour answers at least eight guest questions, each with an evide
   }
 });
 
-test("homes without a resident guide have no guide page or nav item", async ({ page, request }) => {
-  expect((await request.get("/ravenswood/henrietta-cottage/guide.html")).status()).toBe(404);
-  await page.goto("/ravenswood/henrietta-cottage/");
-  await expect(page.locator('nav[aria-label="Henrietta Cottage sections"] a[href$="guide.html"]')).toHaveCount(0);
+// Flagship standard item 5 (#88): at least 15 places in at least 5 kinds per home.
+// Every place outside Frederick's original list says where and when it was checked.
+test("every home lists at least 15 nearby places in at least 5 kinds, each sourced and dated", async ({ page }) => {
+  for (const home of homes) {
+    await page.goto(`${home.base}location.html`);
+    const places = page.locator("#nearby .hm-nearby-group li");
+    const kinds = page.locator("#nearby .hm-nearby-group");
+    expect(await places.count(), `${home.name} nearby places`).toBeGreaterThanOrEqual(nearbyMinimum.places);
+    expect(await kinds.count(), `${home.name} nearby kinds`).toBeGreaterThanOrEqual(nearbyMinimum.kinds);
+    if (home.id === "frederick") continue;
+    await expect(page.locator("#nearby .hm-source")).toHaveCount(await places.count());
+    for (const source of await page.locator("#nearby .hm-source").all()) {
+      await expect(source).toHaveText(/^Checked [A-Z][a-z]+ \d{1,2}, \d{4} on \S+/);
+      await expect(source.locator("a")).toHaveAttribute("href", /^https:\/\//);
+    }
+    // Text and map links only: no hours, prices or phone numbers in a place note.
+    const notes = (await page.locator("#nearby .hm-nearby-group li").allInnerTexts()).join("\n");
+    expect(notes).not.toMatch(/\$\d|\(\d{3}\)\s?\d{3}-\d{4}|\b\d{1,2}(:\d{2})?\s?(am|pm)\b/i);
+    await expect(page.locator("#nearby img")).toHaveCount(0);
+  }
+});
+
+// Flagship standard item 9 (#89): every home has a resident guide with arrival,
+// utilities and house rules, each line badged with where it comes from.
+test("every home has a resident guide page linked from its navigation", async ({ page }) => {
+  for (const home of homes) {
+    await page.goto(home.base);
+    const navLink = page.locator(`nav[aria-label="${home.name} sections"] a[href="${home.base}guide.html"]`);
+    expect(await navLink.count(), `${home.name} guide nav link`).toBeGreaterThanOrEqual(1);
+    await navLink.first().click();
+    await expect(page).toHaveURL(new RegExp(`${home.base}guide\\.html$`));
+    await expect(page.locator("h1")).toHaveCount(1);
+    for (const id of ["arrival", "utilities", "handbook"]) {
+      await expect(page.locator(`section#${id} h2`), `${home.name} #${id}`).toHaveCount(1);
+      const items = page.locator(`section#${id} .hm-notes li`);
+      expect(await items.count(), `${home.name} #${id} lines`).toBeGreaterThanOrEqual(2);
+      await expect(page.locator(`section#${id} .hm-notes li .hm-badge`)).toHaveCount(await items.count());
+    }
+    for (const badge of await page.locator("main .hm-notes .hm-badge").all()) {
+      await expect(badge).toHaveText(/^(Confirmed|Listed|In photos|Confirm on inquiry)$/);
+    }
+    const main = page.locator("main");
+    await expect(main).toContainText("call 911 first");
+    if (home.id !== "frederick") {
+      await expect(main).toContainText("No pets.");
+      await expect(main).toContainText("No smoking.");
+      await expect(main).toContainText("Trash goes out on Sundays.");
+      await expect(main).toContainText(/Utilities: included in the monthly rate\./);
+      await expect(main).toContainText(/Cancellation and notice follow your lease/);
+    }
+  }
 });

@@ -1,4 +1,6 @@
 import type { HomeMicrosite, HomePhoto } from "./types";
+import { residentGuide } from "./guide";
+import { ravenswoodDirectionsFrom, ravenswoodNearby } from "./towns";
 import p04 from "../../../assets/images/cottages/ravenswood-03/photo-04.avif";
 import p06 from "../../../assets/images/cottages/ravenswood-03/photo-06.avif";
 import p13 from "../../../assets/images/cottages/ravenswood-03/photo-13.avif";
@@ -337,20 +339,11 @@ export const henriettaHome: HomeMicrosite = {
       caption: "Concept only. An imagined layout of the kitchen, based on the photos. The real room's shape, and where the stairs go, are not confirmed.",
     },
   ],
-  nearby: [
-    { name: "Jackson General Hospital", kind: "health", note: "The county's hospital, a WVU Medicine facility on Pinnell Street in Ripley.", mapsQuery: "Jackson General Hospital 122 Pinnell St Ripley WV" },
-    { name: "Ravenswood Foodfair", kind: "grocery", note: "A grocery store on Washington Street in Ravenswood.", mapsQuery: "Foodfair 423 Washington St Ravenswood WV" },
-    { name: "Walmart Supercenter", kind: "shopping", note: "A larger store for groceries and household needs on Academy Drive in Ripley.", mapsQuery: "Walmart Supercenter 200 Academy Dr Ripley WV" },
-    { name: "Washington Riverfront Park", kind: "park", note: "Ravenswood's park on the Ohio River, where the city has been adding river access and a marina.", mapsQuery: "Riverfront Park Ravenswood WV" },
-    { name: "Gino's Pizza & Spaghetti House", kind: "food", note: "A sit-down pizza and pasta restaurant on Washington Street.", mapsQuery: "Gino's Pizza Spaghetti House 404 Washington St Ravenswood WV" },
-    { name: "Ravenswood Branch Library", kind: "civic", note: "The Ravenswood branch of the Jackson County public libraries on Virginia Street.", mapsQuery: "Jackson County Public Library Ravenswood Branch Ravenswood WV" },
-    { name: "Ravenswood City Hall", kind: "civic", note: "The city's municipal offices, including the city clerk.", mapsQuery: "Ravenswood Municipal Building Ravenswood WV" },
-    { name: "Ravenswood Middle School", kind: "school", note: "Public middle school for grades 6 to 8 on South Ritchie Avenue.", mapsQuery: "Ravenswood Middle School 514 S Ritchie Ave Ravenswood WV" },
-    { name: "Ravenswood High School", kind: "school", note: "Public high school for grades 9 to 12 on Plaza Drive.", mapsQuery: "Ravenswood High School 100 Plaza Dr Ravenswood WV" },
-  ],
-  directionsFrom: [
-    { label: "I-77 Ravenswood exit", origin: "I-77 Exit 146 Ravenswood WV" },
-    { label: "Jackson General Hospital", origin: "Jackson General Hospital 122 Pinnell St Ripley WV 25271" },
-    { label: "Downtown Parkersburg", origin: "Downtown Parkersburg WV" },
-  ],
+  nearby: ravenswoodNearby,
+  directionsFrom: ravenswoodDirectionsFrom,
+  guide: residentGuide({
+    id: "henrietta",
+    internet: { text: "Internet: fiber-optic is the Mt Cottages standard; confirm it for this home.", status: "confirm" },
+    laundry: { text: "Laundry: a washing machine is photographed; ask us about a dryer.", status: "photographed" },
+  }),
 };

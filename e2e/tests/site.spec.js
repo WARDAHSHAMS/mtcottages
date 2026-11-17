@@ -37,8 +37,9 @@ const publicPages = [
   "/resident-portal.html", "/maintenance.html", "/emergency-maintenance.html",
   "/marietta/index.html", "/parkersburg/index.html", "/ravenswood/index.html",
   "/grantsville/index.html", "/racine/index.html",
-  ...homeMicrosites.flatMap((base) => [base, ...["tour", "plan", "amenities", "location"].map((page) => `${base}${page}.html`)]),
-  "/marietta/frederick/index.html", `${frederickBase}guide.html`,
+  // Every home has a resident guide (#89).
+  ...homeMicrosites.flatMap((base) => [base, ...["tour", "plan", "amenities", "location", "guide"].map((page) => `${base}${page}.html`)]),
+  "/marietta/frederick/index.html",
   "/404.html"
 ];
 

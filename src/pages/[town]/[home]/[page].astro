@@ -15,6 +15,7 @@ import {
 } from "../../../data/homes/links";
 import { pageTitle, placeName } from "../../../data/seo";
 import { homePageSchema } from "../../../data/homes/schema";
+import { formatDate } from "../../../data/terms";
 import type { FactStatus, HomeMicrosite } from "../../../data/homes/types";
 
 type Props = { home: HomeMicrosite; page: HomePage } | { home: HomeMicrosite; legacyTarget: string };
@@ -90,7 +91,16 @@ const statuses: FactStatus[] = ["confirmed", "listed", "photographed", "confirm"
 const nearbyGroups = nearbyKindOrder
   .map((kind) => ({ kind, places: home.nearby.filter((place) => place.kind === kind) }))
   .filter((group) => group.places.length > 0);
-const kindsInPlan = [...new Set(home.plan.floors.flatMap((floor) => floor.rooms.map((room) => room.kind)))];
+/** "OpenStreetMap" for an OSM element, otherwise the source site's host name. */
+const sourceLabel = (url: string): string => {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return host === "openstreetmap.org" ? "OpenStreetMap" : host;
+  } catch (error) {
+    throw new Error(`${home.id}: nearby source "${url}" is not a valid URL (${error instanceof Error ? error.message : String(error)})`);
+  }
+};
+const kindsInPlan =[...new Set(home.plan.floors.flatMap((floor) => floor.rooms.map((room) => room.kind)))];
 const planExtent = {
   w: Math.max(0, ...home.plan.floors.flatMap((f) => f.rooms.map((r) => r.x + r.w))),
   h: Math.max(0, ...home.plan.floors.flatMap((f) => f.rooms.map((r) => r.y + r.h))),
@@ -289,6 +299,9 @@ const hasRooms = home.rooms.length > 0;
                     <li>
                       <a href={googleSearch(place.mapsQuery)} rel="noopener" target="_blank"><strong>{place.name}</strong><span>{place.note}</span><span class="sr-only"> (Google Maps, new tab)</span></a>
                       {street && <a class="hm-walk" href={googleWalkFrom(address, place.mapsQuery)} rel="noopener" target="_blank">Walk<span class="sr-only"> from {home.name} to {place.name} (Google Maps, new tab)</span> ↗</a>}
+                      {place.source && place.checked && (
+                        <p class="hm-source">Checked {formatDate(place.checked)} on <a href={place.source} rel="noopener" target="_blank">{sourceLabel(place.source)}<span class="sr-only"> for {place.name} (new tab)</span></a></p>
+                      )}
                     </li>
                   ))}
                 </ul>

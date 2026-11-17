@@ -1,4 +1,6 @@
 import type { HomeMicrosite } from "./types";
+import { residentGuide } from "./guide";
+import { parkersburgDirectionsFrom, parkersburgNearby } from "./towns";
 import hero from "../../../assets/images/cottages/parkersburg-04/homepage-hero-oak-dining.avif";
 import p05 from "../../../assets/images/cottages/parkersburg-04/photo-05.avif";
 import p07 from "../../../assets/images/cottages/parkersburg-04/photo-07.avif";
@@ -267,18 +269,11 @@ export const oakHome: HomeMicrosite = {
       caption: "Concept only. An imagined layout of bedroom one, based on the photos. Room size and furniture placement are not confirmed.",
     },
   ],
-  nearby: [
-    { name: "WVU Medicine Camden Clark Medical Center", kind: "health", note: "The area's main hospital campus, on Garfield Avenue in Parkersburg.", mapsQuery: "WVU Medicine Camden Clark Medical Center 800 Garfield Ave Parkersburg WV" },
-    { name: "Kroger on 7th Street", kind: "grocery", note: "A full-service grocery store on the east side of Parkersburg near City Park.", mapsQuery: "Kroger 2007 7th St Parkersburg WV" },
-    { name: "Parkersburg City Park", kind: "park", note: "The city's largest park, with picnic shelters, playgrounds, tennis and pickleball courts, and walking paths.", mapsQuery: "Parkersburg City Park 1920 Parks Ave Parkersburg WV" },
-    { name: "Point Park", kind: "park", note: "A riverfront park where the Little Kanawha meets the Ohio River, and the start of the Little Kanawha Connector Trail.", mapsQuery: "Point Park Parkersburg WV" },
-    { name: "Smoot Theatre", kind: "civic", note: "A restored 1926 downtown theater that hosts live shows.", mapsQuery: "Smoot Theatre 213 5th St Parkersburg WV" },
-    { name: "Parkersburg High School", kind: "school", note: "The public high school for the city, in a 1917 Tudor-style building.", mapsQuery: "Parkersburg High School 2101 Dudley Ave Parkersburg WV" },
-    { name: "Easy Rider (Mid-Ohio Valley Transit Authority)", kind: "transit", note: "The local public bus system serving Parkersburg and Vienna.", mapsQuery: "Mid-Ohio Valley Transit Authority 520 Juliana St Parkersburg WV" },
-  ],
-  directionsFrom: [
-    { label: "WVU Medicine Camden Clark Medical Center", origin: "WVU Medicine Camden Clark Medical Center, 800 Garfield Ave, Parkersburg, WV 26101" },
-    { label: "Mid-Ohio Valley Regional Airport", origin: "Mid-Ohio Valley Regional Airport, Williamstown, WV" },
-    { label: "Downtown Parkersburg (Point Park)", origin: "Point Park, Parkersburg, WV" },
-  ],
+  nearby: parkersburgNearby,
+  directionsFrom: parkersburgDirectionsFrom,
+  guide: residentGuide({
+    id: "oak",
+    internet: { text: "Internet: fiber-optic, per the listing.", status: "listed" },
+    laundry: { text: "Laundry: a washer and dryer, to confirm on inquiry.", status: "confirm" },
+  }),
 };
