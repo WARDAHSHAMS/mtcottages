@@ -30,16 +30,48 @@ export const minutesFor = (seconds) => Math.ceil(seconds / 60);
 export const milesFor = (meters) => Math.round((meters / METERS_PER_MILE) * 10) / 10;
 
 /**
- * Age of a measurement in whole days at `today`, or null when `measured` is
- * not an ISO calendar date.
+ * The time zone every `measured` stamp is written in: the homes' own (Marietta,
+ * Parkersburg, Ravenswood). "Today" is read in the same zone, so a row stamped
+ * late in the evening in Ohio is not "in the future" to a CI runner on UTC
+ * (pipeline 148591, 01:39 ET; WorldEnterpriseGroup/mtcottages!61).
+ */
+export const MEASUREMENT_TIME_ZONE = "America/New_York";
+
+const calendarFormat = new Intl.DateTimeFormat("en-CA", {
+  timeZone: MEASUREMENT_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit",
+});
+
+/**
+ * The calendar date (YYYY-MM-DD) of an instant in MEASUREMENT_TIME_ZONE.
+ * Stamp a new measurement with `calendarDate(new Date())`.
+ * @param {Date} instant
+ */
+export function calendarDate(instant) {
+  const parts = Object.fromEntries(calendarFormat.formatToParts(instant).map(({ type, value }) => [type, value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+/** Midnight UTC of an ISO calendar date, or null when it is not a real date. */
+function dayStart(isoDate) {
+  if (typeof isoDate !== "string" || !ISO_DATE.test(isoDate)) return null;
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== isoDate) return null;
+  return date.getTime();
+}
+
+/**
+ * Age of a measurement in whole calendar days at `today`, both read in
+ * MEASUREMENT_TIME_ZONE, or null when `measured` is not an ISO calendar date.
+ * Negative means the stamp is after today.
  * @param {unknown} measured
  * @param {Date} today
  */
 export function ageInDays(measured, today) {
-  if (typeof measured !== "string" || !ISO_DATE.test(measured)) return null;
-  const date = new Date(`${measured}T00:00:00Z`);
-  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== measured) return null;
-  return Math.floor((today.getTime() - date.getTime()) / DAY_MS);
+  const stamp = dayStart(measured);
+  if (stamp === null) return null;
+  const now = dayStart(calendarDate(today));
+  if (now === null) throw new RangeError(`ageInDays: today is not a valid date (${String(today)})`);
+  return Math.round((now - stamp) / DAY_MS);
 }
 
 /** True when a measurement is older than MAX_AGE_DAYS at `today`. */
@@ -132,7 +164,7 @@ export function validateDistances(data, { today = new Date() } = {}) {
     }
     const age = ageInDays(row.measured, today);
     if (age === null) errors.push(`${where}: measured must be an ISO date (YYYY-MM-DD)`);
-    else if (age < -1) errors.push(`${where}: measured ${row.measured} is in the future`);
+    else if (age < 0) errors.push(`${where}: measured ${row.measured} is in the future`);
     else if (age > MAX_AGE_DAYS) errors.push(`${where}: measured ${row.measured} is older than 12 months; re-measure it`);
   }
 

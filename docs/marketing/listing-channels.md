@@ -21,7 +21,7 @@ _Prepared 2026-11-16 for WorldEnterpriseGroup/mtcottages#73 (growth roadmap #11)
 **Photo and terms gaps found while preparing this pack** (details in sections 3 and 4):
 
 - Virginia Cottage has no photo of a bed, a kitchen or a full bathroom, and was photographed mid-renovation. It should not be listed anywhere until the reshoot.
-- Broad Cottage has no kitchen or exterior photo; Oak has no clean front-of-house photo; Frederick's best-resolution frames are limited (several are 720 pixels wide).
+- Broad Cottage has no exterior photo (Wardah added four kitchen photos on 2026-11-16); Oak has no clean front-of-house photo; Frederick's best-resolution frames are limited (several are 720 pixels wide).
 - Furnished Finder accepts PNG and JPEG only, and many portfolio originals are AVIF. They need a one-time JPEG export (the repository keeps its AVIF files untouched).
 - Four files in Frederick's folder are named "photo" but are AI-generated concept images. They must never be uploaded.
 - The site's analytics does not read `utm_*` parameters (section 5). The links still work, but attribution today comes from the referrer and from a `src` parameter on the stay form.
@@ -324,7 +324,7 @@ Address: none approved. Describe the location as the town only. If a channel's s
 
 ### Broad Cottage, Parkersburg, West Virginia
 
-Readiness: Hold for wave 3: the kitchen and the outside are not photographed. Rate and minimum stay (T3) to confirm.
+Readiness: Hold for wave 3: the outside is not photographed (the kitchen is, since Wardah's photos of 2026-11-16). Rate and minimum stay (T3) to confirm.
 
 | Channel | Title | Characters |
 |---|---|---|
@@ -332,11 +332,11 @@ Readiness: Hold for wave 3: the kitchen and the outside are not photographed. Ra
 | Vrbo | 1-bedroom, wood-paneled living room | 35 of 40 |
 | Furnished Finder, Zillow, Apartments.com, BlueCollarHousing | Furnished 1-bedroom home, wood-paneled, Parkersburg, WV | 55 (60 or fewer; FF limit not found) |
 
-Short description (393 characters; Airbnb, Zillow, Apartments.com):
+Short description (402 characters; Airbnb, Zillow, Apartments.com):
 
-> A furnished one-bedroom, one-bath home in Parkersburg, West Virginia. A living room with knotty wood paneling, a sectional sofa and a wall-mounted TV, a bedroom with a queen bed and a desk by the window, a washer and dryer beside the bathroom vanity, and fiber-optic internet. We have not photographed the kitchen yet. Ask us about the rate for your dates, minimum stay, utilities and parking.
+> A furnished one-bedroom, one-bath home in Parkersburg, West Virginia. A living room with knotty wood paneling, a sectional sofa and a wall-mounted TV, a bedroom with a queen bed and a desk by the window, a washer and dryer beside the bathroom vanity, a galley kitchen with a cooktop and a double sink, and fiber-optic internet. Ask us about the rate for your dates, minimum stay, utilities and parking.
 
-Long description (1142 characters; Furnished Finder, Vrbo, BlueCollarHousing):
+Long description (1355 characters; Furnished Finder, Vrbo, BlueCollarHousing):
 
 > Broad Cottage is a furnished one-bedroom, one-bath home in Parkersburg, West Virginia.
 >
@@ -346,9 +346,11 @@ Long description (1142 characters; Furnished Finder, Vrbo, BlueCollarHousing):
 >
 > Bath and laundry: a full-size tub, and a washer and dryer beside the vanity, so there is no trip to a laundromat.
 >
-> Also listed: a full kitchen and fiber-optic internet (speed to confirm), on a single level. We have not photographed the kitchen or the outside yet, so we mark those for confirmation rather than describe them.
+> Kitchen: a galley kitchen with white cabinets, a patterned tile backsplash, a glass-top cooktop, a double sink, and a microwave above the refrigerator, with pots, pans and utensils on the wall. The listing calls it a full kitchen; ask us about an oven.
 >
-> What we confirm with you: the rate for your dates, the minimum stay, what the rate covers for utilities, pets, the security deposit, cookware, parking and your move-in date.
+> Also listed: fiber-optic internet (speed to confirm), on a single level. We have not photographed the outside yet, so we mark it for confirmation rather than describe it.
+>
+> What we confirm with you: the rate for your dates, the minimum stay, what the rate covers for utilities, pets, the security deposit, dishes, parking and your move-in date.
 >
 > Mt Cottages is a small local team that looks after furnished homes in Marietta, Ohio, Parkersburg and Ravenswood. Anything marked confirm is not settled yet, and we would rather say so than guess.
 
@@ -357,7 +359,7 @@ Highlights (amenity or feature fields):
 - A wood-paneled living room with a sectional and a wall-mounted TV
 - Queen bed, mirror and a desk with a chair in the bedroom
 - Washer and dryer in the home
-- Full kitchen listed (not yet photographed)
+- Galley kitchen with a cooktop, double sink, microwave and refrigerator
 - Fiber-optic internet (speed to confirm)
 
 Terms block to paste at the end of the FF, Zillow and Apartments.com descriptions (not Airbnb or Vrbo, where the price field does that job):
@@ -522,6 +524,10 @@ Folder: `assets/images/cottages/parkersburg-01/`
 | 4 | `photo-20.jpg` | Bathroom: full-size tub and wood vanity | 1920x1280 |
 | 5 | `photo-42.jpg` | Vanity, washer and dryer, and a curtained shower area | 1920x1280 |
 | 6 | `photo-12.jpg` | Washer and dryer beside the vanity | 1920x1280 |
+| 7 | `broad-kitchen-sink.jpg` | Kitchen: double sink and patterned tile backsplash | 1200x800 |
+| 8 | `broad-kitchen-cooktop.jpg` | Kitchen: cooktop, cabinets and the utensil rail | 720x1283 |
+| 9 | `broad-kitchen-galley.jpg` | Kitchen: the galley seen down its length | 720x1080 |
+| 10 | `broad-kitchen-wide.jpg` | Kitchen: cooktop, sink, microwave and refrigerator in one frame | 720x480 (small) |
 
 Do not upload:
 
@@ -547,7 +553,7 @@ Do not upload:
 - photo-54.jpg (maintenance frame: cleaning supplies, an extinguisher and an open switch box), photo-77.jpg (an empty room with a patched outlet and a vacuum)
 - Gap: no bed, kitchen, full bathroom or front-of-house photo exists. Hold until the reshoot (V8)
 
-Gaps to close before the listings are strong (for Wardah): a clean front-of-house photo for Oak and Broad, a Broad kitchen, all of Virginia's beds, kitchen, full bathroom and exterior, Henrietta's second bedroom, and larger replacements for every "small" file above.
+Gaps to close before the listings are strong (for Wardah): a clean front-of-house photo for Oak and Broad, all of Virginia's beds, kitchen, full bathroom and exterior, Henrietta's second bedroom, and larger replacements for every "small" file above.
 
 ## 5. UTM-tagged links
 
@@ -641,7 +647,7 @@ The audience values are the nearest personas: `healthcare` for Furnished Finder 
 | O7 | Stays under 30 nights, lodging tax and insurance (D3) | Not now; keep the 30-day minimum | Airbnb, Vrbo |
 | O8 | Response-time promise (D6) | Make none until ops can keep one | Copy on every channel |
 | O9 | Pet, utility and deposit answers (T1, T2) | Answer them once for all homes so the "confirm" lines can become facts | Every listing |
-| O10 | Virginia and Broad listing timing | Hold both until Wardah reshoots (V3 to V8; Broad needs a kitchen) | Wave 2 and 3 |
+| O10 | Virginia and Broad listing timing | Hold both until Wardah reshoots (V3 to V8; Broad needs an exterior) | Wave 2 and 3 |
 | O11 | Add Zillow Rentals (free) and a BlueCollarHousing test (free founding slot, or $99) after the pilot | Yes for Zillow, once O3 and O5 are settled; try the free BlueCollarHousing slot for one three-bedroom | Wave 2 |
 | O12 | Approve the analytics follow-up (read a whitelisted `utm_source` into `src`) | Yes, as a small separate issue | Attribution |
 

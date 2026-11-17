@@ -4,12 +4,17 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
-  APPROVED_ADDRESSES, CATEGORIES, MAX_AGE_DAYS, ageInDays, isStale, milesFor, minutesFor, validateDistances,
+  APPROVED_ADDRESSES, CATEGORIES, MAX_AGE_DAYS, MEASUREMENT_TIME_ZONE,
+  ageInDays, calendarDate, isStale, milesFor, minutesFor, validateDistances,
 } from "../lib/distances.mjs";
 
 const file = new URL("../../_data/distances.json", import.meta.url);
 const real = JSON.parse(readFileSync(file, "utf8"));
-const measuredOn = new Date("2026-11-15T12:00:00Z");
+// The newest stamp in the file, so adding a row on a later day does not break this fixture
+// (pipeline 148591 pinned 2026-11-15 and failed once rows stamped 2026-11-17 landed).
+const newestStamp = real.rows.map((row) => row.measured).sort().at(-1);
+// Noon in Ohio on that day: 17:00Z in winter (EST), 16:00Z in summer (EDT); 17:00Z is noon or 1 pm, same day either way.
+const measuredOn = new Date(`${newestStamp}T17:00:00Z`);
 const clone = () => structuredClone(real);
 const firstRow = (data) => data.rows[0];
 const expectError = (data, pattern, today = measuredOn) => {
@@ -17,8 +22,41 @@ const expectError = (data, pattern, today = measuredOn) => {
   assert.ok(errors.some((message) => pattern.test(message)), `expected ${pattern}, got:\n${errors.join("\n") || "(no errors)"}`);
 };
 
-test("the committed distances file is valid on the day it was measured", () => {
+test("the committed distances file is valid on the day its newest row was measured", () => {
+  assert.equal(calendarDate(measuredOn), newestStamp);
   assert.deepEqual(validateDistances(real, { today: measuredOn }), []);
+});
+
+test("measurement dates are read in the homes' time zone", () => {
+  assert.equal(MEASUREMENT_TIME_ZONE, "America/New_York");
+  assert.equal(calendarDate(new Date("2026-11-17T06:39:00Z")), "2026-11-17"); // 01:39 EST
+  assert.equal(calendarDate(new Date("2026-11-18T04:30:00Z")), "2026-11-17"); // 23:30 EST
+  assert.equal(calendarDate(new Date("2026-07-04T03:59:00Z")), "2026-07-03"); // 23:59 EDT
+  assert.equal(calendarDate(new Date("2026-07-04T04:00:00Z")), "2026-07-04"); // 00:00 EDT
+});
+
+test("a late-night measurement is today, not tomorrow or the future", () => {
+  // Measured and checked at 23:30 in Ohio, which is already the next day in UTC.
+  const lateNight = new Date("2026-11-18T04:30:00Z");
+  assert.equal(ageInDays("2026-11-17", lateNight), 0);
+  // The pipeline 148591 moment: 01:39 EST on the 17th checks a row stamped the 17th.
+  assert.equal(ageInDays("2026-11-17", new Date("2026-11-17T06:39:00Z")), 0);
+  const data = clone();
+  for (const row of data.rows) row.measured = "2026-11-17";
+  assert.deepEqual(validateDistances(data, { today: lateNight }), []);
+});
+
+test("a row stamped with tomorrow's UTC date at night in Ohio is in the future", () => {
+  // 22:00 EST on the 17th is 03:00Z on the 18th; "2026-11-18" is a UTC stamp, not an Ohio one.
+  const data = clone();
+  firstRow(data).measured = "2026-11-18";
+  expectError(data, /measured 2026-11-18 is in the future/, new Date("2026-11-18T03:00:00Z"));
+});
+
+test("the 12-month limit counts Ohio calendar days", () => {
+  // 23:30 EST on 2026-11-17: exactly 365 days after 2025-11-17, so still fresh.
+  assert.equal(isStale("2025-11-17", new Date("2026-11-18T04:30:00Z")), false);
+  assert.equal(isStale("2025-11-17", new Date("2026-11-18T05:30:00Z")), true); // 00:30 EST on the 18th
 });
 
 test("the committed distances file is valid today", () => {
@@ -55,11 +93,12 @@ test("every destination category is a known one", () => {
 });
 
 test("staleness: 365 days is fresh, 366 is stale, a bad date is neither", () => {
-  assert.equal(ageInDays("2026-11-15", measuredOn), 0);
-  assert.equal(isStale("2025-11-15", measuredOn), false);
-  assert.equal(isStale("2025-11-14", measuredOn), true);
-  assert.equal(ageInDays("2026-02-30", measuredOn), null);
-  assert.equal(ageInDays("15/11/2026", measuredOn), null);
+  const day = new Date("2026-11-15T17:00:00Z");
+  assert.equal(ageInDays("2026-11-15", day), 0);
+  assert.equal(isStale("2025-11-15", day), false);
+  assert.equal(isStale("2025-11-14", day), true);
+  assert.equal(ageInDays("2026-02-30", day), null);
+  assert.equal(ageInDays("15/11/2026", day), null);
 });
 
 test("a row older than 12 months fails", () => {

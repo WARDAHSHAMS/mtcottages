@@ -8,6 +8,9 @@ export declare const MAX_AGE_DAYS: number;
 export declare const METERS_PER_MILE: number;
 export declare const MAX_LABEL_LENGTH: number;
 
+export declare const MEASUREMENT_TIME_ZONE: "America/New_York";
+
+export declare function calendarDate(instant: Date): string;
 export declare function minutesFor(seconds: number): number;
 export declare function milesFor(meters: number): number;
 export declare function ageInDays(measured: unknown, today: Date): number | null;

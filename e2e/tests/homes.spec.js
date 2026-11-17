@@ -391,6 +391,19 @@ test("Frederick keeps every question and guide topic from its old pages", async 
   expect(await page.locator(`nav[aria-label="Frederick Cottage sections"] a[href="/marietta/frederick/guide.html"]`).count()).toBeGreaterThanOrEqual(1);
 });
 
+// Flagship standard item 8 (#65, #87): every home answers guest questions on its
+// photo tour, and every answer says where it comes from.
+test("every home tour answers at least eight guest questions, each with an evidence badge", async ({ page }) => {
+  for (const home of homes) {
+    await page.goto(`${home.base}tour.html`);
+    const faqs = page.locator(".hm-faq");
+    const count = await faqs.count();
+    expect(count, `${home.name} FAQ count`).toBeGreaterThanOrEqual(8);
+    await expect(page.locator(".hm-faq .hm-badge")).toHaveCount(count);
+    await expect(page.locator(".hm-faq summary", { hasText: "What if something drips or clogs?" })).toHaveCount(1);
+  }
+});
+
 test("homes without a resident guide have no guide page or nav item", async ({ page, request }) => {
   expect((await request.get("/ravenswood/henrietta-cottage/guide.html")).status()).toBe(404);
   await page.goto("/ravenswood/henrietta-cottage/");

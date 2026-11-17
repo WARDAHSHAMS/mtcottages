@@ -63,6 +63,10 @@ export const buckHome: HomeMicrosite = {
         { text: "Living room is part of the home's listing.", status: "listed" },
         { text: "Whether there is a TV in the living room.", status: "confirm" },
       ],
+      faqs: [
+        { q: "Is there somewhere comfortable to sit?", a: "Yes. A reclining sofa with cushions faces a coffee table on a striped rug, with a floor lamp and a table lamp.", status: "photographed" },
+        { q: "Is there a TV in the living room?", a: "None is shown in the living-room photos; the bedroom has a wall-mounted TV. Ask us about the living room.", status: "confirm" },
+      ],
     },
     {
       slug: "bedroom",
@@ -75,6 +79,10 @@ export const buckHome: HomeMicrosite = {
         { text: "A door from the bedroom opens into the bathroom.", status: "photographed" },
         { text: "Bed size.", status: "confirm" },
       ],
+      faqs: [
+        { q: "Can I reach the bathroom from the bedroom?", a: "Yes. A door from the bedroom opens straight into the bathroom.", status: "photographed" },
+        { q: "Is there a TV in the bedroom?", a: "Yes. A wall-mounted TV with a sound bar faces the bed.", status: "photographed" },
+      ],
     },
     {
       slug: "desk-room",
@@ -85,6 +93,9 @@ export const buckHome: HomeMicrosite = {
         { text: "Wooden desk with a monitor and keyboard, and a blue upholstered desk chair.", status: "photographed" },
         { text: "A bed with a floral comforter.", status: "photographed" },
         { text: "The home is listed as one bedroom. Confirm whether this room is part of the stay, and whether it is a second bedroom or a study.", status: "confirm" },
+      ],
+      faqs: [
+        { q: "Is there a place to work?", a: "A blue room with a wooden desk, a monitor and a desk chair is photographed, and fiber-optic internet is listed. Ask us whether this room is part of your stay.", status: "confirm" },
       ],
     },
     {
@@ -98,6 +109,10 @@ export const buckHome: HomeMicrosite = {
         { text: "A cooktop or range is not shown in the photo.", status: "confirm" },
         { text: "Cookware and dishes supplied.", status: "confirm" },
       ],
+      faqs: [
+        { q: "What can I cook with?", a: "The photo shows a toaster oven, a microwave, a double sink and a full-size refrigerator. A cooktop or range is not shown, so ask us before you plan meals around one.", status: "photographed" },
+        { q: "Are cookware and dishes supplied?", a: "Ask us to confirm cookware and dishes for your stay.", status: "confirm" },
+      ],
     },
     {
       slug: "bathroom",
@@ -109,6 +124,10 @@ export const buckHome: HomeMicrosite = {
         { text: "Glass-block window and wall storage cabinet.", status: "photographed" },
         { text: "Whether there is more than one bathroom.", status: "confirm" },
       ],
+      faqs: [
+        { q: "Is it a tub or a shower?", a: "A tub with a shower and curtain, plus a grab bar on the wall.", status: "photographed" },
+        { q: "What if something drips or clogs?", a: "Send the home, the room, the problem, the timing and a helpful photo through the maintenance path. For fire, major flooding or immediate danger, call 911 first, then resident support.", status: "confirmed" },
+      ],
     },
     {
       slug: "porch",
@@ -118,6 +137,9 @@ export const buckHome: HomeMicrosite = {
       notes: [
         { text: "Covered front porch with dark wood posts and railings, seen from the front door.", status: "photographed" },
         { text: "Whether there is porch seating.", status: "confirm" },
+      ],
+      faqs: [
+        { q: "Is the front door covered?", a: "Yes. A covered porch with wood posts and railings sits just outside the front door. Ask us about porch seating.", status: "photographed" },
       ],
     },
   ],

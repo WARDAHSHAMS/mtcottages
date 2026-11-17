@@ -61,6 +61,10 @@ export const virginiaHome: HomeMicrosite = {
         { text: "Fireplace feature is part of the listing.", status: "listed" },
         { text: "Whether the fireplace can be used, and how the room is furnished.", status: "confirm" },
       ],
+      faqs: [
+        { q: "Can I use the fireplace?", a: "A white brick fireplace is photographed and listed. Ask us whether it can be used during your stay.", status: "confirm" },
+        { q: "Is the home furnished?", a: "It is listed as furnished, but the current photos show the rooms only partly furnished. Ask us how the home is set up for your dates.", status: "confirm" },
+      ],
     },
     {
       slug: "dining",
@@ -71,6 +75,9 @@ export const virginiaHome: HomeMicrosite = {
         { text: "Wooden farmhouse table with four spindle-back chairs.", status: "photographed" },
         { text: "Tall double window and wood floors.", status: "photographed" },
       ],
+      faqs: [
+        { q: "How many can sit down to eat?", a: "The dining room has a farmhouse table with four spindle-back chairs.", status: "photographed" },
+      ],
     },
     {
       slug: "kitchen",
@@ -80,6 +87,10 @@ export const virginiaHome: HomeMicrosite = {
       notes: [
         { text: "Full kitchen.", status: "listed" },
         { text: "Appliances, cookware and dishes.", status: "confirm" },
+      ],
+      faqs: [
+        { q: "Is there a full kitchen?", a: "Yes, a full kitchen is part of the listing. A new photo is still to come.", status: "listed" },
+        { q: "What appliances and cookware are there?", a: "Not photographed yet. Ask us for the appliance list, cookware and dishes.", status: "confirm" },
       ],
     },
     {
@@ -93,6 +104,10 @@ export const virginiaHome: HomeMicrosite = {
         { text: "Both bedrooms are upstairs: a middle room and a back room. No bedroom with a bed is photographed yet.", status: "confirm" },
         { text: "Bed sizes, and whether the yellow room is one of the bedrooms.", status: "confirm" },
       ],
+      faqs: [
+        { q: "Are the bedrooms upstairs?", a: "The home has two bedrooms and a curved staircase. Ask us which floor each bedroom is on and the bed sizes; no bedroom with a bed is photographed yet.", status: "confirm" },
+        { q: "Is the staircase steep?", a: "It is a curved staircase with a dark wood handrail and turned balusters. Ask us if stairs are a concern.", status: "photographed" },
+      ],
     },
     {
       slug: "bathroom",
@@ -102,6 +117,11 @@ export const virginiaHome: HomeMicrosite = {
       notes: [
         { text: "Powder room with a vanity sink, an octagonal mirror and a white tile floor.", status: "photographed" },
         { text: "A second, full bathroom with a tub is upstairs. It is not photographed yet.", status: "confirm" },
+      ],
+      faqs: [
+        { q: "Is there a bathroom downstairs?", a: "Yes. A powder room with a vanity sink and an octagonal mirror is photographed.", status: "photographed" },
+        { q: "Where do I shower?", a: "In the full bathroom with a tub, which is not photographed yet. Ask us to confirm it before you book.", status: "confirm" },
+        { q: "What if something drips or clogs?", a: "Send the home, the room, the problem, the timing and a helpful photo through the maintenance path. For fire, major flooding or immediate danger, call 911 first, then resident support.", status: "confirmed" },
       ],
     },
   ],
