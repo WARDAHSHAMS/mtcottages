@@ -174,15 +174,15 @@ export const broadHome: HomeMicrosite = {
       summary: "A full kitchen with white cabinets, a granite-look counter, a patterned tile backsplash, a cooktop, a double sink, and a microwave above the refrigerator.",
       photos: [photos.kitchen, photos.kitchenSink, photos.kitchenCooktop, photos.kitchenGalley],
       notes: [
-        { text: "Full kitchen, not a kitchenette", status: "photographed" },
+        { text: "Full kitchen, per the listing; the photos show a compact galley layout", status: "listed" },
         { text: "White upper and lower cabinets with a granite-look laminate counter", status: "photographed" },
         { text: "Patterned tile backsplash behind the sink and cooktop", status: "photographed" },
         { text: "Double stainless-steel sink with a high-arc faucet", status: "photographed" },
-        { text: "Electric cooktop set into the counter", status: "photographed" },
+        { text: "Glass-top cooktop set into the counter", status: "photographed" },
         { text: "Microwave above a top-freezer refrigerator", status: "photographed" },
         { text: "Wall-mounted rack for knives, utensils, pots and pans", status: "photographed" },
         { text: "Appliances beyond the cooktop, microwave and refrigerator (oven, dishwasher)", status: "confirm" },
-        { text: "Cookware, dishes and utensils", status: "confirm" },
+        { text: "Dishes, glasses and silverware", status: "confirm" },
         { text: "Dining table or seating", status: "confirm" },
       ],
     },
@@ -241,7 +241,8 @@ export const broadHome: HomeMicrosite = {
       items: [
         { name: "Full kitchen", status: "photographed" },
         { name: "Washer and dryer", status: "photographed" },
-        { name: "Cookware and dishes", status: "confirm" },
+        { name: "Pots, pans and utensils", status: "photographed" },
+        { name: "Dishes and silverware", status: "confirm" },
       ],
     },
     {
