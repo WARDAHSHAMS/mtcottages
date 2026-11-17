@@ -167,6 +167,10 @@ export const broadHome: HomeMicrosite = {
         { text: "Carpeted floor", status: "photographed" },
         { text: "Room size", status: "confirm" },
       ],
+      faqs: [
+        { q: "Is there a TV in the living room?", a: "Yes. A TV is mounted on the wall facing the sectional. Ask us about the TV type and streaming setup.", status: "photographed" },
+        { q: "How does the living room stay cool?", a: "A wall-mounted air-conditioning unit is in the room. Ask us how the home is heated.", status: "photographed" },
+      ],
     },
     {
       slug: "kitchen",
@@ -185,6 +189,11 @@ export const broadHome: HomeMicrosite = {
         { text: "Dishes, glasses and silverware", status: "confirm" },
         { text: "Dining table or seating", status: "confirm" },
       ],
+      faqs: [
+        { q: "Can I cook a real meal here?", a: "Yes. The photos show a glass-top cooktop, a double sink, a microwave and a top-freezer refrigerator, with pots, pans and utensils on a wall rack.", status: "photographed" },
+        { q: "Is there an oven or a dishwasher?", a: "Neither is shown in the photos. Ask us before you plan meals around one.", status: "confirm" },
+        { q: "Are dishes and silverware supplied?", a: "Pots, pans and utensils are photographed. Ask us to confirm dishes, glasses and silverware.", status: "confirm" },
+      ],
     },
     {
       slug: "bedroom",
@@ -200,6 +209,10 @@ export const broadHome: HomeMicrosite = {
         { text: "Closet or dresser storage", status: "confirm" },
         { text: "Linens and towels supplied (towels are shown on the bed)", status: "confirm" },
       ],
+      faqs: [
+        { q: "What size is the bed?", a: "A queen bed, per the listing.", status: "listed" },
+        { q: "Can I work from the bedroom?", a: "Yes. A desk and an office chair sit beside the window, and fiber-optic internet is listed for the home.", status: "photographed" },
+      ],
     },
     {
       slug: "bathroom",
@@ -213,6 +226,11 @@ export const broadHome: HomeMicrosite = {
         { text: "Baseboard heater", status: "photographed" },
         { text: "Step-free or grab-bar access", status: "confirm" },
       ],
+      faqs: [
+        { q: "Is it a tub or a shower?", a: "Both. The photos show a full-size tub and a separate curtained shower area.", status: "photographed" },
+        { q: "Is the bathroom accessible?", a: "Ask us about step-free access and grab bars before you book.", status: "confirm" },
+        { q: "What if something drips or clogs?", a: "Send the home, the room, the problem, the timing and a helpful photo through the maintenance path. For fire, major flooding or immediate danger, call 911 first, then resident support.", status: "confirmed" },
+      ],
     },
     {
       slug: "laundry",
@@ -222,6 +240,9 @@ export const broadHome: HomeMicrosite = {
       notes: [
         { text: "Washer and dryer side by side", status: "photographed" },
         { text: "Detergent, iron or drying rack supplied", status: "confirm" },
+      ],
+      faqs: [
+        { q: "Is laundry in the home?", a: "Yes. A washer and dryer stand side by side next to the bathroom vanity.", status: "photographed" },
       ],
     },
   ],

@@ -83,6 +83,10 @@ export const oakHome: HomeMicrosite = {
         { text: "Wooden steps and a stepping-stone path run down a sloped yard to the street. No clean front-of-house photo is published yet.", status: "photographed" },
         { text: "Step count and any step-free entrance, for guests who need one.", status: "confirm" },
       ],
+      faqs: [
+        { q: "Are there steps up to the house?", a: "Yes. Wooden steps and a stepping-stone path run up the sloped yard from the street. Ask us about the step count and any step-free entrance.", status: "photographed" },
+        { q: "Is there somewhere to sit outside?", a: "Yes. The covered porch has two chairs and a side table.", status: "photographed" },
+      ],
     },
     {
       slug: "dining",
@@ -94,6 +98,9 @@ export const oakHome: HomeMicrosite = {
         { text: "Light wood-look flooring and a double window.", status: "photographed" },
         { text: "Dining room is part of the home's listing.", status: "listed" },
         { text: "Number of chairs and any table leaf.", status: "confirm" },
+      ],
+      faqs: [
+        { q: "Is there a proper dining table?", a: "Yes. An oval table with white spindle-back chairs stands by a double window, next to the kitchen. Ask us how many chairs it seats.", status: "photographed" },
       ],
     },
     {
@@ -107,6 +114,11 @@ export const oakHome: HomeMicrosite = {
         { text: "Double sink under a window, and a coffee maker on the counter.", status: "photographed" },
         { text: "Dishwasher, cookware, dishes, and small appliances supplied.", status: "confirm" },
       ],
+      faqs: [
+        { q: "Is this a full kitchen?", a: "Yes. The listing names a full kitchen, and the photos show an electric range with an oven, a full-size refrigerator, a microwave and a toaster oven.", status: "photographed" },
+        { q: "Is there coffee in the morning?", a: "A coffee maker sits on the counter.", status: "photographed" },
+        { q: "Is there a dishwasher?", a: "One is not clear in the photos. Ask us, along with cookware and dishes.", status: "confirm" },
+      ],
     },
     {
       slug: "bedroom-one",
@@ -116,6 +128,9 @@ export const oakHome: HomeMicrosite = {
       notes: [
         { text: "Made bed with folded towels, nightstand with lamp, dresser, and framed prints.", status: "photographed" },
         { text: "Bed size.", status: "confirm" },
+      ],
+      faqs: [
+        { q: "Can three adults each have their own room?", a: "Yes. The home is listed with three bedrooms, and each one photographed has a made bed, a nightstand and a lamp. Ask us about bed sizes.", status: "listed" },
       ],
     },
     {
@@ -127,6 +142,9 @@ export const oakHome: HomeMicrosite = {
         { text: "Made bed, nightstand, cream dresser with mirror, wall-mounted TV, and wall clock.", status: "photographed" },
         { text: "Dark carpet in this room; wood-look flooring shows in the next room.", status: "photographed" },
         { text: "Bed size.", status: "confirm" },
+      ],
+      faqs: [
+        { q: "Is there a TV in this bedroom?", a: "Yes. A TV is mounted on the wall, with a cream dresser and mirror below the window.", status: "photographed" },
       ],
     },
     {
@@ -140,6 +158,9 @@ export const oakHome: HomeMicrosite = {
         { text: "The two photos dress the bed differently; confirm they show the same room and which bedroom has the air conditioner.", status: "confirm" },
         { text: "Bed size.", status: "confirm" },
       ],
+      faqs: [
+        { q: "Is there air conditioning?", a: "A wall air-conditioning unit is photographed in a bedroom. Ask us which rooms are cooled and how the home is heated.", status: "photographed" },
+      ],
     },
     {
       slug: "bathroom",
@@ -150,6 +171,11 @@ export const oakHome: HomeMicrosite = {
         { text: "Tub with shower and striped curtain, wood vanity with small sink, toilet, and mirror.", status: "photographed" },
         { text: "Frosted window over the shower.", status: "photographed" },
         { text: "Whether there is more than one bathroom.", status: "confirm" },
+      ],
+      faqs: [
+        { q: "Is it a tub or a shower?", a: "A tub with a shower over it, behind a striped curtain.", status: "photographed" },
+        { q: "How many bathrooms are there?", a: "One full bathroom is photographed. Ask us whether there is a second before booking for three.", status: "confirm" },
+        { q: "What if something drips or clogs?", a: "Send the home, the room, the problem, the timing and a helpful photo through the maintenance path. For fire, major flooding or immediate danger, call 911 first, then resident support.", status: "confirmed" },
       ],
     },
   ],

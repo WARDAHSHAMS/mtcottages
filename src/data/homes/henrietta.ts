@@ -144,6 +144,10 @@ export const henriettaHome: HomeMicrosite = {
         { text: "Hardwood floor.", status: "photographed" },
         { text: "Number of seats at the table.", status: "confirm" },
       ],
+      faqs: [
+        { q: "Is there a table for shared meals?", a: "Yes. An oval dark-wood table with upholstered chairs fills the blue dining room. Ask us how many it seats.", status: "photographed" },
+        { q: "Does the fireplace work?", a: "The dining room has a white fireplace mantel. Ask us whether it is decorative or can be used.", status: "confirm" },
+      ],
     },
     {
       slug: "breakfast-room",
@@ -154,6 +158,9 @@ export const henriettaHome: HomeMicrosite = {
         { text: "Round wooden table with teal and wood chairs.", status: "photographed" },
         { text: "Open doorway to the dining room.", status: "photographed" },
         { text: "Whether this room is used as a breakfast room, sitting room or both.", status: "confirm" },
+      ],
+      faqs: [
+        { q: "Is there a second place to eat or work?", a: "Yes. The striped-wallpaper room has a round wooden table with chairs, through a doorway from the dining room.", status: "photographed" },
       ],
     },
     {
@@ -169,6 +176,11 @@ export const henriettaHome: HomeMicrosite = {
         { text: "An upright piano is in the corner beside the kitchen.", status: "photographed" },
         { text: "Cookware, dishes and small appliances provided for guests.", status: "confirm" },
       ],
+      faqs: [
+        { q: "Is it gas or electric?", a: "A gas range is photographed, with a full-size refrigerator and a dishwasher.", status: "photographed" },
+        { q: "Can I eat in the kitchen?", a: "Yes. A pine table with white spindle chairs sits in the kitchen.", status: "photographed" },
+        { q: "Are cookware and dishes supplied?", a: "A stand mixer and blender are on the counter. Ask us to confirm cookware and dishes.", status: "confirm" },
+      ],
     },
     {
       slug: "bedroom",
@@ -181,6 +193,10 @@ export const henriettaHome: HomeMicrosite = {
         { text: "Bed size.", status: "confirm" },
         { text: "The second bedroom has not been photographed yet.", status: "confirm" },
       ],
+      faqs: [
+        { q: "How many bedrooms are there?", a: "Two, per the listing. One is photographed here; ask us about the second and the bed sizes.", status: "listed" },
+        { q: "Is there storage in the bedroom?", a: "Yes. A built-in shelving unit, a nightstand and a large mirror are photographed.", status: "photographed" },
+      ],
     },
     {
       slug: "bathrooms",
@@ -192,6 +208,10 @@ export const henriettaHome: HomeMicrosite = {
         { text: "A second bathroom with blue wainscoting, a toilet and a shower curtain.", status: "photographed" },
         { text: "Whether the second bathroom is a full bath or a half bath.", status: "confirm" },
       ],
+      faqs: [
+        { q: "How many bathrooms are there?", a: "Two bathrooms appear in the photos: one with a tub-shower and a second with blue wainscoting. Ask us whether the second is a full or half bath.", status: "photographed" },
+        { q: "What if something drips or clogs?", a: "Send the home, the room, the problem, the timing and a helpful photo through the maintenance path. For fire, major flooding or immediate danger, call 911 first, then resident support.", status: "confirmed" },
+      ],
     },
     {
       slug: "laundry",
@@ -201,6 +221,9 @@ export const henriettaHome: HomeMicrosite = {
       notes: [
         { text: "White top-loading washing machine.", status: "photographed" },
         { text: "Dryer.", status: "confirm" },
+      ],
+      faqs: [
+        { q: "Is there laundry in the home?", a: "A top-loading washing machine is photographed. Ask us about a dryer.", status: "photographed" },
       ],
     },
     {
@@ -213,6 +236,9 @@ export const henriettaHome: HomeMicrosite = {
         { text: "A white porch railing frames the view.", status: "photographed" },
         { text: "Whether the whole yard is private and fenced.", status: "confirm" },
         { text: "No photo of the front of the house is available yet.", status: "confirm" },
+      ],
+      faqs: [
+        { q: "Is there a yard?", a: "Yes. A lawn with mature trees and a fence is seen from the porch. Ask us whether the whole yard is private and fenced. Pets are not allowed.", status: "photographed" },
       ],
     },
   ],
