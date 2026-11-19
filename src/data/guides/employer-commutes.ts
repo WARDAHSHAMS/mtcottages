@@ -82,7 +82,7 @@ const chemoursFar = farthest("chemours-washington-works");
 export const employerCommutes: GuideArticle = {
   slug: "commute-times-to-mid-ohio-valley-employers",
   seoTitle: "Commute Times to Mid-Ohio Valley Employers",
-  description: `Measured drive times from each Mt Cottages furnished home to Chemours Washington Works, the Bureau of the Fiscal Service, Constellium Ravenswood and WVU Parkersburg.`,
+  description: `Measured drive times from each Mt Cottages home to Chemours Washington Works, the Bureau of the Fiscal Service, Constellium Ravenswood and WVU Parkersburg.`,
   h1: "Commute times from our homes to the valley's large employers",
   lede: `Starting a contract or a new role at a plant, a federal office or the college? Here is how long the drive is from each furnished Mt Cottages home, measured by road, so you can pick the home that fits the commute.`,
   published: "2026-11-15",
