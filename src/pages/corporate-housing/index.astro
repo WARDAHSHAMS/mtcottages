@@ -1,9 +1,12 @@
 ---
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import CorporateHousingHub from "../../components/CorporateHousingHub.astro";
+import RelatedLinks from "../../components/RelatedLinks.astro";
 import { faqSchema, type Crumb } from "../../data/schema";
 import { faqs, hub, hubAudience, hubHref } from "../../data/corporateHousing";
 import { frederickHome } from "../../data/homes/frederick";
+import { articlesForAudience, guideHref } from "../../data/guides";
+import type { RelatedLink } from "../../data/site";
 
 // The corporate and project-crew hub (#34). /work-relocation.html is a noindex redirect to this page
 // (src/pages/work-relocation.html.ts), so the old generic guide and the hub are one page.
@@ -12,6 +15,8 @@ const crumbs: Crumb[] = [
   { name: "Home", href: "/" },
   { name: "Corporate and crew housing", href: hubHref },
 ];
+// Area guides (#47) written for the crew audience, the same Related block the other audience pages carry.
+const guideLinks: RelatedLink[] = articlesForAudience(hubAudience).map((article) => ({ href: guideHref(article), label: article.h1, note: article.description }));
 const hero = { src: frederickHome.hero.src, alt: frederickHome.hero.alt, focal: frederickHome.hero.focal };
 ---
 <SiteLayout
@@ -24,4 +29,5 @@ const hero = { src: frederickHome.hero.src, alt: frederickHome.hero.alt, focal: 
   schema={faqSchema(hubHref, faqs)}
 >
   <CorporateHousingHub crumbs={crumbs} hero={hero} />
+  <RelatedLinks links={guideLinks} eyebrow="Area guides" heading="Guides for this kind of stay." />
 </SiteLayout>
