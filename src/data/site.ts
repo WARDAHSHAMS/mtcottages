@@ -1,6 +1,6 @@
 import type { ImageMetadata } from "astro";
 import type { Audience, StayTown } from "./stay-link";
-import { pageCrumbs, type Crumb } from "./schema";
+import { pageCrumbs, type Crumb } from "./crumbs";
 
 import mariettaExterior from "../../assets/images/cottages/marietta-01/frederick-exterior-full-safe.avif";
 import mariettaBackyard from "../../assets/images/cottages/marietta-01/frederick-backyard-cover.jpg";

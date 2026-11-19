@@ -16,6 +16,7 @@
 import type { ArticleLeaf, BreadcrumbListLeaf, CityLeaf, FAQPageLeaf, JsonLdObject, ListItemLeaf, LodgingBusinessLeaf, QuestionLeaf, WithContext } from "schema-dts";
 import { homes } from "./homes";
 import { homeBase } from "./homes/links";
+import { homeCrumb, locationsCrumb, type Crumb } from "./crumbs";
 
 /** Any JSON-LD node a page may publish (a layout's `schema` prop). */
 export type SchemaNode = JsonLdObject;
@@ -56,17 +57,8 @@ export const businessSchema = (image: string): WithContext<LodgingBusinessLeaf> 
   containsPlace: homes.map((home) => ({ "@id": homeNodeId(homeBase(home)) })),
 });
 
-export type Crumb = { name: string; href: string };
-
-/*
- * Breadcrumb trails (#35). Every page except the home page renders one with
- * <Breadcrumbs items={trail} /> and passes the same list to SiteLayout's
- * `breadcrumbs` prop. The site's hierarchy is
- *   Home / Locations / <Town, State> / <Home name> / <Microsite page>
- *   Home / <Section> / <Page>   (guides, services, residents, cottages)
- */
-export const homeCrumb: Crumb = { name: "Home", href: "/" };
-export const locationsCrumb: Crumb = { name: "Locations", href: "/locations.html" };
+// Breadcrumb primitives live in the leaf module ./crumbs (see its header for why).
+export { homeCrumb, locationsCrumb, pageCrumbs, type Crumb } from "./crumbs";
 
 /** "Marietta, Ohio": the name a town's breadcrumb and page heading use. */
 export const townLabel = (town: string, state: StateCode) => `${town}, ${stateName[state]}`;
@@ -97,9 +89,6 @@ export const articleSchema = (article: { url: string; headline: string; descript
   publisher: { "@id": businessId },
   ...(article.image ? { image: article.image } : {}),
 });
-
-/** A trail under the home page: Home / …trail. */
-export const pageCrumbs = (...trail: Crumb[]): Crumb[] => [homeCrumb, ...trail];
 
 /** An FAQPage for questions that are shown, word for word, on the same page. */
 export const faqSchema = (url: string, faqs: { q: string; a: string }[]): WithContext<FAQPageLeaf> => ({
