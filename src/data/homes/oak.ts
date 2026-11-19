@@ -5,7 +5,7 @@ import hero from "../../../assets/images/cottages/parkersburg-04/homepage-hero-o
 import p05 from "../../../assets/images/cottages/parkersburg-04/photo-05.avif";
 import p07 from "../../../assets/images/cottages/parkersburg-04/photo-07.avif";
 import p08 from "../../../assets/images/cottages/parkersburg-04/photo-08.avif";
-import p11 from "../../../assets/images/cottages/parkersburg-04/photo-11.avif";
+import bedAWindow from "../../../assets/images/cottages/parkersburg-04/bedroom-one-wide.avif";
 import p17 from "../../../assets/images/cottages/parkersburg-04/photo-17.avif";
 import p23 from "../../../assets/images/cottages/parkersburg-04/photo-23.avif";
 import p40 from "../../../assets/images/cottages/parkersburg-04/photo-40.avif";
@@ -19,6 +19,7 @@ import dining2 from "../../../assets/images/cottages/parkersburg-04/unique/raven
 import bath2 from "../../../assets/images/cottages/parkersburg-04/unique/available-img-386-9597944b4a-648x470.avif";
 import bedB2 from "../../../assets/images/cottages/parkersburg-04/unique/parkersburg-oak-cottage-img-310-73035b484b-648x470.avif";
 import bedC2 from "../../../assets/images/cottages/parkersburg-04/unique/property-care-img-75-1c8506a5a4-648x470.avif";
+import bedCMedia from "../../../assets/images/cottages/parkersburg-04/bedroom-three-tv-cabinet.avif";
 import conceptDining from "../../../assets/images/cottages/parkersburg-04/3d/oak-dining-kitchen-45.jpg";
 import conceptBedroom from "../../../assets/images/cottages/parkersburg-04/3d/oak-bedroom-top-down.jpg";
 const ph = (src: HomeMicrosite["hero"]["src"], alt: string, caption: string, focal?: string) => ({ src, alt, caption, ...(focal ? { focal } : {}) });
@@ -32,11 +33,12 @@ const photos = {
   kitchenSink: ph(kitSink, "Kitchen double sink under a window, with tile counters, a coffee maker, a dish rack, and oak cabinets", "Sink under the window, with a coffee maker on the counter."),
   kitchenDoor: ph(kitDoor, "Kitchen looking toward a doorway that opens onto the dining room, with the range, refrigerator, microwave, and oak cabinets", "The kitchen opens straight onto the dining room."),
   bedA: ph(p07, "Bedroom with a gray upholstered headboard, black-and-white patterned bedding, a lamp on a wooden nightstand, three framed abstract prints, and a large plant", "Gray upholstered headboard and layered bedding."),
-  bedAWindow: ph(p11, "Bedroom with a bed dressed in black-and-white bedding with folded towels, a glowing amber lamp, and a window with patterned curtains", "Folded towels and a warm bedside lamp."),
+  bedAWindow: ph(bedAWindow, "Bedroom with a gray upholstered headboard, white bedding and a black patterned pillow, folded towels at the foot of the bed, a wood dresser with a checkered-shade lamp and a tall plant, three framed abstract prints above the bed, and a window with patterned curtains", "The wide view of bedroom one: dresser, plant, and three framed prints."),
   bedB: ph(p17, "Bedroom with a bed in gray-and-white striped bedding, a cream dresser with mirror, a wooden nightstand, a birch-tree painting, and an open door to the next room", "Striped bedding, cream dresser, and a birch-tree painting."),
   bedBTv: ph(bedB2, "Bedroom with striped bedding on a bed, a wall-mounted TV, a round wall clock, a window with white curtains, and dark carpet", "A wall-mounted TV and a window with white curtains."),
   bedC: ph(p01, "Bedroom with a bed in white bedding, a wall-mounted TV above a low media bench, a white door, white curtains, and a framed landscape print", "White bedding, a wall-mounted TV, and a framed landscape print."),
   bedCAc: ph(bedC2, "Bedroom with a bed in white bedding with a medallion pattern, a wooden chest nightstand, table lamps, a round wall clock, a wall air-conditioning unit, and a mirror", "Medallion bedding, table lamps, and a wall air-conditioning unit."),
+  bedCMedia: ph(bedCMedia, "Bedroom three with a flat-screen TV mounted on the wall above a dark wooden cabinet, a digital piano keyboard resting on the cabinet, a black leather office chair, and a window with white curtains behind a white roller shade", "The wall-mounted TV, piano keyboard and office chair.", "50% 38%"),
   bath: ph(p40, "Bathroom with a tub and shower behind a navy-and-white striped curtain, a wood-cabinet vanity with a small sink, a toilet, a framed mirror, and wall shelves with plants", "Tub-and-shower, wood vanity, and plant shelves."),
   bathWindow: ph(bath2, "Bathroom shower area with a navy-and-white striped curtain, a small frosted window, and wall shelves holding plants", "The shower, with a window for daylight."),
   porch: ph(p05, "Covered porch with a patterned gray outdoor rug, two blue-cushioned patio chairs, a white railing, and bare trees beyond", "A covered porch with room to sit outside.", "50% 50%"),
@@ -153,11 +155,12 @@ export const oakHome: HomeMicrosite = {
       slug: "bedroom-three",
       name: "Bedroom three",
       summary: "A bed in white bedding, a wall TV, and a wall air-conditioning unit.",
-      photos: [photos.bedC, photos.bedCAc],
+      photos: [photos.bedC, photos.bedCAc, photos.bedCMedia],
       notes: [
         { text: "Wall-mounted TV on a low media bench, and a framed landscape print.", status: "photographed" },
         { text: "Wall air-conditioning unit, round wall clock, and table lamps.", status: "photographed" },
-        { text: "The two photos dress the bed differently; confirm they show the same room and which bedroom has the air conditioner.", status: "confirm" },
+        { text: "A digital piano keyboard rests on the dark wooden cabinet below the wall-mounted TV.", status: "photographed" },
+        { text: "The photos dress the bed differently; confirm they show the same room and which bedroom has the air conditioner.", status: "confirm" },
         { text: "Bed size.", status: "confirm" },
       ],
       faqs: [
