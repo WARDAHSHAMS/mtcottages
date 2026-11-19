@@ -11,12 +11,17 @@ interface Props extends Photo {
 }
 
 const { src, alt, caption, focal, widths = [640, 960, 1280], sizes = "(max-width: 900px) 100vw, 70vw", loading = "lazy", priority = false, class: className } = Astro.props;
+// Without an explicit width, Astro renders the fallback `src` at the source file's full
+// resolution (2400px for some portfolio frames, over 300 KB as AVIF) even though the
+// srcset never offers more than the largest width. Cap it there, never upscaling.
+const width = Math.min(Math.max(...widths), src.width);
 ---
 
 <Image
   src={src}
   alt={alt}
   widths={widths}
+  width={width}
   sizes={sizes}
   format="avif"
   loading={priority ? "eager" : loading}
