@@ -91,9 +91,9 @@ const shifted = Boolean(landing.story);
       <div><p class="eyebrow">Getting around</p><h2 id="tl-distance-title">{landing.distance.heading}</h2></div>
       <p>{landing.distance.intro}</p>
     </div>
-    <div class="tl-table-scroll" role="region" aria-labelledby="tl-distance-title" tabindex="0">
+    <div class="tl-table-scroll" role="region" aria-labelledby="tl-distance-caption" tabindex="0">
       <table class="tl-table">
-        <caption class="sr-only">{landing.distance.mode === "drive-walk" ? "Driving and walking time" : "Driving time"} and distance from each home</caption>
+        <caption id="tl-distance-caption" class="sr-only">{landing.distance.mode === "drive-walk" ? "Driving and walking time" : "Driving time"} and distance from each home</caption>
         <thead>
           <tr><th scope="col">Home</th>{landing.distance.destinations.map((destination) => <th scope="col">{destination}</th>)}</tr>
         </thead>

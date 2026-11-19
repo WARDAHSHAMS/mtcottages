@@ -2,7 +2,8 @@
 
 @layer reset {
   *, *::before, *::after { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  /* Keyboard focus and in-page anchors scroll clear of the sticky header (85px) or the microsite nav (up to 88px), WCAG 2.4.11. */
+  html { scroll-behavior: smooth; scroll-padding-block: 6.5rem 1rem; }
   body, h1, h2, h3, h4, p, ul, ol, figure { margin: 0; }
   ul, ol { padding: 0; list-style: none; }
   img { display: block; max-width: 100%; }
@@ -336,6 +337,8 @@
   .trust-strip__grid { grid-template-columns: 1fr 1fr; }
   .trust-strip__grid > div { min-height: 6rem; padding: .9rem; }
   .trust-strip strong { font-size: 1.08rem; }
+  /* The sticky inquiry bar is about 58px tall at this width; focus scrolls clear of it (2.4.11). */
+  html { scroll-padding-block-end: 5rem; }
   /* Sticky, not fixed: the bar keeps its own place at the end of the page, so it never hides the last content, and it clears the home indicator. */
   .mobile-action { position: sticky; z-index: 8; inset-block-end: 0; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .65rem max(.75rem, env(safe-area-inset-right)) max(.65rem, env(safe-area-inset-bottom)) max(.75rem, env(safe-area-inset-left)); background: color-mix(in srgb, var(--forest) 95%, transparent); color: white; box-shadow: 0 -.5rem 2rem rgb(18 37 34 / .14); }
   .mobile-action span { display: grid; }
