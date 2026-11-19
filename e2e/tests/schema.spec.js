@@ -97,7 +97,7 @@ for (const home of homes) {
       expect.objectContaining({ "@type": "City", name: expect.stringContaining(home.locality) }),
       { "@id": businessId },
     ]));
-    expectBreadcrumbs(nodes, home.base, ["Home", expect.any(String), home.name]);
+    expectBreadcrumbs(nodes, home.base, ["Home", "Locations", expect.stringMatching(new RegExp(`^${home.locality}, `)), home.name]);
   });
 }
 

@@ -68,9 +68,9 @@ const homeCards = capacityRows.map((row) => {
       <div><p class="eyebrow">Crew capacity</p><h2 id="ch-capacity-title">What each home holds</h2></div>
       <p>Bedrooms, beds, parking, laundry and internet for every home, side by side. A detail we have not confirmed says so instead of guessing.</p>
     </div>
-    <div class="tl-table-scroll" role="region" aria-labelledby="ch-capacity-title" tabindex="0">
+    <div class="tl-table-scroll" role="region" aria-labelledby="ch-capacity-caption" tabindex="0">
       <table class="tl-table tn-table ch-table" data-testid="capacity-table">
-        <caption class="sr-only">{capacityCaption}</caption>
+        <caption id="ch-capacity-caption" class="sr-only">{capacityCaption}</caption>
         <thead>
           <tr>
             <th scope="col">Home</th>

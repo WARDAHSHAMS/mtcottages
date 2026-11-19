@@ -13,9 +13,10 @@
  * until prices are owner-confirmed. e2e/tests/schema.spec.js enforces these on
  * the built pages.
  */
-import type { BreadcrumbListLeaf, CityLeaf, FAQPageLeaf, JsonLdObject, ListItemLeaf, LodgingBusinessLeaf, QuestionLeaf, WithContext } from "schema-dts";
+import type { ArticleLeaf, BreadcrumbListLeaf, CityLeaf, FAQPageLeaf, JsonLdObject, ListItemLeaf, LodgingBusinessLeaf, QuestionLeaf, WithContext } from "schema-dts";
 import { homes } from "./homes";
 import { homeBase } from "./homes/links";
+import { homeCrumb, locationsCrumb, type Crumb } from "./crumbs";
 
 /** Any JSON-LD node a page may publish (a layout's `schema` prop). */
 export type SchemaNode = JsonLdObject;
@@ -56,14 +57,38 @@ export const businessSchema = (image: string): WithContext<LodgingBusinessLeaf> 
   containsPlace: homes.map((home) => ({ "@id": homeNodeId(homeBase(home)) })),
 });
 
-export type Crumb = { name: string; href: string };
+// Breadcrumb primitives live in the leaf module ./crumbs (see its header for why).
+export { homeCrumb, locationsCrumb, pageCrumbs, type Crumb } from "./crumbs";
+
+/** "Marietta, Ohio": the name a town's breadcrumb and page heading use. */
+export const townLabel = (town: string, state: StateCode) => `${town}, ${stateName[state]}`;
 
 /** Visible and structured breadcrumb trail for a town guide: Home / Locations / Marietta, Ohio. */
 export const locationCrumbs = (guide: { town: string; path: string }): Crumb[] => [
-  { name: "Home", href: "/" },
-  { name: "Locations", href: "/locations.html" },
+  homeCrumb,
+  locationsCrumb,
   { name: guide.town, href: `/${guide.path}` },
 ];
+
+/**
+ * A guide as a schema.org Article (#47). The author and publisher are the
+ * business itself: guides are written by the Mt Cottages team, never by an
+ * invented person.
+ */
+export const articleSchema = (article: { url: string; headline: string; description: string; published: string; updated: string; image?: string }): WithContext<ArticleLeaf> => ({
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "@id": `${new URL(article.url, origin).toString()}#article`,
+  headline: article.headline,
+  description: article.description,
+  datePublished: article.published,
+  dateModified: article.updated,
+  inLanguage: "en-US",
+  mainEntityOfPage: new URL(article.url, origin).toString(),
+  author: { "@id": businessId },
+  publisher: { "@id": businessId },
+  ...(article.image ? { image: article.image } : {}),
+});
 
 /** An FAQPage for questions that are shown, word for word, on the same page. */
 export const faqSchema = (url: string, faqs: { q: string; a: string }[]): WithContext<FAQPageLeaf> => ({

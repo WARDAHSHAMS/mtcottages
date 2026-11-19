@@ -1,0 +1,93 @@
+---
+/**
+ * The layout every guide shares (#47): breadcrumbs, the byline (the Mt
+ * Cottages team, never an invented author) with published and updated dates,
+ * a table of contents built from the sections, the blocks themselves, the
+ * sources, and the homes the guide is about.
+ */
+import Breadcrumbs from "../Breadcrumbs.astro";
+import PropertyCard from "../PropertyCard.astro";
+import ResponsivePhoto from "../ResponsivePhoto.astro";
+import ChartBlock from "./ChartBlock.astro";
+import DiagramBlock from "./DiagramBlock.astro";
+import CtaBlock from "./CtaBlock.astro";
+import { cottages } from "../../data/site";
+import type { Crumb } from "../../data/schema";
+import { guideTopicLabel, guideTownLabel, type GuideArticle } from "../../data/guides";
+
+interface Props { article: GuideArticle; crumbs: Crumb[] }
+const { article, crumbs } = Astro.props as Props;
+
+const dateText = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+const audience = article.audiences[0];
+const related = cottages.filter((cottage) => article.homeIds.includes(cottage.id));
+---
+<article class="garticle" data-guide={article.slug}>
+  <header class="section--tight garticle-hero">
+    <div class="site-width reading-width">
+      <Breadcrumbs items={crumbs} />
+      <p class="eyebrow mt-3">{article.topics.map((topic) => guideTopicLabel[topic]).join(" · ")}</p>
+      <h1>{article.h1}</h1>
+      <p class="lede">{article.lede}</p>
+      <p class="garticle-byline" data-byline>
+        By the Mt Cottages team · Published <time datetime={article.published}>{dateText(article.published)}</time>
+        {article.updated !== article.published && <> · Updated <time datetime={article.updated}>{dateText(article.updated)}</time></>}
+      </p>
+      <p class="garticle-towns">Covers {article.towns.map((town) => guideTownLabel[town]).join("; ")}</p>
+    </div>
+  </header>
+
+  <div class="section section--paper">
+    <div class="site-width reading-width">
+      <nav class="garticle-toc" aria-labelledby="toc-title">
+        <h2 id="toc-title">In this guide</h2>
+        <ol>{article.sections.map((section) => <li><a href={`#${section.id}`}>{section.heading}</a></li>)}</ol>
+      </nav>
+
+      {article.sections.map((section) => (
+        <section class="garticle-section" id={section.id} aria-labelledby={`${section.id}-h`}>
+          <h2 id={`${section.id}-h`}>{section.heading}</h2>
+          {section.blocks.map((block) => {
+            switch (block.kind) {
+              case "p": return <p>{block.text}</p>;
+              case "list": return <ul>{block.items.map((item) => <li>{item}</li>)}</ul>;
+              case "chart": return <ChartBlock chart={block.chart} />;
+              case "diagram": return <DiagramBlock diagram={block.diagram} />;
+              case "cta": return <CtaBlock heading={block.heading} text={block.text} homeIds={article.homeIds} towns={article.towns} audience={audience} />;
+              case "figure": return <figure class="garticle-figure"><ResponsivePhoto src={block.src} alt={block.alt} caption={block.caption} sizes="(max-width: 900px) 100vw, 46rem" /><figcaption>{block.caption}</figcaption></figure>;
+            }
+          })}
+        </section>
+      ))}
+
+      <section class="garticle-sources" aria-labelledby="sources-title">
+        <h2 id="sources-title">Sources</h2>
+        <ul>{article.sources.map((source) => <li><a href={source.url} rel="noopener" target="_blank">{source.label}<span class="sr-only"> (new tab)</span></a></li>)}</ul>
+        <p><a href="/guides/">All area guides</a></p>
+      </section>
+    </div>
+  </div>
+
+  {related.length > 0 && (
+    <section class="section" aria-labelledby="guide-homes-title" data-guide-homes>
+      <div class="site-width">
+        <div class="section-heading"><div><p class="eyebrow">Homes in this guide</p><h2 id="guide-homes-title">The furnished homes this guide covers.</h2></div></div>
+        <div class="card-grid">{related.map((cottage) => <PropertyCard cottage={cottage} />)}</div>
+      </div>
+    </section>
+  )}
+</article>
+
+<style>
+  .reading-width { max-width: 46rem; }
+  .garticle-byline, .garticle-towns { margin-top: .75rem; color: var(--muted); font-size: .92rem; }
+  .garticle-toc { margin-bottom: 2rem; padding: 1rem 1.25rem; border-left: 4px solid var(--forest); background: #fff; border-radius: 0 var(--radius) var(--radius) 0; }
+  .garticle-toc h2 { margin: 0 0 .5rem; font-size: 1rem; }
+  .garticle-toc ol { margin: 0; padding-left: 1.25rem; display: grid; gap: .3rem; }
+  .garticle-section { margin-bottom: 2.25rem; scroll-margin-top: 6rem; }
+  .garticle-section > p, .garticle-section > ul { margin: .75rem 0; line-height: 1.65; }
+  .garticle-section > ul { padding-left: 1.25rem; display: grid; gap: .5rem; }
+  .garticle-figure figcaption { margin-top: .5rem; color: var(--muted); font-size: .88rem; }
+  .garticle-sources { border-top: 1px solid var(--line); padding-top: 1.25rem; font-size: .92rem; }
+  .garticle-sources ul { padding-left: 1.25rem; }
+</style>

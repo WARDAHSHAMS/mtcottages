@@ -1,38 +1,18 @@
 ---
-interface Crumb {
-  label: string;
-  href?: string;
-}
+// The one visible breadcrumb trail (#35). Pass the same list to SiteLayout's
+// `breadcrumbs` prop, which publishes it as the page's only BreadcrumbList;
+// scripts/check-links.mjs fails the build when the two disagree.
+import type { Crumb } from "../data/schema";
 
 interface Props {
   items: Crumb[];
 }
 
 const { items } = Astro.props as Props;
-const schema = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: items.map((item, index) => ({
-    "@type": "ListItem",
-    position: index + 1,
-    name: item.label,
-    ...(item.href ? { item: new URL(item.href, "https://mtcottages.com").toString() } : {}),
-  })),
-};
 ---
 
 <nav class="crumbs" aria-label="Breadcrumb">
-  {items.map((item, index) => (
-    <>
-      {index > 0 && <span aria-hidden="true">/</span>}
-      {item.href && index < items.length - 1 ? (
-        <a href={item.href}>{item.label}</a>
-      ) : item.href ? (
-        <a href={item.href} aria-current="page">{item.label}</a>
-      ) : (
-        <span aria-current="page">{item.label}</span>
-      )}
-    </>
-  ))}
+  {items.map((item, index) => index < items.length - 1
+    ? <><a href={item.href}>{item.name}</a><span aria-hidden="true">/</span></>
+    : <span aria-current="page">{item.name}</span>)}
 </nav>
-<script type="application/ld+json" set:html={JSON.stringify(schema)} />

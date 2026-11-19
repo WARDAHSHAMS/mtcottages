@@ -1,5 +1,6 @@
 import type { ImageMetadata } from "astro";
 import type { Audience, StayTown } from "./stay-link";
+import { pageCrumbs, type Crumb } from "./crumbs";
 
 import mariettaExterior from "../../assets/images/cottages/marietta-01/frederick-exterior-full-safe.avif";
 import mariettaBackyard from "../../assets/images/cottages/marietta-01/frederick-backyard-cover.jpg";
@@ -409,7 +410,7 @@ export const locationData: Record<string, Guide & { town: string; cottages?: Cot
 export const navGroups = [
   { label: "Cottages", href: "cottages.html", items: [["Find your place", "cottages.html"], ["Available now", "available.html"], ["Cozy places", "cozy-places.html"], ["Room to settle in", "room-to-settle.html"]] },
   { label: "Locations", href: "locations.html", items: [["Marietta", "marietta/index.html"], ["Parkersburg", "parkersburg/index.html"], ["Ravenswood", "ravenswood/index.html"], ["Racine", "racine/index.html"], ["Grantsville", "grantsville/index.html"]] },
-  { label: "Living", href: "living.html", items: [["Travel nurses", "travel-nurses/"], ["Corporate & crew housing", "corporate-housing/"], ["Insurance housing", "insurance-housing.html"], ["Family stays", "family-stays.html"]] },
+  { label: "Living", href: "living.html", items: [["Travel nurses", "travel-nurses/"], ["Corporate & crew housing", "corporate-housing/"], ["Insurance housing", "insurance-housing.html"], ["Family stays", "family-stays.html"], ["Area guides", "guides/"]] },
   { label: "Services", href: "services.html", items: [["Fully furnished homes", "fully-furnished-homes.html"], ["Home amenities", "home-amenities.html"], ["Guest services", "guest-services.html"], ["Property care", "property-care.html"]] },
   { label: "Residents", href: "residents.html", items: [["Resident portal", "resident-portal.html"], ["Pay rent", "pay-rent.html"], ["Maintenance", "maintenance.html"], ["Emergency maintenance", "emergency-maintenance.html"]] },
 ];
@@ -426,3 +427,68 @@ export const parkedHomePages = [
   { town: "parkersburg", slug: "yellow-cottage", target: "/parkersburg/index.html", townName: "Parkersburg, WV" },
   { town: "ravenswood", slug: "walnut-cottage", target: "/ravenswood/index.html", townName: "Ravenswood, WV" },
 ] as const;
+
+/** One entry in a Related block (src/components/RelatedLinks.astro): the label names its target. */
+export type RelatedLink = { href: string; label: string; note: string };
+
+/** Homes with a public microsite. Yellow and Walnut are parked (CEO decision 2026-11-14) and never featured. */
+export const listedHomeIds = ["frederick", "broad", "buck", "oak", "virginia", "henrietta"];
+
+/**
+ * The listed homes each living guide features (#35): the guide links to them,
+ * and each home's Related block links back. Living and Family stays keep their
+ * earlier hand-picked sets; the audience guides show every listed home, since
+ * any of them can fit and the inquiry confirms which. The travel-nurse hub
+ * (/travel-nurses/, src/data/travelNurses.ts) lists every home and is linked
+ * from each home's Related block by src/layouts/HomeLayout.astro.
+ */
+export const guideHomes: Record<string, string[]> = {
+  "living.html": ["frederick", "broad", "buck"],
+  "family-stays.html": ["frederick", "oak", "henrietta"],
+  "work-relocation.html": listedHomeIds,
+  "insurance-housing.html": listedHomeIds,
+};
+
+/**
+ * Related links for pages whose children sit outside the main nav (#35), so
+ * every indexable page has at least one inbound link: the Services page leads
+ * to the services the menu has no room for, and to partner-led housing.
+ */
+export const pageRelated: Record<string, RelatedLink[]> = {
+  "services.html": [
+    { href: "/housekeeping.html", label: "Housekeeping", note: "Ask about housekeeping options and timing for the home you are considering." },
+    { href: "/meal-preparation.html", label: "Meal preparation", note: "Optional help with meals during a furnished stay." },
+    { href: "/partnerships.html", label: "Partner-led housing", note: "Furnished housing arranged with employers, hospitals, research groups and relocation teams." },
+  ],
+};
+
+/** The living guides that feature a home, in nav order. */
+export const guidesForHome = (homeId: string): Guide[] =>
+  Object.values(guides).filter((guide) => guideHomes[guide.path]?.includes(homeId));
+
+/** The cottages a guide features, in portfolio order. */
+export const homesForGuide = (guidePath: string): Cottage[] => {
+  const ids = guideHomes[guidePath] ?? [];
+  return cottages.filter((cottage) => ids.includes(cottage.id));
+};
+
+/**
+ * Breadcrumb trail for a page [...slug].astro serves (#35), from the main nav:
+ * a section index is Home / Living; a page in a section is
+ * Home / Living / Family stays; a page outside the nav whose eyebrow names a
+ * section ("Services · Housekeeping") nests under it; anything else is
+ * Home / <name>.
+ */
+export function sectionCrumbs(routePath: string, eyebrow: string): Crumb[] {
+  const groupCrumb = (group: (typeof navGroups)[number]): Crumb => ({ name: group.label, href: `/${group.href}` });
+  for (const group of navGroups) {
+    if (group.href === routePath) return pageCrumbs(groupCrumb(group));
+    const item = group.items.find(([, href]) => href === routePath);
+    if (item) return pageCrumbs(groupCrumb(group), { name: item[0], href: `/${routePath}` });
+  }
+  const [section, name] = eyebrow.split(" · ");
+  const parent = name ? navGroups.find((group) => group.label === section) : undefined;
+  return parent
+    ? pageCrumbs(groupCrumb(parent), { name, href: `/${routePath}` })
+    : pageCrumbs({ name: eyebrow, href: `/${routePath}` });
+}

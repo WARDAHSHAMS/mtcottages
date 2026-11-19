@@ -175,3 +175,42 @@ describe("per-page lastmod", () => {
     }
   });
 });
+
+describe("area guide lastmod (#47)", () => {
+  let site;
+  const guideDates = (root) => {
+    const dates = new PageLastmod({ root, logger: quiet });
+    return { one: dates.lastmod("/guides/guide-one/"), two: dates.lastmod("/guides/guide-two/index.html"), fallbacks: dates.fallbacks };
+  };
+  before(() => {
+    site = makeSite();
+    site.write("src/pages/guides/[slug]/index.astro", "---\nimport { articles } from \"../../../data/guides\";\n---\n");
+    site.write("src/data/guides/one.ts", "import { rows } from \"../distances\";\nexport const one = { slug: \"guide-one\", rows };\n");
+    site.write("src/data/guides/two.ts", "export const two = { slug: \"guide-two\", text: \"v1\" };\n");
+    site.commit("guides", "2026-09-01T10:00:00Z");
+  });
+  after(() => rmSync(site.root, { recursive: true, force: true }));
+
+  test("a guide page is dated by its own article module, not the catch-all", () => {
+    const dates = guideDates(site.root);
+    assert.equal(dates.one, "2026-09-01T10:00:00Z");
+    assert.equal(dates.two, "2026-09-01T10:00:00Z");
+    assert.deepEqual(dates.fallbacks, []);
+  });
+
+  test("editing one guide moves only that guide", () => {
+    site.write("src/data/guides/two.ts", "export const two = { slug: \"guide-two\", text: \"v2\" };\n");
+    site.commit("guide two copy", "2026-10-01T10:00:00Z");
+    const dates = guideDates(site.root);
+    assert.equal(dates.two, "2026-10-01T10:00:00Z");
+    assert.equal(dates.one, "2026-09-01T10:00:00Z");
+  });
+
+  test("a guide that quotes drive times moves with the distances table", () => {
+    site.write("_data/distances.json", site.distances(7, 11));
+    site.commit("re-measure", "2026-10-15T10:00:00Z");
+    const dates = guideDates(site.root);
+    assert.equal(dates.one, "2026-10-15T10:00:00Z");
+    assert.equal(dates.two, "2026-10-01T10:00:00Z");
+  });
+});

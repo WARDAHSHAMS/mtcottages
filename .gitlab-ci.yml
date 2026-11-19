@@ -110,6 +110,10 @@ site-check:
     - node scripts/check-claims.mjs dist
     # On-page SEO: titles, descriptions, one H1, alt text, no duplicates (#69).
     - node scripts/seo-audit.mjs dist
+    # No broken or redirect links, no orphan pages, descriptive anchors, matching breadcrumbs (#35).
+    - node scripts/check-links.mjs dist
+    # Guide images outside the portfolio need a licence row (#47).
+    - node scripts/check-photo-licences.mjs
     # Unit tests for the distances schema and the banned-claim patterns (#25), and per-page sitemap lastmod (#82).
     - node --test scripts/tests/*.test.mjs
     # Same address guard as GitHub Actions: only the four approved addresses.
@@ -369,6 +373,38 @@ smoke:apply-proxy:
     - xvfb-run -a npx playwright test tests/live.spec.js tests/live-turnstile.spec.js --grep-invert microsite
   artifacts:
     when: on_failure
+    paths:
+      - e2e/playwright-report
+    expire_in: 1 week
+
+# #85 probe, by hand only: real Chromium takes production Turnstile tokens and
+# posts each with an empty inquiry (token only), fresh, reused, held past the
+# 300 s token lifetime and after a phone-style tab freeze, and prints how the
+# live Function answers (stage and reason, `PROBE {...}` lines). An empty
+# inquiry stops at verification or validation, so nothing reaches the Logic
+# App and no valid application is ever submitted. Play it from a merge request
+# pipeline, or run a gh-pages pipeline with TURNSTILE_PROBE=true.
+probe:turnstile-age:
+  stage: smoke
+  # renovate: datasource=docker depName=playwright registryUrl=https://mcr.microsoft.com
+  image: "harbor.focuscell.org/mcr-proxy/playwright:v1.62.1-noble"
+  needs: []
+  interruptible: true
+  allow_failure: true
+  timeout: 20m
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: manual
+    - if: '$CI_COMMIT_BRANCH == "gh-pages" && $CI_PIPELINE_SOURCE =~ /^(web|api)$/ && $TURNSTILE_PROBE == "true"'
+    - when: never
+  variables:
+    BASE_URL: https://stay.mtcottages.com
+  script:
+    - cd e2e
+    - npm ci
+    - xvfb-run -a npx playwright test tests/live-turnstile-age.spec.js
+  artifacts:
+    when: always
     paths:
       - e2e/playwright-report
     expire_in: 1 week

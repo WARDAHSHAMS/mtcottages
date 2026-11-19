@@ -32,16 +32,18 @@ Not scored here, because only the owner can move them: the "confirm on inquiry" 
 | 2 Hero | 2 (front of house) | 1 (living room) | 1 (dining room) | 1 (dining room) | 1 (living room) | 1 (fireplace room) |
 | 3 Room galleries | 2 (5 rooms, 2 to 7 photos each) | 2 (5 rooms; kitchen added by Wardah, !61) | 2 (7 rooms, 2 to 4 each) | 1 (second bedroom not photographed) | 1 (one photo in most rooms; no cooktop shown) | 0 (no kitchen photo, no bed, no full bath) |
 | 4 Distances | 2 (14 drives, 7 categories) | 2 (11, 7) | 2 (11, 7) | 2 (11, 7) | 2 (10, 7; from the Parkersburg town centre) | 2 (10, 7; from the Ravenswood town centre) |
-| 5 Neighbourhood | 2 (40 places, walking routes) | 1 (9) | 1 (7) | 1 (9) | 1 (7, town list) | 1 (8, town list) |
+| 5 Neighbourhood | 2 (40 places, walking routes) | 2 (23, 8 kinds, #88) | 2 (22, 8 kinds, #88) | 2 (17, 7 kinds, #88) | 2 (22, town list, #88) | 2 (17, town list, #88) |
 | 6 Call to action | 2 | 2 | 2 | 2 | 2 | 2 |
 | 7 Structured data | 2 | 2 (with Offer) | 2 (with Offer) | 2 | 2 | 2 |
 | 8 Guest FAQs | 2 (22) | 2 (11, #87) | 2 (12, #87) | 2 (12, #87) | 2 (10, #87) | 2 (10, #87) |
-| 9 Resident guide | 2 | 0 | 0 | 0 | 0 | 0 |
+| 9 Resident guide | 2 | 2 (#89) | 2 (#89) | 2 (#89) | 2 (#89) | 2 (#89) |
 | 10 Plan and concepts | 2 | 2 | 2 | 2 | 1 (plan, no concepts) | 1 (plan, no concepts) |
 | 11 Lighthouse and accessibility | 2 | 2 | 2 | 2 | 2 | 2 |
-| **Total (of 22)** | **22** | **18** | **18** | **17** | **16** | **15** |
+| **Total (of 22)** | **22** | **21** | **21** | **20** | **19** | **18** |
 
-Counts come from the data files on 2026-11-17. Item 11 is enforced on every merge request, and the last `gh-pages` pipeline (#148084) passed it. Scores that moved with !61: Broad's galleries went from 1 to 2 (Wardah's four kitchen photos), Virginia's distances from 1 to 2 (its tenth measured drive), and every home's guest FAQs from 0 to 2 (cluster A, #87). Before !61 the totals were Broad 13, Oak 14, Henrietta 13, Buck 12 and Virginia 10.
+Counts come from the data files on 2026-11-17. Re-scored the same day when clusters B and C closed (#88, #89): before them the totals were Broad 18, Oak 18, Henrietta 17, Buck 16 and Virginia 15.
+
+Cluster B: the five homes share two town lists in `src/data/homes/towns.ts` (Parkersburg: Broad, Oak and Buck; Ravenswood: Henrietta and Virginia), and Broad adds its nearest north-end pharmacy. Every place carries its OpenStreetMap element or its own website and the date it was checked, shown on the location page; anything closed or uncertain was left out (for example a "Great Bend Marina" no source confirms). Cluster C: `src/data/homes/guide.ts` builds the guide from `terms.json` (utilities, minimum stay, pets), the SOP house rules adopted on #70, the #70 ruling that the lease governs cancellation, and each home's listed internet and laundry; key handover, the parking spot, the trash cart, the wifi name and the thermostat are "confirm on inquiry" and listed for the owner on #74. Item 11 is enforced on every merge request, and the last `gh-pages` pipeline (#148084) passed it. Scores that moved with !61: Broad's galleries went from 1 to 2 (Wardah's four kitchen photos), Virginia's distances from 1 to 2 (its tenth measured drive), and every home's guest FAQs from 0 to 2 (cluster A, #87). Before !61 the totals were Broad 13, Oak 14, Henrietta 13, Buck 12 and Virginia 10.
 
 Every FAQ answer carries the status of its evidence. Answers come only from the photos, the listing or `terms.json`; anything else says to ask us, and the shared maintenance answer points to the sitewide maintenance path. Playwright requires at least eight answered questions with a badge on every home's tour.
 
@@ -52,10 +54,10 @@ Open "confirm on inquiry" lines, for reference (from the `status: "confirm"` ent
 | Cluster | Homes | Points open | Needs the owner? | Issue |
 |---|---|---|---|---|
 | A. Per-room guest FAQs | Broad, Oak, Henrietta, Buck, Virginia | 0 (closed in !61) | No: answers come from the photos, the listing and `terms.json`, and the rest say "confirm on inquiry" | #87 |
-| B. Nearby-places depth | Broad, Oak, Henrietta, Buck, Virginia | 5 | No | #88 |
-| C. Resident guide page | Broad, Oak, Henrietta, Buck, Virginia | 10 | Partly: utilities and house rules are on record (#70); arrival details go in as "confirm" | #89 |
+| B. Nearby-places depth | Broad, Oak, Henrietta, Buck, Virginia | 0 (closed) | No | #88 |
+| C. Resident guide page | Broad, Oak, Henrietta, Buck, Virginia | 0 (closed) | Partly: utilities and house rules are on record (#70); arrival details go in as "confirm" (#74) | #89 |
 | D. AI concept images | Buck, Virginia | 2 | Wardah draws them | #90 |
 | E. Front-of-house heroes and room photo gaps | Broad, Oak, Henrietta, Buck, Virginia (heroes); Henrietta, Buck, Virginia (rooms) | 9 | Yes: Wardah reshoots | #60 (existing reshoot brief) |
 | F. "Confirm on inquiry" facts and rates | All six | not scored | Yes | #74 (existing; waits on the owner) |
 
-Order of work: A is done; B next (no owner answer needed), then C, then D and E when Wardah's images arrive. Clearing B and C would bring Broad and Oak to 21, Henrietta to 20, and Buck and Virginia to 19 and 18. Re-score this page whenever a cluster closes.
+Order of work: A, B and C are done; D and E follow when Wardah's images arrive. Re-score this page whenever a cluster closes.

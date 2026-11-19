@@ -9,7 +9,9 @@
 #      HTTP status, from the Log Analytics workspace the Front Door profile
 #      sends its access log to. A non-2xx day is an inquiry the guest could not
 #      send. The workspace's retention and earliest record bound the window,
-#      and the job says so instead of reporting a silent zero.
+#      and the job says so instead of reporting a silent zero. Then, for the
+#      last 24 hours on the whole host, requests and 502/503/504 counts per
+#      path and origin with Front Door's ErrorInfo labels (#85).
 #   2. Logic App: runs of mtcottages-intake since INTAKE_LOSS_SINCE, per day
 #      and status. A failed run is a lead the proxy then kept on intake-retry
 #      (#15), so it is reported, not counted as lost.
@@ -105,6 +107,39 @@ else
   else
     frontdoor_status=1
     echo "Front Door: the log query failed (needs Log Analytics Reader on ${WORKSPACE_NAME})." >&2
+  fi
+  # Gateway errors over the last 24 hours on the whole host (#85): a guest who
+  # meets a 502 on the form page never reaches /api/apply, so these are counted
+  # by path (query string dropped), status, origin and Front Door's ErrorInfo.
+  gateway="AzureDiagnostics
+| where TimeGenerated >= ago(24h)
+| where Category == 'FrontDoorAccessLog'
+| where requestUri_s has '${HOST_NAME}/'
+| extend path = tostring(parse_url(requestUri_s).Path), status = toint(httpStatusCode_s)
+| summarize requests = count(), gateway_errors = countif(status in (502, 503, 504)) by path, origin = tostring(originName_s)
+| join kind=leftouter (
+    AzureDiagnostics
+    | where TimeGenerated >= ago(24h)
+    | where Category == 'FrontDoorAccessLog'
+    | where requestUri_s has '${HOST_NAME}/'
+    | where toint(httpStatusCode_s) in (502, 503, 504)
+    | extend path = tostring(parse_url(requestUri_s).Path)
+    | summarize causes = make_bag(bag_pack(strcat(httpStatusCode_s, ' ', tostring(errorInfo_s)), 1)) by path, origin = tostring(originName_s)
+  ) on path, origin
+| project path, origin, requests, gateway_errors, causes
+| order by gateway_errors desc, requests desc"
+  if [ "${frontdoor_status}" -eq 0 ]; then
+    if az monitor log-analytics query --workspace "${workspace_id}" --analytics-query "${gateway}" \
+         --output json --only-show-errors > "${WORK}/gateway.json"; then
+      echo "Last 24h on ${HOST_NAME}, by path and origin: requests, 502/503/504, status+ErrorInfo seen:"
+      jq -r '.[] | "  \(.path)  \(.origin // "-")  \(.requests)  \(.gateway_errors)  \(.causes // {} | if type == "string" then (fromjson? // {}) else . end | keys | join(", "))"' "${WORK}/gateway.json"
+      jq -r '(map(.requests | tonumber) | add // 0) as $all
+        | (map(.gateway_errors | tonumber) | add // 0) as $bad
+        | "  total \($all), gateway errors \($bad)"' "${WORK}/gateway.json"
+    else
+      frontdoor_status=1
+      echo "Front Door: the 24h gateway-error query failed." >&2
+    fi
   fi
 fi
 

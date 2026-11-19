@@ -12,6 +12,7 @@ import { homeHref } from "../data/homes/links";
 import { stayLink } from "../data/stay-link";
 import { monthlyRateText } from "../data/terms";
 import type { Crumb } from "../data/schema";
+import Breadcrumbs from "./Breadcrumbs.astro";
 
 interface Props {
   landing: TownLanding;
@@ -35,11 +36,7 @@ const shifted = Boolean(landing.story);
 <section class="guide-hero section--tight tl-hero">
   <div class="site-width guide-hero-grid">
     <div>
-      <nav class="crumbs" aria-label="Breadcrumb">
-        {crumbs.map((crumb, index) => index < crumbs.length - 1
-          ? <><a href={crumb.href}>{crumb.name}</a><span aria-hidden="true">/</span></>
-          : <span aria-current="page">{crumb.name}</span>)}
-      </nav>
+      <Breadcrumbs items={crumbs} />
       <p class="eyebrow mt-3">{landing.eyebrow}</p>
       <h1>{landing.h1}</h1>
       <p class="lede" data-testid="town-lede">{landing.lede}</p>
@@ -94,9 +91,9 @@ const shifted = Boolean(landing.story);
       <div><p class="eyebrow">Getting around</p><h2 id="tl-distance-title">{landing.distance.heading}</h2></div>
       <p>{landing.distance.intro}</p>
     </div>
-    <div class="tl-table-scroll" role="region" aria-labelledby="tl-distance-title" tabindex="0">
+    <div class="tl-table-scroll" role="region" aria-labelledby="tl-distance-caption" tabindex="0">
       <table class="tl-table">
-        <caption class="sr-only">{landing.distance.mode === "drive-walk" ? "Driving and walking time" : "Driving time"} and distance from each home</caption>
+        <caption id="tl-distance-caption" class="sr-only">{landing.distance.mode === "drive-walk" ? "Driving and walking time" : "Driving time"} and distance from each home</caption>
         <thead>
           <tr><th scope="col">Home</th>{landing.distance.destinations.map((destination) => <th scope="col">{destination}</th>)}</tr>
         </thead>

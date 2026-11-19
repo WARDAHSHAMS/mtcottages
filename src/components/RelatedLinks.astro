@@ -1,0 +1,32 @@
+---
+// "Related" block (#35): descriptive links that tie a page into its cluster:
+// a home to its town and the guides that feature it, a guide to its homes.
+// Each label names its target; scripts/check-links.mjs rejects generic anchors.
+import type { RelatedLink } from "../data/site";
+
+interface Props {
+  links: RelatedLink[];
+  heading?: string;
+  eyebrow?: string;
+}
+
+const { links, heading = "Keep exploring.", eyebrow = "Related" } = Astro.props as Props;
+// A page can carry more than one Related block, so each heading id comes from its eyebrow.
+const headingId = `related-${eyebrow.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+---
+
+{links.length > 0 && (
+  <section class="section related-links" aria-labelledby={headingId} data-related>
+    <div class="site-width">
+      <p class="eyebrow">{eyebrow}</p>
+      <h2 id={headingId}>{heading}</h2>
+      <ul class="related-links-list">
+        {links.map((link) => (
+          <li>
+            <a href={link.href}><strong>{link.label}</strong><span>{link.note}</span></a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+)}

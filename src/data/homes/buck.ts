@@ -1,4 +1,5 @@
 import type { HomeMicrosite } from "./types";
+import { residentGuide } from "./guide";
 import { parkersburgArea, parkersburgDirectionsFrom, parkersburgNearby } from "./towns";
 import p49 from "../../../assets/images/cottages/parkersburg-02/photo-49.avif";
 import p50 from "../../../assets/images/cottages/parkersburg-02/photo-50.avif";
@@ -217,4 +218,9 @@ export const buckHome: HomeMicrosite = {
   concepts: [],
   nearby: parkersburgNearby,
   directionsFrom: parkersburgDirectionsFrom,
+  guide: residentGuide({
+    id: "buck",
+    internet: { text: "Internet: fiber-optic, per the listing.", status: "listed" },
+    laundry: { text: "Laundry: access is listed; whether the washer and dryer are in the home is confirmed on inquiry.", status: "listed" },
+  }),
 };

@@ -1,5 +1,14 @@
 ---
+import Breadcrumbs from "./Breadcrumbs.astro";
 import { locationData } from "../data/site";
+import type { Crumb } from "../data/schema";
+
+interface Props {
+  /** The page's trail (Home / Locations); the same list feeds its BreadcrumbList. */
+  crumbs: Crumb[];
+}
+
+const { crumbs } = Astro.props as Props;
 const entries = Object.values(locationData);
 // The lede names the towns that have homes listed today, so it never drifts from the cards.
 const shortName = (town: string) => town.split(",")[0];
@@ -10,7 +19,7 @@ const list = (names: string[]) => names.length < 3 ? names.join(" and ") : `${na
 
 <section class="section location-directory" aria-labelledby="locations-title">
   <div class="site-width">
-    <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span>Locations</span></nav>
+    <Breadcrumbs items={crumbs} />
     <div class="section-heading mt-3">
       <div><p class="eyebrow">Mid-Ohio Valley</p><h1 id="locations-title">Choose the community around the stay.</h1></div>
       <p class="lede" data-testid="locations-lede">{list(listedTowns)} have furnished homes listed today.{guideTowns.length > 0 && ` Our ${list(guideTowns)} ${guideTowns.length === 1 ? "guide helps" : "guides help"} you plan a stay nearby; ask us for the closest options.`}</p>

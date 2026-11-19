@@ -1,0 +1,95 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import { homes } from "../../data/homes";
+import { homeBase } from "../../data/homes/links";
+import { pageTitle, placeName } from "../../data/seo";
+import type { Crumb } from "../../data/schema";
+
+// The public accessibility statement (#75). Every claim here is backed by a check that runs on each build
+// (axe in the Playwright suite, the Lighthouse gate, scripts/seo-audit.mjs) or by the manual audit recorded
+// on the MR that shipped it. Update "Last reviewed" whenever the audit is repeated, and keep the known
+// limits honest: a limit we have fixed comes off the list, and a new one goes on it.
+const href = "/accessibility/";
+const crumbs: Crumb[] = [
+  { name: "Home", href: "/" },
+  { name: "Accessibility", href },
+];
+const reviewed = { iso: "2026-11-17", text: "17 November 2026" };
+const contact = "stay@mtcottages.com";
+---
+<SiteLayout
+  title={pageTitle("Accessibility statement")}
+  description="How Mt Cottages builds its site to WCAG 2.2 AA, what we test on every release, the known limits, and how to reach us if something gets in your way."
+  breadcrumbs={crumbs}
+>
+  <section class="guide-hero section--tight">
+    <div class="site-width">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Accessibility</span>
+      </nav>
+      <p class="eyebrow mt-3">Accessibility</p>
+      <h1>A site everyone can use to find a place to stay.</h1>
+      <p class="lede reading">We build mtcottages.com and the stay inquiry form to meet the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA. If anything here gets in your way, email <a href={`mailto:${contact}`}>{contact}</a> and we will help you another way.</p>
+      <p class="mt-2 text-muted">Last reviewed <time datetime={reviewed.iso}>{reviewed.text}</time>.</p>
+    </div>
+  </section>
+
+  <section class="section section--paper">
+    <div class="site-width prose">
+      <article class="prose-section" id="standard">
+        <h2>The standard we work to</h2>
+        <div class="stack">
+          <p>Our target is WCAG 2.2 level AA for every page on mtcottages.com and for the stay inquiry form at stay.mtcottages.com. In practice that means:</p>
+          <ul>
+            <li>Every page works with a keyboard alone, starts with a "Skip to content" link, and shows where the focus is. Sticky bars never cover the item you have tabbed to.</li>
+            <li>Every photo has a written description. Concept drawings and 3D previews are labelled as concepts, never as photos.</li>
+            <li>Text meets a contrast ratio of at least 4.5 to 1, and pages reflow to a single column at 400% zoom without sideways scrolling.</li>
+            <li>Charts come with a data table, and tables that are wider than the screen scroll inside their own labelled region.</li>
+            <li>Form fields have visible labels, mark which ones are optional, and use autocomplete for your name, email and phone.</li>
+            <li>Motion is optional: with reduced motion turned on, nothing animates or scrolls smoothly.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="prose-section" id="testing">
+        <h2>How we check it</h2>
+        <div class="stack">
+          <p>Every change to the site runs automated checks before it can go live: the axe accessibility engine in a real browser on every page type, Lighthouse with a minimum accessibility score of 95 on mobile, and checks for page titles, headings and image sizes.</p>
+          <p>Automated tools find only part of the problem, so we also test by hand: the whole site with a keyboard alone, at 320 pixels wide, with increased text spacing, and through the browser's accessibility tree that screen readers use. The most recent review was on <time datetime={reviewed.iso}>{reviewed.text}</time>.</p>
+        </div>
+      </article>
+
+      <article class="prose-section" id="limits">
+        <h2>Known limits</h2>
+        <div class="stack">
+          <p>These are the parts we know fall short, and what to use instead.</p>
+          <ul>
+            <li><strong>Interactive 3D models.</strong> The 3D model on each home's floor-plan page is a visual concept. It has keyboard controls and buttons, but a screen reader gets only its description. The floor-plan drawings on the same page name every room in their text description, so nothing is shown only in 3D.</li>
+            <li><strong>Maps and directions.</strong> Links to directions open Google Maps, which we do not control. Every home's location page also lists drive times and distances as text.</li>
+            <li><strong>The human check on the stay form.</strong> The form uses Cloudflare Turnstile to stop spam. It usually passes on its own; if it blocks you, email us and we will take your inquiry by email instead.</li>
+            <li><strong>We have not tested with every screen reader.</strong> Our manual checks use the browser's accessibility tree, not a full session with each screen reader. Tell us if something reads badly.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="prose-section" id="homes">
+        <h2>Access in the homes themselves</h2>
+        <div class="stack">
+          <p>The homes are older houses, and most have steps at the door or stairs inside. We do not yet list any home as step-free. Each home's own page says what its photos show, such as steps to the street or a staircase by the kitchen, and marks anything we have not confirmed so you can ask before you book.</p>
+          <ul>
+            {homes.map((home) => <li><a href={homeBase(home)}>{home.name}</a>, {placeName(home.town)}</li>)}
+          </ul>
+          <p>If you need step-free entry, grab bars, a bedroom on the main level or anything else, put it in the "Furnishing or accessibility needs" field of the inquiry, or email us, and we will confirm the details for each home before you commit. Guests on assignment can start from the <a href="/travel-nurses/">travel nurse housing</a> or <a href="/corporate-housing/">corporate and crew housing</a> pages.</p>
+        </div>
+      </article>
+
+      <article class="prose-section" id="contact">
+        <h2>Tell us what got in the way</h2>
+        <div class="stack">
+          <p>Email <a href={`mailto:${contact}`}>{contact}</a> with the page, what you were trying to do, and what happened. We can send home details, photos described in words, or the inquiry questions as plain text, and we can take your whole inquiry by email.</p>
+          <p>We treat an accessibility problem on the site as a bug, fix it in the site's code, and add a check so it does not come back.</p>
+        </div>
+      </article>
+    </div>
+  </section>
+</SiteLayout>

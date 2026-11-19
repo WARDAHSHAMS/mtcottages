@@ -1,0 +1,129 @@
+---
+/**
+ * Reusable inline-SVG bar chart for guides (#47). One series in one hue, so
+ * there is no legend and colour carries magnitude only; every bar is labelled
+ * directly with its value. Hovering a bar shows its full figure, and the same
+ * numbers sit in a table below, so nothing depends on seeing the chart.
+ * Groups are small multiples on one shared scale. Same visual language as the
+ * microsite drive-time chart (src/components/home/DistanceTable.astro).
+ */
+import type { ChartSpec } from "../../data/guides";
+
+interface Props { chart: ChartSpec }
+const { chart } = Astro.props as Props;
+
+const GROUP_H = 34;
+const ROW_H = 44;
+const BAR_Y = 24;
+const BAR_H = 12;
+const max = Math.max(1, ...chart.groups.flatMap((group) => group.bars.map((bar) => bar.value)));
+let y = 0;
+const groups = chart.groups.map((group) => {
+  const top = y;
+  y += GROUP_H;
+  const bars = group.bars.map((bar) => {
+    const rowTop = y;
+    y += ROW_H;
+    return { ...bar, top: rowTop, width: Math.max(2, (bar.value / max) * 100).toFixed(1) };
+  });
+  return { ...group, top, bars };
+});
+const height = y;
+const all = chart.groups.flatMap((group) => group.bars.map((bar) => ({ ...bar, group: group.label })));
+const low = all.reduce((a, b) => (b.value < a.value ? b : a));
+const high = all.reduce((a, b) => (b.value > a.value ? b : a));
+const summary = `${all.length} bars in ${chart.groups.length} groups (${chart.groups.map((group) => group.label).join(", ")}). `
+  + `Lowest: ${low.label} to ${low.group}, ${low.valueText}. Highest: ${high.label} to ${high.group}, ${high.valueText}. `
+  + "Every figure is in the table that follows the chart.";
+const titleId = `${chart.id}-title`;
+const descId = `${chart.id}-desc`;
+---
+<figure class="gc" data-guide-chart={chart.id}>
+  <figcaption class="gc-head">
+    <strong>{chart.title}</strong>
+    <span>{chart.subtitle}</span>
+  </figcaption>
+  <svg class="gc-svg" role="img" aria-labelledby={`${titleId} ${descId}`} width="100%" height={height}>
+    <title id={titleId}>Bar chart: {chart.title}.</title>
+    <desc id={descId}>{summary}</desc>
+    {groups.map((group) => (
+      <g data-chart-group={group.label}>
+        <text class="gc-group" x="0" y={group.top + 22}>{group.label}</text>
+        {group.bars.map((bar) => (
+          <g class="gc-row" data-chart-bar={bar.label}>
+            <title>{`${bar.label}: ${bar.valueText}${bar.note ? ` (${bar.note})` : ""}`}</title>
+            <rect class="gc-hit" x="0" y={bar.top} width="100%" height={ROW_H}></rect>
+            <text class="gc-label" x="0" y={bar.top + 16}>{bar.label}</text>
+            <text class="gc-value" x="100%" y={bar.top + 16} text-anchor="end">{bar.valueText}</text>
+            <rect class="gc-track" x="0" y={bar.top + BAR_Y} width="100%" height={BAR_H} rx={BAR_H / 2}></rect>
+            <rect class="gc-bar" x="0" y={bar.top + BAR_Y} width={`${bar.width}%`} height={BAR_H} rx={BAR_H / 2}></rect>
+          </g>
+        ))}
+      </g>
+    ))}
+  </svg>
+  <details class="gc-table-wrap">
+    <summary>Show the figures as a table</summary>
+    <div class="gc-scroll">
+      <table class="gc-table">
+        <caption>{chart.title}</caption>
+        <thead><tr><th scope="col">From</th><th scope="col">{chart.valueHeading}</th><th scope="col">Details</th></tr></thead>
+        {chart.groups.map((group) => (
+          <tbody>
+            <tr class="gc-table-group"><th scope="colgroup" colspan="3">{group.label}</th></tr>
+            {group.bars.map((bar) => (
+              <tr><th scope="row">{bar.label}</th><td class="gc-num">{bar.valueText}</td><td>{bar.note ?? ""}</td></tr>
+            ))}
+          </tbody>
+        ))}
+      </table>
+    </div>
+  </details>
+  <p class="gc-method">{chart.method} Source: <a href={chart.sourceUrl} rel="noopener" target="_blank">{chart.sourceLabel}<span class="sr-only"> (new tab)</span></a>. Routing data © <a href="https://www.openstreetmap.org/copyright" rel="noopener" target="_blank">OpenStreetMap contributors<span class="sr-only"> (new tab)</span></a>.</p>
+</figure>
+
+<style>
+  .gc {
+    --gc-surface: #fff;
+    --gc-ink: var(--ink);
+    --gc-muted: var(--muted);
+    --gc-line: var(--line);
+    --gc-bar: var(--forest, #3f4d3c);
+    --gc-track: var(--forest-soft, #e7ebe2);
+    --gc-link: var(--forest, #3f4d3c);
+    margin: 1.5rem 0;
+    padding: clamp(1rem, .6rem + 1.6vw, 1.75rem);
+    border: 1px solid var(--gc-line);
+    border-radius: .9rem;
+    background: var(--gc-surface);
+    color: var(--gc-ink);
+  }
+  .gc-head { display: grid; gap: .15rem; margin-bottom: .75rem; }
+  .gc-head strong { font-size: 1.05rem; }
+  .gc-head span { color: var(--gc-muted); font-size: .88rem; }
+  .gc-svg { display: block; overflow: visible; font-family: var(--body); }
+  .gc-group { fill: var(--gc-muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  .gc-label { fill: var(--gc-ink); font-size: 14px; }
+  .gc-value { fill: var(--gc-ink); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .gc-hit { fill: transparent; }
+  .gc-row:hover .gc-hit { fill: var(--gc-track); fill-opacity: .45; }
+  .gc-track { fill: var(--gc-track); }
+  .gc-bar { fill: var(--gc-bar); }
+  .gc-table-wrap { margin-top: 1rem; }
+  .gc-table-wrap summary { cursor: pointer; color: var(--gc-link); font-weight: 700; }
+  .gc-scroll { overflow-x: auto; }
+  .gc-table { width: 100%; margin-top: .75rem; border-collapse: collapse; font-size: .92rem; }
+  .gc-table caption { margin-bottom: .6rem; color: var(--gc-muted); font-size: .88rem; text-align: left; }
+  .gc-table th, .gc-table td { padding: .5rem .4rem; border-bottom: 1px solid var(--gc-line); text-align: left; vertical-align: top; }
+  .gc-table thead th { color: var(--gc-muted); font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+  .gc-table-group th { padding-top: 1rem; font-family: var(--display); font-size: 1.02rem; }
+  .gc-table tbody th[scope="row"] { font-weight: 400; }
+  .gc-num { white-space: nowrap; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .gc-method { margin-top: 1rem; color: var(--gc-muted); font-size: .85rem; }
+  .gc-method a { color: var(--gc-link); }
+  @media (forced-colors: active) {
+    .gc-label, .gc-value, .gc-group { fill: CanvasText; }
+    .gc-track { fill: Canvas; stroke: CanvasText; }
+    .gc-bar { fill: Highlight; }
+  }
+</style>

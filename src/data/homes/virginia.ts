@@ -1,4 +1,5 @@
 import type { HomeMicrosite } from "./types";
+import { residentGuide } from "./guide";
 import { ravenswoodArea, ravenswoodDirectionsFrom, ravenswoodNearby } from "./towns";
 import p117 from "../../../assets/images/cottages/ravenswood-02/photo-117.avif";
 import p53 from "../../../assets/images/cottages/ravenswood-02/photo-53.avif";
@@ -197,4 +198,9 @@ export const virginiaHome: HomeMicrosite = {
   concepts: [],
   nearby: ravenswoodNearby,
   directionsFrom: ravenswoodDirectionsFrom,
+  guide: residentGuide({
+    id: "virginia",
+    internet: { text: "Internet: fiber-optic, per the listing.", status: "listed" },
+    laundry: { text: "Laundry: access is listed; whether it is in the home is confirmed on inquiry.", status: "listed" },
+  }),
 };
