@@ -85,7 +85,7 @@ test("the commute guide shows measured figures, a team byline and an Article nod
 test("homes and audience guides link into the area guides, and the nav lists them", async ({ page }) => {
   await page.goto("/parkersburg/broad-cottage/");
   await expect(page.locator(`[data-related] a[href="${GUIDE}"]`)).toBeVisible();
-  await page.goto("/work-relocation.html");
+  await page.goto("/corporate-housing/");
   await expect(page.locator(`[data-related] a[href="${GUIDE}"]`)).toBeVisible();
   await expect(page.locator('.site-footer a[href="/guides/"], header a[href="/guides/"]').first()).toBeAttached();
 });
