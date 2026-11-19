@@ -47,11 +47,14 @@ const serveStayForm = async (context) => {
 const settle = (page) => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
 /**
- * One keyboard stop in a single round trip: waits two frames for the focus scroll to paint, then names the
+ * One keyboard stop in a single round trip: lets any finite transition or animation finish (the skip link
+ * leaving the screen, a smooth scroll), waits two frames for the focus scroll to paint, then names the
  * focused element and what covers its centre, if anything (WCAG 2.4.11).
  */
-const focusStop = () =>
-  new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => {
+const focusStop = async () => {
+  const finite = document.getAnimations().filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity);
+  await Promise.race([Promise.allSettled(finite.map((animation) => animation.finished)), new Promise((done) => setTimeout(done, 1000))]);
+  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => {
     const active = document.activeElement;
     if (!active || active === document.body) return resolve({ key: null, cover: null });
     const key = `${active.tagName}|${active.getAttribute("href") ?? ""}|${active.textContent?.trim().slice(0, 30)}`;
@@ -63,6 +66,7 @@ const focusStop = () =>
     const covered = hit && !(active === hit || active.contains(hit) || hit.contains(active));
     resolve({ key, cover: covered ? `${key} is under ${hit.closest("header, nav, aside, [class]")?.className || hit.tagName}` : null });
   })));
+};
 
 /** What covers the centre of the focused element, or null when nothing does (WCAG 2.4.11). */
 const focusCover = (page) =>
@@ -143,7 +147,9 @@ test.describe("accessibility statement", () => {
 });
 
 test.describe("audit regressions", () => {
-  test.use({ reducedMotion: "reduce" });
+  // reducedMotion is a browser-context option, not a Playwright Test option: test.use({ reducedMotion }) is silently
+  // ignored, which left smooth scrolling on and sampled the focus walks mid-scroll in CI. Pass it as a context option.
+  test.use({ contextOptions: { reducedMotion: "reduce" } });
 
   test("the skip link is the first stop and is visible when focused", async ({ page }) => {
     await page.goto("/faq.html");
@@ -168,6 +174,7 @@ test.describe("audit regressions", () => {
       test.setTimeout(180_000);
       await page.setViewportSize(walk.viewport);
       await page.goto(walk.path);
+      expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches), "reduced motion is emulated").toBe(true);
       const hidden = [];
       let first = null;
       for (let stop = 0; stop < 200; stop += 1) {
