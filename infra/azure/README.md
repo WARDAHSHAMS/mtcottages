@@ -166,7 +166,10 @@ The body holds labels and counts only, never a URL, key or lead field. The hourl
 
 `count:intake-loss` (`infra/azure/intake-loss-count.sh`) is read-only and prints aggregates only. It covers:
 - `POST /api/apply` attempts on `stay.mtcottages.com` per day and HTTP status, from the Front Door access log in `TLIMainAnalytics`, with the workspace's retention and earliest record so the covered window is explicit;
+- for the last 24 hours on the whole host, requests and 502/503/504 counts per path and Front Door origin, with the status and `ErrorInfo` labels seen (#85: a guest who gets a 502 on the form page never reaches `/api/apply`);
 - the `mtcottages-intake` runs per day and status.
+
+The stay form guards against gateway errors: before it sends, it makes a throwaway `GET /api/health` so the idle origin's first 502 lands there and not on the inquiry. It also resends a 502/503/504 or a dropped connection up to twice, with the same `submissionId`. The form page's own first load can still get a 502; only an origin-side fix removes that.
 
 Run it with "Run pipeline" on `gh-pages` and `INTAKE_LOSS_COUNT=true`; add `INTAKE_LOSS_SINCE` to change the default window start of `2026-07-01`. A manual pipeline also republishes the current proxy commit, which is harmless.
 
@@ -202,6 +205,10 @@ Turning it on, in this order:
    Canary mode stays off while either one is missing.
 3. **Logic App:** deploy the definition with `Route_Canary` (#13), before the first canary runs.
 4. **Schedule:** set the CI variable `INTAKE_CANARY_ENABLED=true` on a `gh-pages` pipeline schedule. Every 15 minutes, together with the Logic App `RunsFailed` alert evaluated over 15 minutes, meets the "breaking the Logic App fires an alert within 15 minutes" bar. Use "Run pipeline" on `gh-pages` with the same variable for a one-off check.
+
+**Paging (#84).** A failed canary also posts an Adaptive Card ("Stay inquiry intake is failing", the failed step and the pipeline link) to the Teams intake channel. The job reads the Teams Workflows webhook URL from `omlab-secrets` by the name in the CI variable `INTAKE_CANARY_PAGE_SECRET_NAME` (set it to the secret behind the Function's `TEAMS_INTAKE_WEBHOOK_URL` reference; unset, the job logs "PAGE: not configured"), so the runner SP needs Key Vault Secrets User on that secret too. It keeps the URL in a 0600 curl config file, never in argv or the log. If the secret cannot be read, the job says so and stays red; a paging problem never hides the canary failure.
+
+The canary skips Turnstile, so it cannot see a guest-only failure like #85. The real-browser `smoke:apply-proxy` Turnstile check and the stage-labelled 400s cover that path.
 
 When a canary fails, the job log names the step that failed and the `submissionId`. Look up that run in the Logic App run history by its client tracking id. If cleanup failed, delete the `Intake Canary` lead in Dynamics by hand.
 
