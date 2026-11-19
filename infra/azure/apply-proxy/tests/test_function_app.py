@@ -446,10 +446,27 @@ def test_form_csp_has_nonce_and_turnstile_sources(monkeypatch):
     assert "script-src 'self' https://challenges.cloudflare.com 'nonce-" in csp
     assert "connect-src 'self' https://challenges.cloudflare.com" in csp
     assert "frame-src 'self' https://challenges.cloudflare.com" in csp
+    # The brand fonts load from the marketing site's public/fonts (#59).
+    assert "font-src 'self' https://mtcottages.com" in csp
     assert "'unsafe-inline'" not in csp
     nonce = re.search(r'<script nonce="([^"]+)"', response.body).group(1)
     assert f"'nonce-{nonce}'" in csp
     assert "https://challenges.cloudflare.com/turnstile/v0/api.js" in response.body
+
+
+def test_form_fonts_are_the_marketing_sites_self_hosted_files():
+    """The form's @font-face URLs must be files the site publishes and the CSP allows (#59)."""
+    repo = Path(__file__).resolve().parents[4]
+    markup = (repo / "infra" / "azure" / "apply-proxy" / "index.html").read_text(encoding="utf-8")
+    urls = re.findall(r'src:url\("([^"]+\.woff2)"\)', markup)
+    assert len(urls) == 3
+    for url in urls:
+        origin, _, path = url.partition("/fonts/")
+        assert origin == "https://mtcottages.com"
+        assert f"font-src {function_app.FONT_SOURCES}".count(origin) == 1
+        assert (repo / "public" / "fonts" / path).is_file(), f"{path} is not published by the site"
+    assert 'font-family:"Source Serif 4"' in markup
+    assert 'font-family:"Source Sans 3"' in markup
 
 
 def test_missing_site_key_fails_closed_without_fallback_ui(monkeypatch):
