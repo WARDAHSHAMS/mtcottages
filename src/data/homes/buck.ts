@@ -12,27 +12,28 @@ import bathTub from "../../../assets/images/cottages/parkersburg-02/buck-bathroo
 import bedWide from "../../../assets/images/cottages/parkersburg-02/buck-bedroom-wide.jpg";
 import exterior from "../../../assets/images/cottages/parkersburg-02/buck-exterior.jpg";
 import exteriorIcicles from "../../../assets/images/cottages/parkersburg-02/buck-exterior-icicles.jpg";
-import exteriorPorchSnow from "../../../assets/images/cottages/parkersburg-02/buck-exterior-porch-snow.jpg";
 import exteriorViewAutumn from "../../../assets/images/cottages/parkersburg-02/buck-exterior-view-autumn.jpg";
 import wsDesk from "../../../assets/images/cottages/parkersburg-02/buck-workspace-desk.jpg";
 import wsRoom from "../../../assets/images/cottages/parkersburg-02/buck-workspace.jpg";
 import wsWide from "../../../assets/images/cottages/parkersburg-02/buck-workspace-wide.jpg";
 import laundry from "../../../assets/images/cottages/parkersburg-02/buck-laundry.jpg";
-import laundryWide from "../../../assets/images/cottages/parkersburg-02/buck-laundry-wide.jpg";
 import porch from "../../../assets/images/cottages/parkersburg-02/photo-45.jpg";
 
 // Excluded from the public set: photo-09 (street panorama) and photo-23 (front
 // of house with a visible house number). Buck's street address is not approved.
 // The owner approved publishing Buck's front exterior as buck-exterior.jpg: a
-// summer frame with no house number or mailbox number visible. The seasonal
-// porch views (autumn street view, snow, icicles) came from the owner's listing
-// set at the same time; none show a house number, mailbox number, or plate.
+// summer frame with no house number or mailbox number visible. The autumn
+// porch view and the icicles came from the owner's listing set at the same time
+// and show no house number, mailbox number or plate. Also excluded: the snowy
+// porch view (a neighbour's house number on its porch gable and a business van's
+// phone number are legible), the wide laundry frame, and the laundry frame above
+// the machines (paint cans, a caulk tube and a cordless drill on the shelves);
+// buck-laundry.jpg is cropped to the washer and dryer.
 const ph = (src: HomeMicrosite["hero"]["src"], alt: string, caption: string, focal?: string) => ({ src, alt, caption, ...(focal ? { focal } : {}) });
 
 const photos = {
   exterior: ph(exterior, "Front of the home, with tan siding, black shutters, a brown shingle roof, a gabled entry porch with wood railings and steps, and a lawn sloping up to the house", "The front of the home, with the gabled entry porch.", "50% 40%"),
   exteriorViewAutumn: ph(exteriorViewAutumn, "Autumn view from the front porch, looking down through a red maple across the street to neighbouring one-storey houses, driveways, sunset clouds and the hills beyond", "The view from the porch in autumn, over the street below.", "50% 45%"),
-  exteriorPorchSnow: ph(exteriorPorchSnow, "Snow-covered porch floor behind brown wood railings and posts, looking past a bare tree across the street to snow-covered neighbouring houses and a parked white van under a clear blue sky", "The porch under snow, looking down the street.", "50% 55%"),
   exteriorIcicles: ph(exteriorIcicles, "Icicles hanging from the roof edge at sunset, seen past the corner of the house, with a bare tree, a snow-covered yard and a neighbouring white cottage beyond", "Icicles at the roof edge on a winter evening.", "55% 40%"),
   living: ph(p49, "Living room with a sage-green reclining sofa and mixed cushions, a pine coffee table on a striped rug, a large framed mirror, rose-coloured curtains, and a glowing floor lamp", "The living room, with a reclining sofa and warm lamplight.", "55% 55%"),
   livingWide: ph(p50, "Living room seen straight on, with the reclining sofa under a window, framed floral paintings, amber lamps on a floor stand and a side table, and dark wood floors", "The same room straight on, with two lamps and framed floral art."),
@@ -46,8 +47,7 @@ const photos = {
   wsDesk: ph(wsDesk, "Corner desk with a dark wood top and built-in shelving above holding plants, a toy motorcycle and small boxes, with a black mesh office chair", "The corner desk, with shelving above."),
   wsRoom: ph(wsRoom, "Workspace room with the corner desk at left, a large framed abstract print, a doorway into the bedroom, a floral valance over a window, and a wall-mounted folding table", "The workspace room, with the desk, art and the bedroom door."),
   wsWide: ph(wsWide, "The workspace room seen from the kitchen side, with the corner desk and chair, a ceiling fan, a stainless refrigerator and microwave at left, and doorways to the bedroom and a utility area", "The same room from the kitchen side, with the desk and doorways."),
-  laundry: ph(laundry, "Laundry alcove with a Maytag top-loading washer and an LG front-loading dryer, two wooden shelves above holding wicker baskets, detergent, paint cans and a cordless drill, and black pegboard panels with hanging cups on either wall", "The washer and dryer, with storage above.", "50% 45%"),
-  laundryWide: ph(laundryWide, "The laundry alcove seen straight on, with the Maytag washer and LG dryer under wooden shelves holding wicker baskets, bottles and cans, and black pegboard panels on both side walls", "The laundry alcove straight on, with both shelves."),
+  laundry: ph(laundry, "Laundry alcove with a white Maytag top-loading washer beside a white LG front-loading dryer, the end of a wooden wall shelf above the dryer, and a rubber mat against the wall", "The washer and dryer, side by side.", "50% 50%"),
   porch: ph(porch, "Covered front porch seen from the open front door, with dark wood posts and railings, a painted ceiling, and autumn trees beyond", "The covered front porch, seen from the front door.", "40% 50%"),
 };
 
@@ -83,13 +83,13 @@ export const buckHome: HomeMicrosite = {
       slug: "exterior",
       name: "Exterior",
       summary: "A single-storey home with a gabled entry porch, black shutters, and a lawn sloping up from the street.",
-      photos: [photos.exterior, photos.exteriorViewAutumn, photos.exteriorPorchSnow, photos.exteriorIcicles],
+      photos: [photos.exterior, photos.exteriorViewAutumn, photos.exteriorIcicles],
       notes: [
         { text: "Tan siding, black shutters, and a brown shingle roof.", status: "photographed" },
         { text: "Gabled entry porch with wood railings and steps.", status: "photographed" },
         { text: "The front yard slopes up from the street.", status: "photographed" },
         { text: "The porch sits above the street and looks out over the rooftops opposite.", status: "photographed" },
-        { text: "Snow sits on the porch and icicles hang from the roof edge in winter.", status: "photographed" },
+        { text: "Icicles hang from the roof edge in winter.", status: "photographed" },
         { text: "Whether off-street parking is available.", status: "confirm" },
       ],
     },
@@ -175,11 +175,10 @@ export const buckHome: HomeMicrosite = {
       slug: "laundry",
       name: "Laundry",
       summary: "A laundry alcove with a top-loading washer, a front-loading dryer, and shelves for supplies.",
-      photos: [photos.laundryWide, photos.laundry],
+      photos: [photos.laundry],
       notes: [
         { text: "Maytag top-loading washer and LG front-loading dryer side by side.", status: "photographed" },
-        { text: "Two wooden shelves above hold wicker baskets, detergent and cleaning supplies.", status: "photographed" },
-        { text: "Black pegboard panels on both side walls, with hanging cups and bins.", status: "photographed" },
+        { text: "A wooden wall shelf runs above the dryer.", status: "photographed" },
         { text: "Whether guests may use the washer and dryer during a stay.", status: "confirm" },
         { text: "Whether detergent or a drying rack is supplied.", status: "confirm" },
       ],
