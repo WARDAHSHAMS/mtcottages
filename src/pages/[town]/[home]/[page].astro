@@ -100,7 +100,7 @@ const sourceLabel = (url: string): string => {
     throw new Error(`${home.id}: nearby source "${url}" is not a valid URL (${error instanceof Error ? error.message : String(error)})`);
   }
 };
-const kindsInPlan =[...new Set(home.plan.floors.flatMap((floor) => floor.rooms.map((room) => room.kind)))];
+const kindsInPlan = [...new Set(home.plan.floors.flatMap((floor) => floor.rooms.map((room) => room.kind)))];
 const planExtent = {
   w: Math.max(0, ...home.plan.floors.flatMap((f) => f.rooms.map((r) => r.x + r.w))),
   h: Math.max(0, ...home.plan.floors.flatMap((f) => f.rooms.map((r) => r.y + r.h))),

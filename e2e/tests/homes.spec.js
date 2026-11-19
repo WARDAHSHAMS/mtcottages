@@ -433,9 +433,11 @@ test("every home lists at least 15 nearby places in at least 5 kinds, each sourc
 test("every home has a resident guide page linked from its navigation", async ({ page }) => {
   for (const home of homes) {
     await page.goto(home.base);
-    const navLink = page.locator(`nav[aria-label="${home.name} sections"] a[href="${home.base}guide.html"]`);
-    expect(await navLink.count(), `${home.name} guide nav link`).toBeGreaterThanOrEqual(1);
-    await navLink.first().click();
+    // The nav renders the link twice: in the narrow-screen menu and in the wide-screen row.
+    // Whichever one the viewport shows must be a real, clickable link.
+    const navLink = page.locator(`nav[aria-label="${home.name} sections"] a[href="${home.base}guide.html"]:visible`);
+    await expect(navLink, `${home.name} visible guide nav link`).toHaveCount(1);
+    await navLink.click();
     await expect(page).toHaveURL(new RegExp(`${home.base}guide\\.html$`));
     await expect(page.locator("h1")).toHaveCount(1);
     for (const id of ["arrival", "utilities", "handbook"]) {
