@@ -50,7 +50,7 @@ const id = `model-${home.id}`;
   <div class="hm-model-poster" data-model-poster>
     <svg class="hm-model-preview" viewBox={viewBox} role="img" aria-label={`Concept 3D preview of ${home.name}, built from the room list. Not to scale.`} xmlns="http://www.w3.org/2000/svg">
       {shapes.map((shape) => (
-        <g stroke="#3f4d3c" stroke-width=".25" stroke-linejoin="round">
+        <g style="stroke:var(--forest)" stroke-width=".25" stroke-linejoin="round">
           <polygon points={shape.top} fill={shape.fill} />
           <polygon points={shape.south} fill={shape.south_fill} />
           <polygon points={shape.east} fill={shape.east_fill} />
@@ -103,6 +103,8 @@ const id = `model-${home.id}`;
       const probe = document.createElement("canvas");
       if (!(probe.getContext("webgl2") || probe.getContext("webgl"))) throw new Error("WebGL unavailable");
 
+      // The scene reads the site's brand tokens (src/styles/site.css) so it follows the palette.
+      const token = (name: string): string => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
       const WALL = 3; // low walls: a cutaway so the inside stays visible
       const GAP = 10; // vertical distance between floors
       const T = 0.4; // wall thickness
@@ -117,13 +119,13 @@ const id = `model-${home.id}`;
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xf3f4ee);
+      scene.background = new THREE.Color(token("--canvas"));
       scene.add(new THREE.HemisphereLight(0xffffff, 0x9a958a, 1.6));
       const sun = new THREE.DirectionalLight(0xffffff, 1.5);
       sun.position.set(-span, span * 1.6, span);
       scene.add(sun);
 
-      const wallMat = new THREE.MeshLambertMaterial({ color: 0x3f4d3c });
+      const wallMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(token("--forest")) });
       const disposables: { dispose: () => void }[] = [wallMat];
       const addBox = (x: number, y: number, z: number, w: number, h: number, d: number, mat: InstanceType<typeof THREE.Material>) => {
         const geo = new THREE.BoxGeometry(w, h, d);
@@ -142,11 +144,13 @@ const id = `model-${home.id}`;
         c.width = w;
         c.height = 72;
         ctx.font = font;
-        ctx.fillStyle = "rgba(255,254,250,.92)";
+        ctx.fillStyle = token("--paper");
+        ctx.globalAlpha = 0.92;
         ctx.beginPath();
         ctx.roundRect(0, 0, w, 72, 16);
         ctx.fill();
-        ctx.fillStyle = "#252525";
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = token("--ink");
         ctx.textBaseline = "middle";
         ctx.fillText(text, 18, 38);
         const tex = new THREE.CanvasTexture(c);

@@ -43,17 +43,17 @@ const rooms = floor.rooms.map((r) => {
 const summary = `${homeName} ${floor.name} concept plan with ${floor.rooms.map((r) => r.label).join(", ")}. Not to scale.`;
 ---
 <svg class="hm-plan-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={summary} xmlns="http://www.w3.org/2000/svg" data-plan-floor={floor.name}>
-  <rect x="0" y="0" width={width} height={height} fill="#fffefa" />
+  <rect x="0" y="0" width={width} height={height} style="fill:var(--paper)" />
   {rooms.map((r) => (
     <g>
-      <rect x={r.px} y={r.py} width={r.w} height={r.h} fill={planKindColor[r.kind]} stroke="#3f4d3c" stroke-width="2" stroke-dasharray={r.kind === "porch" ? "6 4" : undefined} />
-      <text x={r.px + r.w / 2} y={r.py + r.h / 2 - ((r.lines.length - 1) * r.size * 0.6)} text-anchor="middle" dominant-baseline="middle" font-family="system-ui, sans-serif" font-weight="700" font-size={r.size} fill="#252525">
+      <rect x={r.px} y={r.py} width={r.w} height={r.h} fill={planKindColor[r.kind]} style="stroke:var(--forest)" stroke-width="2" stroke-dasharray={r.kind === "porch" ? "6 4" : undefined} />
+      <text x={r.px + r.w / 2} y={r.py + r.h / 2 - ((r.lines.length - 1) * r.size * 0.6)} text-anchor="middle" dominant-baseline="middle" font-family="system-ui, sans-serif" font-weight="700" font-size={r.size} style="fill:var(--ink)">
         {r.lines.map((line, i) => <tspan x={r.px + r.w / 2} dy={i === 0 ? 0 : r.size * 1.2}>{line}</tspan>)}
       </text>
       <title>{`${r.label} (${planKindLabel[r.kind]})`}</title>
     </g>
   ))}
-  <g aria-hidden="true" font-family="system-ui, sans-serif" font-size="11" fill="#5e685f">
+  <g aria-hidden="true" font-family="system-ui, sans-serif" font-size="11" style="fill:var(--muted)">
     <text x={width - PAD} y={height - 3} text-anchor="end">N ↑ · concept, not to scale</text>
   </g>
 </svg>

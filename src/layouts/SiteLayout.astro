@@ -76,6 +76,9 @@ if (searchConsoleToken && !/^[A-Za-z0-9_-]{20,100}$/.test(searchConsoleToken)) {
     <link rel="canonical" href={canonicalUrl} />
     {searchConsoleToken && <meta name="google-site-verification" content={searchConsoleToken} />}
     <link rel="icon" href={favicon.src} />
+    {/* The two fonts the first screen paints with (body copy and the h1); the bold body weight loads when it is first used. */}
+    <link rel="preload" href="/fonts/source-sans-3-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/source-serif-4-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Mt Cottages" />
     <meta property="og:title" content={title} />
@@ -88,7 +91,7 @@ if (searchConsoleToken && !/^[A-Za-z0-9_-]{20,100}$/.test(searchConsoleToken)) {
     <meta property="og:image:height" content={String(socialJpeg.attributes.height)} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="color-scheme" content="light" />
-    <meta name="theme-color" content="#3f4d3c" />
+    <meta name="theme-color" content="#1d4b68" />
     <script type="application/ld+json" set:html={JSON.stringify(schemas)} />
     <script type="speculationrules" set:html={JSON.stringify(speculationRules)} />
     <title>{title}</title>
