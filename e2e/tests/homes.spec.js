@@ -146,14 +146,15 @@ for (const home of homes) {
       const offer = schemas.find((item) => item["@type"] === "Offer");
       if (terms.homes[home.id].monthlyRate.status === "confirmed") expect(offer).toBeDefined();
       else expect(offer).toBeUndefined();
-      // Breadcrumbs mirror the visible trail: Home / Town / Home name (/ Page).
+      // The one BreadcrumbList mirrors the visible trail: Home / Locations / Town, State / Home name (/ Page) (#35).
       const crumbs = schemas.find((item) => item["@type"] === "BreadcrumbList");
-      expect(crumbs.itemListElement.map((item) => item.name)).toEqual(["Home", expect.any(String), home.name]);
+      const townSlug = home.base.split("/")[1];
+      expect(crumbs.itemListElement.map((item) => item.name)).toEqual(["Home", "Locations", expect.stringMatching(new RegExp(`^${townSlug}, `, "i")), home.name]);
       expect(crumbs.itemListElement.at(-1).item).toBe(`https://mtcottages.com${home.base}`);
       await page.goto(`${home.base}tour.html`);
       const tourSchemas = JSON.parse(await page.locator('script[type="application/ld+json"]').textContent());
       const tourCrumbs = tourSchemas.find((item) => item["@type"] === "BreadcrumbList");
-      expect(tourCrumbs.itemListElement.at(-1)).toMatchObject({ position: 4, name: "Tour", item: `https://mtcottages.com${home.base}tour.html` });
+      expect(tourCrumbs.itemListElement.at(-1)).toMatchObject({ position: 5, name: "Tour", item: `https://mtcottages.com${home.base}tour.html` });
     });
 
     test("the plan page has an SVG per floor and the concept labels", async ({ page }) => {

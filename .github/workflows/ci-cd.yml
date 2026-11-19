@@ -58,6 +58,10 @@ jobs:
           node scripts/check-claims.mjs dist
           # On-page SEO: titles, descriptions, one H1, alt text, no duplicates (#69).
           node scripts/seo-audit.mjs dist
+          # No broken or redirect links, no orphan pages, descriptive anchors, matching breadcrumbs (#35).
+          node scripts/check-links.mjs dist
+          # Guide images outside the portfolio need a licence row (#47).
+          node scripts/check-photo-licences.mjs
           # Unit tests for the distances schema and the banned-claim patterns (#25).
           node --test scripts/tests/*.test.mjs
           # Unit tests for the live-build gate (#19).

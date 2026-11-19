@@ -1,16 +1,8 @@
 import type { AccommodationLeaf, LocationFeatureSpecificationLeaf, WithContext } from "schema-dts";
 import type { HomeMicrosite } from "./types";
-import { homeBase, homeHref, type HomePage } from "./links";
-import { breadcrumbSchema, businessId, cityPlace, homeNodeId, origin } from "../schema";
+import { homeBase } from "./links";
+import { businessId, cityPlace, homeNodeId, origin } from "../schema";
 import { offerFor } from "../terms";
-
-const pageTitle: Record<HomePage, string> = {
-  tour: "Tour",
-  plan: "Plan & 3D",
-  amenities: "Amenities",
-  location: "Location",
-  guide: "Guide",
-};
 
 /**
  * Accommodation structured data. Owner-approved homes carry a full postal
@@ -54,21 +46,13 @@ export const homeSchema = (home: HomeMicrosite): WithContext<AccommodationLeaf> 
   };
 };
 
-/** Breadcrumbs matching the visible trail: Home / Town / Home name / Page. */
-export const homeBreadcrumbs = (home: HomeMicrosite, page?: HomePage) =>
-  breadcrumbSchema([
-    { name: "Home", href: "/" },
-    { name: home.town.name, href: `/${home.town.slug}/index.html` },
-    { name: home.name, href: homeBase(home) },
-    ...(page ? [{ name: pageTitle[page], href: homeHref(home, page) }] : []),
-  ]);
-
 /**
- * Everything a home page publishes as JSON-LD. The Offer comes from
- * src/data/terms.json and exists only once the owner confirms the home's
- * monthly rate; a published guide is not an offer.
+ * Everything a home page publishes as JSON-LD, except its BreadcrumbList:
+ * HomeLayout publishes that from the same trail it shows (#35), so each page
+ * has exactly one. The Offer comes from src/data/terms.json and exists only
+ * once the owner confirms the home's monthly rate; a published guide is not an offer.
  */
-export const homePageSchema = (home: HomeMicrosite, page?: HomePage) => {
+export const homePageSchema = (home: HomeMicrosite) => {
   const offer = offerFor(home.id, new URL(homeBase(home), origin).toString(), homeNodeId(homeBase(home)));
-  return [homeSchema(home), homeBreadcrumbs(home, page), ...(offer ? [offer] : [])];
+  return [homeSchema(home), ...(offer ? [offer] : [])];
 };

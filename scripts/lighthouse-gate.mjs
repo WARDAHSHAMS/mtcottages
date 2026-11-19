@@ -51,15 +51,18 @@ async function micrositePages() {
   }
   const paths = new Set([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => new URL(match[1]).pathname));
   // A two-level directory is a home microsite only when its tour page is listed
-  // too: /travel-nurses/memorial-health-marietta/ has the same shape but no tour.
+  // too: /travel-nurses/memorial-health-marietta/ and /guides/<slug>/ have the same shape but no tour.
   const roots = [...paths]
     .filter((pathname) => /^\/[a-z0-9-]+\/[a-z0-9-]+\/$/.test(pathname) && paths.has(`${pathname}tour.html`))
     .sort();
   if (roots.length === 0) throw new Error(`${sitemapUrl} lists no home microsites`);
+  // Guides (#47): the index and every guide, since each carries charts and diagrams.
+  const guidePages = [...paths].filter((pathname) => pathname === "/guides/" || /^\/guides\/[a-z0-9-]+\/$/.test(pathname)).sort();
+  if (!guidePages.includes("/guides/")) throw new Error(`${sitemapUrl} does not list /guides/`);
   // The home page (#21) is the most visited page, so it is gated with the microsites.
   // The location page carries the drive-time chart and table (#25); the town
   // landing (money) pages are gated too (#24, #28).
-  return ["/", ...roots.flatMap((root) => [root, `${root}tour.html`, `${root}location.html`]), ...townLandingPages];
+  return ["/", ...roots.flatMap((root) => [root, `${root}tour.html`, `${root}location.html`]), ...townLandingPages, ...guidePages];
 }
 
 if (!process.env.CHROME_PATH) {
