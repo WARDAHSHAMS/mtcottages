@@ -97,7 +97,9 @@ test.describe("Broad Cottage", () => {
     await menu.locator("summary").click();
     await expect(menu).toHaveAttribute("open", "");
     const links = menu.locator("a");
-    await expect(links).toHaveCount(5);
+    // Overview, Tour, Plan, Amenities, Location and the resident guide (#89).
+    await expect(links).toHaveCount(6);
+    await expect(links.filter({ hasText: "Guide" })).toHaveCount(1);
     await expect(menu.locator('a[aria-current="page"]')).toContainText("Overview");
     await links.filter({ hasText: "Location" }).click();
     await expect(page).toHaveURL(/\/broad-cottage\/location\.html$/);

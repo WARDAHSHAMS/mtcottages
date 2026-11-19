@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Lighthouse gate for the home page and every home microsite.
 // Runs Lighthouse (mobile emulation, the default) on the home page and on each
-// microsite's overview, photo tour and location page, and fails when a category drops below its threshold. The pages come
+// microsite's overview, photo tour, location and resident guide page, and fails when a category drops below its threshold. The pages come
 // from the built sitemap, so a new home is gated the day it ships.
 // Run from the e2e folder so its dependencies resolve:
 //   BASE_URL=https://mtcottages.com npm --prefix e2e run perf
@@ -61,8 +61,10 @@ async function micrositePages() {
   if (!guidePages.includes("/guides/")) throw new Error(`${sitemapUrl} does not list /guides/`);
   // The home page (#21) is the most visited page, so it is gated with the microsites.
   // The location page carries the drive-time chart and table (#25); the town
-  // landing (money) pages are gated too (#24, #28).
-  return ["/", ...roots.flatMap((root) => [root, `${root}tour.html`, `${root}location.html`]), ...townLandingPages, ...guidePages];
+  // landing (money) pages are gated too (#24, #28). A home's resident guide is
+  // gated whenever the sitemap lists it (#89).
+  const homePages = (root) => [root, `${root}tour.html`, `${root}location.html`, ...(paths.has(`${root}guide.html`) ? [`${root}guide.html`] : [])];
+  return ["/", ...roots.flatMap(homePages), ...townLandingPages, ...guidePages];
 }
 
 if (!process.env.CHROME_PATH) {

@@ -1,4 +1,6 @@
 import type { HomeMicrosite } from "./types";
+import { residentGuide } from "./guide";
+import { nearbyChecked, parkersburgNearby } from "./towns";
 
 import p44 from "../../../assets/images/cottages/parkersburg-01/photo-44.avif";
 import p06 from "../../../assets/images/cottages/parkersburg-01/photo-06.avif";
@@ -313,62 +315,23 @@ export const broadHome: HomeMicrosite = {
         "Concept only. An imagined cottage exterior, not a photo of 3113 Broad St. We have no exterior photos yet.",
     },
   ],
+  // The shared Parkersburg list (#88), plus the pharmacy closest to the north end.
   nearby: [
+    ...parkersburgNearby,
     {
-      name: "WVU Medicine Camden Clark Medical Center",
+      name: "CVS Pharmacy on Emerson Avenue",
       kind: "health",
-      note: "The area's main hospital campus, on Garfield Avenue in Parkersburg.",
-      mapsQuery: "WVU Medicine Camden Clark Medical Center, 800 Garfield Ave, Parkersburg, WV 26101",
-    },
-    {
-      name: "Walmart Supercenter",
-      kind: "grocery",
-      note: "A large store with a grocery department on Pike Street.",
-      mapsQuery: "Walmart Supercenter, 2900 Pike St, Parkersburg, WV 26101",
-    },
-    {
-      name: "City Park",
-      kind: "park",
-      note: "The city's largest park, listed by the City of Parkersburg.",
-      mapsQuery: "City Park, 1920 Parks Ave, Parkersburg, WV 26101",
-    },
-    {
-      name: "Point Park",
-      kind: "park",
-      note: "A riverfront park downtown where the Little Kanawha meets the Ohio, and the start of the Little Kanawha Connector Trail.",
-      mapsQuery: "Point Park, Parkersburg, WV 26101",
-    },
-    {
-      name: "Parkersburg Brewing Company",
-      kind: "food",
-      note: "A brewpub with a full menu in a renovated historic building downtown.",
-      mapsQuery: "Parkersburg Brewing Company, 707 Market St, Parkersburg, WV 26101",
-    },
-    {
-      name: "Parkersburg High School",
-      kind: "school",
-      note: "A public high school for grades 9 to 12, in a building from 1917.",
-      mapsQuery: "Parkersburg High School, 2101 Dudley Ave, Parkersburg, WV 26101",
-    },
-    {
-      name: "Easy Rider transit center",
-      kind: "transit",
-      note: "The hub for Easy Rider, the Mid-Ohio Valley Transit Authority bus service.",
-      mapsQuery: "Mid-Ohio Valley Transit Authority Easy Rider, 520 Juliana St, Parkersburg, WV 26101",
-    },
-    {
-      name: "Parkersburg and Wood County Public Library",
-      kind: "civic",
-      note: "The main library, on Emerson Avenue in the 26104 ZIP code.",
-      mapsQuery: "Parkersburg and Wood County Public Library, 3100 Emerson Ave, Parkersburg, WV 26104",
-    },
-    {
-      name: "Parkersburg Art Center",
-      kind: "civic",
-      note: "A downtown art center with changing exhibits, chartered in 1938.",
-      mapsQuery: "Parkersburg Art Center, 725 Market St, Parkersburg, WV 26101",
+      note: "A pharmacy on Emerson Avenue in the north end, near the main library.",
+      mapsQuery: "CVS Pharmacy Emerson Ave Parkersburg WV",
+      source: "https://www.openstreetmap.org/way/919714082",
+      checked: nearbyChecked,
     },
   ],
+  guide: residentGuide({
+    id: "broad",
+    internet: { text: "Internet: fiber-optic, per the listing.", status: "listed" },
+    laundry: { text: "Laundry: a washer and dryer stand beside the bathroom vanity.", status: "photographed" },
+  }),
   directionsFrom: [
     {
       label: "WVU Medicine Camden Clark Medical Center",

@@ -95,6 +95,13 @@ export type NearbyPlace = {
   note: string;
   /** Google Maps search text, e.g. "Jackson General Hospital Ripley WV". */
   mapsQuery: string;
+  /**
+   * Where the place was checked: its OpenStreetMap element or its own website.
+   * Anything closed or uncertain is left out rather than listed (#88).
+   */
+  source?: string;
+  /** ISO date (YYYY-MM-DD) the place was checked against `source`. */
+  checked?: string;
 };
 
 export type HomeMicrosite = {
