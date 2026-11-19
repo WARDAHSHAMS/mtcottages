@@ -66,7 +66,8 @@ test("the homepage exposes the native Astro navigation and responsive image pipe
 });
 
 test("every public route is reachable and privacy-safe", async ({ page, request }) => {
-  test.setTimeout(240_000);
+  // One full page load per route, so the budget grows with the route list (5s each) instead of a fixed cap.
+  test.setTimeout(Math.max(240_000, publicPages.length * 5_000));
   for (const path of publicPages) {
     const response = await request.get(path);
     expect(response.status(), `${path} should return a successful response`).toBe(200);

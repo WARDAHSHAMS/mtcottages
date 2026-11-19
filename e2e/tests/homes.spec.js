@@ -446,8 +446,9 @@ test("every home has a resident guide page linked from its navigation", async ({
       expect(await items.count(), `${home.name} #${id} lines`).toBeGreaterThanOrEqual(2);
       await expect(page.locator(`section#${id} .hm-notes li .hm-badge`)).toHaveCount(await items.count());
     }
-    for (const badge of await page.locator("main .hm-notes .hm-badge").all()) {
-      await expect(badge).toHaveText(/^(Confirmed|Listed|In photos|Confirm on inquiry)$/);
+    // One read of every badge, not a round trip per badge: this loop covers six homes.
+    for (const badge of await page.locator("main .hm-notes .hm-badge").allTextContents()) {
+      expect(badge, `${home.name} guide badge`).toMatch(/^(Confirmed|Listed|In photos|Confirm on inquiry)$/);
     }
     const main = page.locator("main");
     await expect(main).toContainText("call 911 first");
