@@ -70,15 +70,15 @@ const photos = {
     caption: "The bathroom: a full-size tub with pink tile surround, toilet and wood vanity.",
     focal: "center 55%",
   },
-  shower: {
+  bathroomWide: {
+    src: p12,
+    alt: "Bathroom with a large tub in a brown tile surround, a wooden vanity with a lit mirror and sink, and a white washer and dryer standing beside it",
+    caption: "The tub and the lit vanity, with the washer and dryer alongside.",
+  },
+  laundry: {
     src: p42,
     alt: "Bathroom and laundry corner with a lit vanity mirror, a sink and wooden vanity, a washer and dryer, upper cabinets, and a white shower curtain",
     caption: "The vanity, the washer and dryer, and a curtained shower area.",
-  },
-  laundry: {
-    src: p12,
-    alt: "Wood vanity with a lit mirror and sink, upper cabinets, and a white washer and dryer standing side by side next to it",
-    caption: "Washer and dryer stand right beside the vanity.",
   },
   kitchen: {
     src: kitchenWide,
@@ -219,11 +219,10 @@ export const broadHome: HomeMicrosite = {
     {
       slug: "bathroom",
       name: "Bathroom",
-      summary: "A full bathroom with a deep tub, a curtained shower area and a wood vanity under a lit mirror.",
-      photos: [photos.bathroom, photos.shower],
+      summary: "A full bathroom with a deep tub, a wood vanity under a lit mirror, and the washer and dryer alongside.",
+      photos: [photos.bathroom, photos.bathroomWide],
       notes: [
         { text: "Full-size tub in a pink tile surround", status: "photographed" },
-        { text: "Separate curtained shower area", status: "photographed" },
         { text: "Wood vanity with sink and lit mirror", status: "photographed" },
         { text: "Baseboard heater", status: "photographed" },
         { text: "Step-free or grab-bar access", status: "confirm" },
@@ -237,10 +236,11 @@ export const broadHome: HomeMicrosite = {
     {
       slug: "laundry",
       name: "Laundry",
-      summary: "A washer and dryer stand side by side next to the bathroom vanity.",
+      summary: "A washer and dryer beside the bathroom vanity, next to a curtained shower area.",
       photos: [photos.laundry],
       notes: [
         { text: "Washer and dryer side by side", status: "photographed" },
+        { text: "Separate curtained shower area", status: "photographed" },
         { text: "Detergent, iron or drying rack supplied", status: "confirm" },
       ],
       faqs: [
