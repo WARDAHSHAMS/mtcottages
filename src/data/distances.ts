@@ -173,6 +173,30 @@ export function driveMatrix(destinationIds: string[], homeList: Pick<HomeMicrosi
   });
 }
 
+/** One measured route, as prose and the town landing tables quote it. */
+export type MeasuredRoute = { minutes: number; miles: number; measured: string };
+
+type RawRoute = (typeof raw.rows)[number];
+
+function measuredRoute(list: readonly RawRoute[], mode: "drive" | "walk", homeId: string, destinationId: string): MeasuredRoute {
+  const originId = microsites[homeId];
+  if (!originId) throw new Error(`_data/distances.json has no microsites entry for ${homeId}`);
+  if (!destinations[destinationId]) throw new Error(`_data/distances.json has no destination ${destinationId}`);
+  const row = list.find((candidate) => candidate.origin === originId && candidate.destination === destinationId);
+  if (!row) throw new Error(`_data/distances.json has no measured ${mode} from ${originId} to ${destinationId}; measure it before quoting it`);
+  return { minutes: row.minutes, miles: row.miles, measured: row.measured };
+}
+
+/**
+ * The measured drive from a home to a destination (#26). Pages quote this
+ * instead of typing a number, so copy cannot drift from the measurement.
+ * Throws when the pair was never measured.
+ */
+export const measuredDrive = (homeId: string, destinationId: string): MeasuredRoute => measuredRoute(raw.rows, "drive", homeId, destinationId);
+
+/** The measured walk from a home with an approved address (`walks` in distances.json). Throws when never measured. */
+export const measuredWalk = (homeId: string, destinationId: string): MeasuredRoute => measuredRoute(raw.walks, "walk", homeId, destinationId);
+
 /** "15 Nov 2026" from an ISO date, in UTC so the build machine's zone never shifts it. */
 export const formatMeasured = (iso: string): string =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
