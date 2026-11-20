@@ -327,7 +327,8 @@ synthetic:inquiry:
   script:
     - set -eu
     - |
-      if ! python3 -m venv --help >/dev/null 2>&1; then
+      # The Playwright image ships python3 without ensurepip, so venv cannot bootstrap pip.
+      if ! python3 -c 'import ensurepip, venv' >/dev/null 2>&1; then
         apt-get update -qq
         DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3 python3-venv >/dev/null
       fi
