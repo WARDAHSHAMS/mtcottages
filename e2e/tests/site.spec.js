@@ -424,3 +424,21 @@ test("shared links preview as JPEG, same-site links prerender, and Frederick pub
   expect(schemas.find((item) => item["@type"] === "Offer")).toBeUndefined();
   expect(schemas.find((item) => item["@type"] === "BreadcrumbList")).toBeTruthy();
 });
+
+// #91: Astro rendered each photo's fallback src at the source file's full size (a
+// 2400px, 337 KB AVIF on Oak) when no width was given. The fallback must never be
+// wider than the largest candidate the srcset itself offers.
+for (const route of ["/parkersburg/oak-cottage/", "/parkersburg/oak-cottage/tour.html", "/index.html"]) {
+  test(`photo fallbacks on ${route} are no wider than their srcset`, async ({ page }) => {
+    await page.goto(route);
+    const oversized = await page.locator("img[srcset]").evaluateAll((images) =>
+      images.flatMap((image) => {
+        const widths = image.getAttribute("srcset").split(",").map((candidate) => Number.parseInt(candidate.trim().split(/\s+/)[1], 10)).filter(Number.isFinite);
+        const largest = Math.max(...widths);
+        const width = Number.parseInt(image.getAttribute("width"), 10);
+        return widths.length && width > largest ? [`${image.getAttribute("src")}: width ${width} > srcset ${largest}`] : [];
+      }),
+    );
+    expect(oversized).toEqual([]);
+  });
+}
