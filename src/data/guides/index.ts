@@ -7,6 +7,7 @@
 import { homes } from "../homes";
 import type { Audience } from "../stay-link";
 import { employerCommutes } from "./employer-commutes";
+import { sternwheelFestival } from "./sternwheel-festival";
 import { guideTopicLabel, guideTownLabel, type GuideArticle, type GuideTopic, type GuideTown } from "./types";
 
 export * from "./types";
@@ -16,7 +17,7 @@ const MAX_TITLE = 60;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-export const articles: GuideArticle[] = [employerCommutes].sort((a, b) => b.updated.localeCompare(a.updated) || a.slug.localeCompare(b.slug));
+export const articles: GuideArticle[] = [employerCommutes, sternwheelFestival].sort((a, b) => b.updated.localeCompare(a.updated) || a.slug.localeCompare(b.slug));
 
 function validate(list: GuideArticle[]): string[] {
   const problems: string[] = [];

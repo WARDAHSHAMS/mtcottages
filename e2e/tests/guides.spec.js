@@ -90,7 +90,49 @@ test("homes and audience guides link into the area guides, and the nav lists the
   await expect(page.locator('.site-footer a[href="/guides/"], header a[href="/guides/"]').first()).toBeAttached();
 });
 
-for (const url of ["/guides/", GUIDE]) {
+// The seasonal Sternwheel Festival guide (#52): its dates name the year they
+// apply to and say how to check the latest, the drive from Frederick is the
+// measured row, the call to action is a month (stays are 30 nights or more),
+// and the guide is reachable from the index and from Frederick's microsite.
+const STERNWHEEL = "/guides/marietta-ohio-sternwheel-festival/";
+
+test("the Sternwheel Festival guide dates its facts and offers a month, not a weekend", async ({ page }) => {
+  await page.goto(STERNWHEEL);
+  await expect(page).toHaveTitle("Marietta, Ohio Sternwheel Festival Guide | Mt Cottages");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("The Ohio River Sternwheel Festival in Marietta, Ohio");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", `https://mtcottages.com${STERNWHEEL}`);
+
+  const dates = page.locator("#dates");
+  await expect(dates).toContainText("2026: Friday to Sunday, September 11 to 13, 2026");
+  await expect(dates).toContainText("2027: not yet announced");
+  await expect(dates).toContainText("Friday to Sunday, September 10 to 12, 2027");
+  await expect(dates).toContainText("Confirm on sternwheel.org");
+  await expect(page.locator(".garticle a[href='https://sternwheel.org/']").first()).toBeAttached();
+
+  const frederick = row("frederick", "downtown-marietta");
+  await expect(page.locator("#staying")).toContainText(`about ${frederick.minutes} minutes by car (${frederick.miles} miles`);
+  await expect(page.locator("#staying")).toContainText("30 nights or more");
+
+  const cta = page.locator("[data-guide-cta]");
+  await expect(cta.getByRole("link", { name: /Check dates/ })).toHaveAttribute("href", /audience=long-term/);
+  await expect(cta.getByRole("link", { name: /Frederick Cottage, Marietta/ })).toHaveAttribute("href", "/marietta/frederick/");
+
+  const articles = (await jsonLd(page)).filter((node) => node["@type"] === "Article");
+  expect(articles).toHaveLength(1);
+  expect(articles[0].mainEntityOfPage).toBe(`https://mtcottages.com${STERNWHEEL}`);
+});
+
+test("the Sternwheel guide is linked from the guides index, Frederick's microsite and the sitemap", async ({ page, request }) => {
+  await page.goto("/guides/");
+  await expect(page.locator(`[data-guide-list] a[href="${STERNWHEEL}"]`)).toBeVisible();
+  await page.goto("/marietta/frederick/");
+  await expect(page.locator(`[data-related] a[href="${STERNWHEEL}"]`)).toBeVisible();
+  const sitemap = await request.get("/sitemap.xml");
+  expect(sitemap.ok()).toBe(true);
+  expect(await sitemap.text()).toContain(`https://mtcottages.com${STERNWHEEL}`);
+});
+
+for (const url of ["/guides/", GUIDE, STERNWHEEL]) {
   test(`${url} has no WCAG A/AA violations`, async ({ page }) => {
     await page.goto(url);
     const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
