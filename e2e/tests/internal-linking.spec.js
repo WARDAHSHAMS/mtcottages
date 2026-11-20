@@ -20,12 +20,19 @@ const breadcrumbLists = (html) =>
     })
     .filter((node) => node && node["@type"] === "BreadcrumbList");
 
+// Green runs crawl at 1.3–2 s a page; 6 s leaves room for a runner under 3x load.
+const PER_PAGE_BUDGET_MS = 6_000;
+
 const sameDocument = (url) => url.replace(/[?#].*$/, "").replace(/\/index\.html$/, "/");
 
 test("every listed page except the home page has a visible trail that matches its one BreadcrumbList", async ({ page, request }) => {
-  test.setTimeout(240_000);
   const paths = (await sitemapPaths(request)).filter((path) => path !== "/");
   expect(paths.length).toBeGreaterThanOrEqual(50);
+  // One serial crawl of the whole sitemap: its cost grows with the site and with
+  // runner load, so the budget is per page, not a fixed total. A fixed 240 s ran
+  // out at 70 pages on a contended runner (pipeline 154478) with every page correct.
+  // A single hung page still fails on its own navigation timeout.
+  test.setTimeout(60_000 + paths.length * PER_PAGE_BUDGET_MS);
   for (const path of paths) {
     await page.goto(path);
     const html = await page.content();
