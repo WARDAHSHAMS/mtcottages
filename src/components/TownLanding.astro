@@ -194,6 +194,7 @@ const shifted = Boolean(landing.story);
     <div>
       <p class="lede lede--light">Share your timing, who is coming and why you are in {landing.shortTown}. We reply with the homes that fit, their current price and what is included. An inquiry is a conversation, not a lease.</p>
       <a class="button button--light mt-3" href={townInquiryHref}>{landing.inquiryLabel} <span aria-hidden="true">↗</span></a>
+      <p class="tl-nearby mt-3" data-book-safely>Before you pay anyone, read <a href="/book-safely/">how to book with us safely</a>.</p>
       <p class="tl-nearby mt-3">Also nearby: {landing.nearbyTowns.map((town, index) => <>{index > 0 && " · "}<a href={town.href}>{town.name}</a></>)}</p>
     </div>
   </div>
