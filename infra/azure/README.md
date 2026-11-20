@@ -42,11 +42,11 @@ Turnstile runs before the field checks, so the live smoke can prove that a real-
 
 ## Dynamics 365 / Dataverse ownership
 
-Deploy `mtcottages-intake.definition.json` with `mtcottages-intake.parameters.json`. The workflow parameter `d365BusinessUnitName` is explicitly set to `MtCottages`. Before deployment, confirm that the Dataverse business unit display name matches that value exactly.
+Deploy `mtcottages-intake.definition.json` with `mtcottages-intake.parameters.json`. The workflow parameter `d365BusinessUnitName` is `World Enterprise`, the Mt Cottages owner's business unit in the Dream Dataverse org (`dream.crm.dynamics.com`). There is no `MtCottages` business unit; the earlier value named one that never existed (#85).
 
-The workflow first looks up that business unit, then finds its default owner team, and assigns the created lead to that team through `ownerid@odata.bind`. The Dynamics connection therefore needs permission to read business units and teams and to create and assign leads. If the business unit or default owner team is missing, the workflow returns a configuration error instead of creating an unowned lead.
+The workflow first looks up that business unit, then finds its default owner team, and assigns the created lead to that team through the connector's owner columns `_ownerid_value` and `_ownerid_type: teams` (the Web API's `ownerid@odata.bind` is outside the connector's schema and fails every create, #85). The Dynamics connection therefore needs permission to read business units and teams and to create and assign leads, and the owner team needs a role that can read leads: `d365-owner-team.sh` gives the default team its business unit's standard `Salesperson` role, the convention every other site team in Dream follows. If the business unit or default owner team is missing, the workflow returns a configuration error instead of creating an unowned lead.
 
-The existing `dynamicscrmonline` connection and `d365Organization` parameter remain in use so this change fits the current Logic App deployment. No CRM secrets or connection IDs should be added to source control.
+`d365Organization` is the dataset name the `dynamicscrmonline` connector uses for the org: its **unique name plus region**, `org8a977f45.crm`, not the URL name `dream.crm`. The connector answered `404 NotFound` on `/datasets/dream.crm/tables/leads/items` to every lead create, so until #85 no inquiry ever reached Dynamics. `intake-logicapp.sh` checks the target read-only through the bound connection before every plan, deploy and drift run: the org must be listed by `GET /datasets`, and the business unit must exist with a default owner team. No CRM secrets should be added to source control.
 
 ## Durable, idempotent intake (#15)
 
@@ -119,7 +119,7 @@ Both run on the scoped `azure-deploy` runner as `sp-mtcottages-proxy-deploy` (ce
 
 Then set the project variables `INTAKE_LOGICAPP_DEPLOY_ENABLED=true` and `INTAKE_LOGICAPP_DRIFT=true` (protected), and create a nightly schedule on `gh-pages`.
 
-The first deploy changes behaviour: live has 4 actions; git adds the `MtCottages` business-unit and owner-team lookups. If either lookup finds nothing, the Logic App answers 503. Since #15 the proxy queues such a lead for redelivery instead of losing it.
+The first deploy changes behaviour: live has 4 actions; git adds the `World Enterprise` business-unit and owner-team lookups. If either lookup finds nothing, the Logic App answers 503. Since #15 the proxy queues such a lead for redelivery instead of losing it.
 
 ## Cookieless analytics (#23)
 

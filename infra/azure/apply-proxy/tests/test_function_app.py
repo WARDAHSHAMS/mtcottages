@@ -1149,6 +1149,22 @@ def test_run_history_does_not_keep_lead_data():
     assert sorted(lead["runtimeConfiguration"]["secureData"]["properties"]) == ["inputs", "outputs"]
 
 
+def test_d365_dataset_is_the_connector_unique_name_not_the_hostname():
+    """#85: the Dynamics connector names an org by its unique name (``org8a977f45.crm``).
+
+    ``dream.crm`` is the org's URL name. The connector answered 404 NotFound to it
+    on every lead create, so no inquiry ever reached Dynamics. The live connector
+    check runs in ``intake-logicapp.sh``; this one keeps git from regressing.
+    """
+    azure_dir = FUNCTION_PATH.parents[1]
+    definition = json.loads((azure_dir / "mtcottages-intake.definition.json").read_text(encoding="utf-8"))
+    parameters = json.loads((azure_dir / "mtcottages-intake.parameters.json").read_text(encoding="utf-8"))
+    for name in ("d365Organization", "d365BusinessUnitName"):
+        assert parameters[name]["value"] == definition["parameters"][name]["defaultValue"], name
+    assert re.fullmatch(r"org[0-9a-f]{8}\.crm[0-9]*", parameters["d365Organization"]["value"])
+    assert parameters["d365BusinessUnitName"]["value"] == "World Enterprise"
+
+
 # ---------------------------------------------------------------------------
 # End-to-end canary (#16)
 # ---------------------------------------------------------------------------
@@ -1331,7 +1347,13 @@ def test_real_inquiries_take_the_sales_path_only_after_the_canary_route():
     actions = _owner_team_actions()
     real = actions["Create_D365_Applicant_Lead"]
     assert real["runAfter"] == {"Route_Canary": ["Succeeded"]}
-    assert real["inputs"]["body"]["ownerid@odata.bind"].startswith("@{concat('/teams(")
+    # The connector binds the owner through its own columns; a Web API
+    # `ownerid@odata.bind` key is outside its schema and fails every create
+    # with "A value must be provided for item." (#85).
+    body = real["inputs"]["body"]
+    assert body["_ownerid_type"] == "teams"
+    assert body["_ownerid_value"] == "@{first(body('Find_MtCottages_Owner_Team')?['value'])?['teamid']}"
+    assert not any("@odata" in key for key in body)
     assert "canary" not in json.dumps(real["inputs"]).lower()
     assert "Delete_Canary_Lead" not in actions
     # Nothing outside the canary branch deletes a lead.
