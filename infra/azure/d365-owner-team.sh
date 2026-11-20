@@ -48,7 +48,7 @@ trap 'unset TOKEN' EXIT
 dv_get() {
   local out status
   out="$(mktemp)"
-  status="$(curl -sS -o "${out}" -w '%{http_code}' \
+  status="$(curl -sS --user-agent "mtcottages-d365-owner-team" -o "${out}" -w '%{http_code}' \
     -H "Authorization: Bearer ${TOKEN}" -H "Accept: application/json" \
     -H "OData-MaxVersion: 4.0" -H "OData-Version: 4.0" "${API}/$1")" \
     || { rm -f "${out}"; fail "GET $1: request failed"; }
@@ -83,7 +83,7 @@ if [ "${MODE}" = "check" ]; then
 fi
 
 jq -n --arg id "${API}/roles(${ROLE_ID})" '{"@odata.id": $id}' > "${TMPDIR:-/tmp}/d365-ref.$$.json"
-status="$(curl -sS -o /dev/null -w '%{http_code}' -X POST \
+status="$(curl -sS --user-agent "mtcottages-d365-owner-team" -o /dev/null -w '%{http_code}' -X POST \
   -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" \
   -H "OData-MaxVersion: 4.0" -H "OData-Version: 4.0" \
   --data "@${TMPDIR:-/tmp}/d365-ref.$$.json" "${API}/teams(${TEAM_ID})/teamroles_association/\$ref")" \
