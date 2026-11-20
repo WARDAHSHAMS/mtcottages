@@ -869,15 +869,20 @@ def managed_identity(monkeypatch):
 @pytest.fixture
 def outbound(monkeypatch):
     """Records notification HTTP calls; the managed identity answers with a token."""
-    state = SimpleNamespace(calls=[], answer=lambda: CallbackResponse(status=202, body=b"{}"))
+    state = SimpleNamespace(calls=[], identity_resources=[], answer=lambda: CallbackResponse(status=202, body=b"{}"))
+    function_app.intake_notify.reset_token_cache()
 
     def urlopen(request, timeout):
         if "/msi/token" in request.full_url:
+            query = urllib.parse.parse_qs(urllib.parse.urlsplit(request.full_url).query)
+            state.identity_resources.extend(query.get("resource", []))
             return CallbackResponse(body=json.dumps({"access_token": "token-value", "expires_on": "4102444800"}).encode())
+        content_type = dict(request.header_items()).get("Content-type", "")
+        text = request.data.decode("utf-8")
         state.calls.append({
             "url": request.full_url,
             "headers": dict(request.header_items()),
-            "body": json.loads(request.data.decode("utf-8")),
+            "body": dict(urllib.parse.parse_qsl(text)) if "form-urlencoded" in content_type else json.loads(text),
             "timeout": timeout,
         })
         result = state.answer()
@@ -903,6 +908,111 @@ def test_staff_email_goes_through_acs_with_the_guest_as_reply_to(notifications, 
     assert body["content"]["subject"].startswith("New stay inquiry: Ada Lovelace")
     assert "555-555-1212" in body["content"]["plainText"]
     assert body["userEngagementTrackingDisabled"] is True
+
+
+GRAPH_TENANT = "00000000-0000-4000-8000-0000000000aa"
+GRAPH_CLIENT = "00000000-0000-4000-8000-0000000000bb"
+
+
+@pytest.fixture
+def graph_mail(monkeypatch):
+    """Graph sendMail from the owner's mailbox (#93); the token endpoint answers first, then Graph."""
+    monkeypatch.setenv("GRAPH_MAIL_TENANT_ID", GRAPH_TENANT)
+    monkeypatch.setenv("GRAPH_MAIL_CLIENT_ID", GRAPH_CLIENT)
+    monkeypatch.setenv("GRAPH_MAIL_SENDER", "owner@mailbox.example.com")
+    monkeypatch.setenv("STAFF_ALERT_RECIPIENTS", "stay@mtcottages.com")
+
+
+def _graph_answers(outbound, *answers):
+    pending = iter(answers)
+    outbound.answer = lambda: next(pending)
+
+
+def _token_answer(token="graph-token", expires_in=3599):
+    return CallbackResponse(status=200, body=json.dumps({"access_token": token, "expires_in": expires_in}).encode())
+
+
+def test_staff_email_goes_through_graph_from_the_owner_mailbox(notifications, graph_mail, managed_identity, outbound):
+    _graph_answers(outbound, _token_answer(), CallbackResponse(status=202, body=b""))
+    function_app.send_intake_notification(_notify_message("staff-email"))
+    token_call, send_call = outbound.calls
+    # The managed identity's token is the app's federated credential: no secret anywhere.
+    assert outbound.identity_resources == ["api://AzureADTokenExchange"]
+    assert token_call["url"] == f"https://login.microsoftonline.com/{GRAPH_TENANT}/oauth2/v2.0/token"
+    assert token_call["body"] == {
+        "client_id": GRAPH_CLIENT,
+        "scope": "https://graph.microsoft.com/.default",
+        "grant_type": "client_credentials",
+        "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+        "client_assertion": "token-value",
+    }
+    assert send_call["url"] == "https://graph.microsoft.com/v1.0/users/owner@mailbox.example.com/sendMail"
+    assert send_call["headers"]["Authorization"] == "Bearer graph-token"
+    message = send_call["body"]["message"]
+    assert message["toRecipients"] == [{"emailAddress": {"address": "stay@mtcottages.com"}}]
+    assert message["replyTo"] == [{"emailAddress": {"address": "ada@example.com"}}]
+    assert message["subject"].startswith("New stay inquiry: Ada Lovelace")
+    assert message["body"]["contentType"] == "HTML" and "555-555-1212" in message["body"]["content"]
+    assert message["internetMessageHeaders"] == [{"name": "X-MtC-Submission-Id", "value": SUBMISSION_ID}]
+    assert send_call["body"]["saveToSentItems"] is False
+
+
+def test_graph_alone_is_enough_to_queue_the_staff_alert(graph_mail):
+    assert function_app.intake_notify.configured_channels() == ["staff-email"]
+    assert function_app.intake_notify.channel_summary() == {"staff-email": "graph", "teams": "off", "guest-email": "off"}
+
+
+def test_the_graph_token_is_reused_until_it_nears_expiry(graph_mail, managed_identity, outbound):
+    _graph_answers(
+        outbound, _token_answer(), CallbackResponse(status=202, body=b""), CallbackResponse(status=202, body=b"")
+    )
+    function_app.send_intake_notification(_notify_message("staff-email"))
+    function_app.send_intake_notification(_notify_message("staff-email"))
+    assert [call["url"].rsplit("/", 1)[-1] for call in outbound.calls] == ["token", "sendMail", "sendMail"]
+
+
+def test_a_refused_graph_token_is_retried_and_logs_only_the_error_label(graph_mail, managed_identity, outbound):
+    refusal = urllib.error.HTTPError(
+        "u", 401, "Unauthorized", {},
+        io.BytesIO(b'{"error": "invalid_client", "error_description": "AADSTS700213: subject sig=private"}'),
+    )
+    _graph_answers(outbound, refusal)
+    with pytest.raises(RuntimeError) as raised:
+        function_app.send_intake_notification(_notify_message("staff-email"))
+    assert "Graph token answered HTTP 401 invalid_client" in str(raised.value)
+    assert "AADSTS" not in str(raised.value) and "private" not in str(raised.value)
+    assert len(outbound.calls) == 1
+
+
+def test_a_graph_send_failure_is_retried(graph_mail, managed_identity, outbound):
+    _graph_answers(outbound, _token_answer(), urllib.error.HTTPError("u", 503, "Unavailable", {}, io.BytesIO(b"")))
+    with pytest.raises(RuntimeError, match="Graph sendMail answered HTTP 503"):
+        function_app.send_intake_notification(_notify_message("staff-email"))
+
+
+def test_graph_without_a_managed_identity_is_a_config_error(graph_mail, outbound, monkeypatch):
+    monkeypatch.delenv("IDENTITY_ENDPOINT", raising=False)
+    function_app.managed_identity.reset_cache()
+    with pytest.raises(RuntimeError, match="managed identity is not available"):
+        function_app.send_intake_notification(_notify_message("staff-email"))
+    assert outbound.calls == []
+
+
+@pytest.mark.parametrize(
+    ("setting", "value", "transport"),
+    [
+        ("GRAPH_MAIL_API_ENDPOINT", "http://127.0.0.1:7071/__graph", "graph"),
+        ("GRAPH_MAIL_LOGIN_ENDPOINT", "http://localhost:7071/__login", "graph"),
+        ("GRAPH_MAIL_API_ENDPOINT", "https://graph.example.com", ""),
+        ("GRAPH_MAIL_LOGIN_ENDPOINT", "http://login.example.com", ""),
+        ("GRAPH_MAIL_LOGIN_ENDPOINT", "http://user:pass@127.0.0.1:7071", ""),
+        ("GRAPH_MAIL_TENANT_ID", "taomgt.onmicrosoft.com", ""),
+        ("GRAPH_MAIL_SENDER", "not an address", ""),
+    ],
+)
+def test_graph_endpoints_are_the_real_ones_or_loopback_only(graph_mail, monkeypatch, setting, value, transport):
+    monkeypatch.setenv(setting, value)
+    assert function_app.intake_notify.staff_transport() == transport
 
 
 def test_retried_email_reuses_its_repeatability_id(notifications, managed_identity, outbound):
@@ -982,6 +1092,10 @@ def deep(monkeypatch):
     monkeypatch.setenv("TURNSTILE_SITE_KEY", "0x4AAAAAAAsite-key")
     monkeypatch.setenv("TURNSTILE_SECRET_KEY", "0x4AAAAAAAsecret-key")
     monkeypatch.setenv("LOGICAPP_URL_APPLICATION", "https://logic.example.test/callback?sig=secret")
+    monkeypatch.setenv("STAFF_ALERT_RECIPIENTS", "stay@mtcottages.com")
+    monkeypatch.setenv("GRAPH_MAIL_TENANT_ID", "00000000-0000-4000-8000-0000000000aa")
+    monkeypatch.setenv("GRAPH_MAIL_CLIENT_ID", "00000000-0000-4000-8000-0000000000bb")
+    monkeypatch.setenv("GRAPH_MAIL_SENDER", "owner@mailbox.example.com")
     monkeypatch.setenv(
         "AzureWebJobsStorage",
         f"DefaultEndpointsProtocol=https;AccountName=mtcproxy;AccountKey={STORAGE_KEY};EndpointSuffix=core.windows.net",
@@ -1056,6 +1170,19 @@ def test_deep_health_fails_when_the_logic_app_rejects_the_proxy(deep, answer, la
     assert response.status_code == 503
     assert body["status"] == "degraded"
     assert body["upstream"]["LOGICAPP_URL_APPLICATION"] == label
+
+
+def test_deep_health_reports_how_staff_hear_of_an_inquiry(deep):
+    response, body = _health()
+    assert response.status_code == 200
+    assert body["notify"] == {"staff-email": "graph", "teams": "off", "guest-email": "off"}
+
+
+def test_deep_health_fails_when_no_person_is_told_about_an_inquiry(deep, monkeypatch):
+    monkeypatch.delenv("STAFF_ALERT_RECIPIENTS")
+    response, body = _health()
+    assert response.status_code == 503
+    assert body["notify"] == {"staff-email": "off", "teams": "off", "guest-email": "off"}
 
 
 def test_deep_health_without_a_trigger_url_is_not_configured(deep, monkeypatch):

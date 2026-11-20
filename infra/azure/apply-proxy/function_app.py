@@ -303,7 +303,9 @@ def _health_response(req):
     payload = {"status": "ok", "service": "mtcottages-apply-proxy", "commit": BUILD_COMMIT}
     if not _deep_health_requested(req):
         return _response(payload, 200, req.headers.get("Origin", ""))
-    healthy, details = deep_health.cached_evaluate(os.environ, _intake_target, _guest_inquiries)
+    healthy, details = deep_health.cached_evaluate(
+        os.environ, _intake_target, _guest_inquiries, notify=intake_notify.channel_summary
+    )
     payload.update(details)
     if not healthy:
         payload["status"] = "degraded"

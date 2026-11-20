@@ -348,6 +348,16 @@ synthetic:inquiry:
     # Cloudflare answers every test-key token with this hostname.
     TURNSTILE_ALLOWED_HOSTNAMES: "example.com"
     LOGICAPP_URL_APPLICATION: "http://127.0.0.1:7071/__intake/trigger"
+    # The staff alert (#93): the real Graph transport, against the host's stub
+    # identity, login and Graph endpoints. Placeholder ids, no secret, no mail sent.
+    STAFF_ALERT_RECIPIENTS: "synthetic-staff@example.invalid"
+    GRAPH_MAIL_TENANT_ID: "00000000-0000-4000-8000-000000000093"
+    GRAPH_MAIL_CLIENT_ID: "00000000-0000-4000-8000-000000000094"
+    GRAPH_MAIL_SENDER: "synthetic-sender@example.invalid"
+    GRAPH_MAIL_LOGIN_ENDPOINT: "http://127.0.0.1:7071/__login"
+    GRAPH_MAIL_API_ENDPOINT: "http://127.0.0.1:7071/__graph"
+    IDENTITY_ENDPOINT: "http://127.0.0.1:7071/__identity/token"
+    IDENTITY_HEADER: "synthetic-identity-header"
     PYTHONDONTWRITEBYTECODE: "1"
   script:
     - set -eu
