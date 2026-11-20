@@ -69,7 +69,9 @@ test("every font file the CSS names is published in public/fonts and is a Latin 
   assert.deepEqual([...urls].sort(), [...wanted].sort());
   for (const file of urls) assert.ok(existsSync(new URL(`../../public/fonts/${file}`, import.meta.url)), `${file} is in public/fonts`);
   assert.doesNotMatch(siteCss, /fonts\.(googleapis|gstatic)\.com/);
-  assert.match(siteCss, /font-display: swap/);
+  // optional, not swap: a late font must never re-lay-out the page (CLS gate).
+  assert.equal((siteCss.match(/font-display: optional/g) ?? []).length, urls.length);
+  assert.doesNotMatch(siteCss, /font-display: swap/);
 });
 
 test("the stay form uses the same colour, radius and heading values as the site", () => {

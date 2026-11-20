@@ -1,9 +1,9 @@
 @layer reset, tokens, base, composition, components, utilities;
 
-/* Self-hosted brand fonts (#59): Latin subset only, from the Fontsource packages via scripts/sync-fonts.mjs (SIL OFL 1.1, public/fonts/*-OFL.txt). The stay form host loads the same files (infra/azure/apply-proxy/index.html). */
-@font-face { font-family: "Source Serif 4"; font-style: normal; font-weight: 600; font-display: swap; src: url("/fonts/source-serif-4-latin-600-normal.woff2") format("woff2"); }
-@font-face { font-family: "Source Sans 3"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/source-sans-3-latin-400-normal.woff2") format("woff2"); }
-@font-face { font-family: "Source Sans 3"; font-style: normal; font-weight: 700; font-display: swap; src: url("/fonts/source-sans-3-latin-700-normal.woff2") format("woff2"); }
+/* Self-hosted brand fonts (#59): Latin subset only, from the Fontsource packages via scripts/sync-fonts.mjs (SIL OFL 1.1, public/fonts/*-OFL.txt). The stay form host loads the same files (infra/azure/apply-proxy/index.html). font-display is optional, not swap: the first-screen faces are preloaded in SiteLayout, so they are ready by first paint, and a late font is never swapped in, which shifted the Broad Cottage page (CLS 0.134, over the Lighthouse gate). */
+@font-face { font-family: "Source Serif 4"; font-style: normal; font-weight: 600; font-display: optional; src: url("/fonts/source-serif-4-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Source Sans 3"; font-style: normal; font-weight: 400; font-display: optional; src: url("/fonts/source-sans-3-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Source Sans 3"; font-style: normal; font-weight: 700; font-display: optional; src: url("/fonts/source-sans-3-latin-700-normal.woff2") format("woff2"); }
 
 @layer reset {
   *, *::before, *::after { box-sizing: border-box; }
