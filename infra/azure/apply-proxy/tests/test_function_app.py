@@ -1145,6 +1145,22 @@ def test_run_history_does_not_keep_lead_data():
     assert sorted(lead["runtimeConfiguration"]["secureData"]["properties"]) == ["inputs", "outputs"]
 
 
+def test_d365_dataset_is_the_connector_unique_name_not_the_hostname():
+    """#85: the Dynamics connector names an org by its unique name (``org8a977f45.crm``).
+
+    ``dream.crm`` is the org's URL name. The connector answered 404 NotFound to it
+    on every lead create, so no inquiry ever reached Dynamics. The live connector
+    check runs in ``intake-logicapp.sh``; this one keeps git from regressing.
+    """
+    azure_dir = FUNCTION_PATH.parents[1]
+    definition = json.loads((azure_dir / "mtcottages-intake.definition.json").read_text(encoding="utf-8"))
+    parameters = json.loads((azure_dir / "mtcottages-intake.parameters.json").read_text(encoding="utf-8"))
+    for name in ("d365Organization", "d365BusinessUnitName"):
+        assert parameters[name]["value"] == definition["parameters"][name]["defaultValue"], name
+    assert re.fullmatch(r"org[0-9a-f]{8}\.crm[0-9]*", parameters["d365Organization"]["value"])
+    assert parameters["d365BusinessUnitName"]["value"] == "World Enterprise"
+
+
 # ---------------------------------------------------------------------------
 # End-to-end canary (#16)
 # ---------------------------------------------------------------------------

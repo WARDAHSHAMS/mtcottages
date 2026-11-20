@@ -8,11 +8,11 @@
     },
     "d365Organization": {
       "type": "String",
-      "defaultValue": "dream.crm"
+      "defaultValue": "org8a977f45.crm"
     },
     "d365BusinessUnitName": {
       "type": "String",
-      "defaultValue": "MtCottages"
+      "defaultValue": "World Enterprise"
     }
   },
   "triggers": {
