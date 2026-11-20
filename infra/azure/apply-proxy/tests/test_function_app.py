@@ -396,6 +396,47 @@ def test_a_verified_complete_inquiry_is_delivered(siteverify):
     assert sent["remoteip"] == ["192.0.2.40"]
 
 
+# Cloudflare's siteverify answer for its always-pass test secret (CI synthetic submission, #85).
+TESTING_KEY_RESULT = {"success": True, "hostname": "example.com", "metadata": {"result_with_testing_key": True}}
+
+
+def test_a_testing_key_token_is_refused_unless_test_keys_are_accepted(siteverify, monkeypatch):
+    """The live host never sets the switch, so a test-key token can never pass there."""
+    monkeypatch.delenv("TURNSTILE_ACCEPT_TEST_KEYS", raising=False)
+    monkeypatch.setenv("TURNSTILE_ALLOWED_HOSTNAMES", "stay.mtcottages.com,example.com")
+    siteverify.result = TESTING_KEY_RESULT
+    status, body = _rejection(_apply(_form_request(_valid_payload())))
+    assert status == 400
+    assert (body["stage"], body["reason"]) == ("verification", "testing-key")
+    assert siteverify.intake_calls == []
+
+
+def test_the_synthetic_host_delivers_a_testing_key_token_through_the_same_checks(siteverify, monkeypatch):
+    monkeypatch.setenv("TURNSTILE_ACCEPT_TEST_KEYS", "true")
+    monkeypatch.setenv("TURNSTILE_ALLOWED_HOSTNAMES", "example.com")
+    siteverify.result = TESTING_KEY_RESULT
+    response = _apply(_form_request(_valid_payload()))
+    assert response.status_code == 200
+    assert len(siteverify.intake_calls) == 1
+
+
+@pytest.mark.parametrize(
+    ("result", "reason"),
+    [
+        ({**TESTING_KEY_RESULT, "hostname": "evil.example"}, "hostname-mismatch"),
+        ({**TESTING_KEY_RESULT, "action": "other"}, "action-mismatch"),
+        ({"success": True, "hostname": "example.com"}, "action-mismatch"),
+    ],
+)
+def test_accepting_test_keys_keeps_the_hostname_and_action_checks(siteverify, monkeypatch, result, reason):
+    monkeypatch.setenv("TURNSTILE_ACCEPT_TEST_KEYS", "true")
+    monkeypatch.setenv("TURNSTILE_ALLOWED_HOSTNAMES", "example.com")
+    siteverify.result = result
+    status, body = _rejection(_apply(_form_request(_valid_payload())))
+    assert (status, body["reason"]) == (400, reason)
+    assert siteverify.intake_calls == []
+
+
 def test_form_csp_has_nonce_and_turnstile_sources(monkeypatch):
     monkeypatch.setenv("TURNSTILE_SITE_KEY", "site-key")
     monkeypatch.setenv("TURNSTILE_SECRET_KEY", "secret-key")
@@ -1062,6 +1103,13 @@ def test_a_turnstile_test_key_or_missing_value_fails_deep_health(deep, monkeypat
     assert response.status_code == 503
     assert body["turnstile"] == label
     assert value not in response.body or not value
+
+
+def test_the_test_key_switch_fails_deep_health(deep, monkeypatch):
+    monkeypatch.setenv("TURNSTILE_ACCEPT_TEST_KEYS", "true")
+    response, body = _health()
+    assert response.status_code == 503
+    assert body["turnstile"] == "test_key"
 
 
 def test_production_turnstile_keys_pass_deep_health(deep):

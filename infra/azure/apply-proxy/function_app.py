@@ -76,6 +76,7 @@ DEFAULT_TURNSTILE_HOSTNAMES = "stay.mtcottages.com"
 DEFAULT_TURNSTILE_ACTION = "stay-inquiry"
 MAX_BODY_BYTES = 200_000
 MAX_CONFIG_LIST_BYTES = 4_096
+TURNSTILE_ACCEPT_TEST_KEYS_SETTING = "TURNSTILE_ACCEPT_TEST_KEYS"
 MAX_TURNSTILE_TOKEN_LENGTH = 2_048
 MAX_TURNSTILE_RESPONSE_BYTES = 64 * 1_024
 MAX_TURNSTILE_ERROR_CODES = 4
@@ -375,6 +376,11 @@ def _turnstile_expected_action():
     return value
 
 
+def _turnstile_test_keys_accepted():
+    """True only on the CI synthetic host (#85); deep health fails wherever it is set."""
+    return os.environ.get(TURNSTILE_ACCEPT_TEST_KEYS_SETTING, "").strip().lower() == "true"
+
+
 def _turnstile_is_configured():
     site_key = _turnstile_site_key()
     secret = os.environ.get("TURNSTILE_SECRET_KEY", "").strip()
@@ -487,13 +493,24 @@ def _verify_turnstile(req, payload):
         logger.warning("Turnstile rejected an inquiry: %s", codes)
         return 400, "Please complete the human verification", f"rejected:{codes}"
 
+    # Cloudflare's published test keys (CI's synthetic submission, #85) answer
+    # with this flag, hostname example.com and no action. Such a result counts
+    # only where TURNSTILE_ACCEPT_TEST_KEYS=true; that setting, like a test key,
+    # fails deep health, so the live host can never run with it.
+    metadata = result.get("metadata")
+    testing_key = isinstance(metadata, dict) and metadata.get("result_with_testing_key") is True
+    if testing_key and not _turnstile_test_keys_accepted():
+        logger.warning("Turnstile rejected an inquiry: testing-key")
+        return 400, "Please complete the human verification", "testing-key"
+
     hostname = _normalize_hostname(result.get("hostname", ""))
     if hostname not in _turnstile_hostnames():
         logger.warning("Turnstile returned an unexpected hostname: %s", hostname or "none")
         return 400, "Please complete the human verification", "hostname-mismatch"
 
     expected_action = _turnstile_expected_action()
-    if expected_action is None or result.get("action") != expected_action:
+    action_matches = result.get("action") == expected_action or (testing_key and "action" not in result)
+    if expected_action is None or not action_matches:
         logger.warning(
             "Turnstile returned an unexpected action: %s",
             _label(result.get("action"), TURNSTILE_ACTION_LABEL_PATTERN),

@@ -252,6 +252,7 @@ verify:site-live:
 # commit is published again.
 .apply-proxy:paths: &apply_proxy_paths
   - infra/azure/apply-proxy/**/*
+  - e2e/tests/synthetic-inquiry.spec.js
   # verify:analytics proves each deploy, so a change to it re-runs the chain.
   - infra/azure/analytics-verify.sh
   - .gitlab-ci.yml
@@ -295,8 +296,66 @@ test:apply-proxy:
   image: "harbor.focuscell.org/dockerhub-proxy/library/python:3.14-slim"
   script:
     - python3 -m pip install --disable-pip-version-check --no-input --quiet "pytest>=8,<9"
-    - python3 -m py_compile infra/azure/apply-proxy/function_app.py infra/azure/apply-proxy/intake_notify.py infra/azure/apply-proxy/deep_health.py infra/azure/apply-proxy/managed_identity.py infra/azure/apply-proxy/analytics.py infra/azure/apply-proxy/intake_outcomes.py
+    - python3 -m py_compile infra/azure/apply-proxy/function_app.py infra/azure/apply-proxy/intake_notify.py infra/azure/apply-proxy/deep_health.py infra/azure/apply-proxy/managed_identity.py infra/azure/apply-proxy/analytics.py infra/azure/apply-proxy/intake_outcomes.py infra/azure/apply-proxy/ci/synthetic_host.py
     - python3 -m pytest -q infra/azure/apply-proxy/tests
+
+# The intake gate (#85): every real guest inquiry got HTTP 400 for weeks and
+# no check noticed. This job submits the real form like a guest, in Chromium,
+# against the packaged Function code itself (ci/synthetic_host.py runs the same
+# HTTP functions the Azure host calls). Turnstile runs the real widget and the
+# real verify code against Cloudflare's live siteverify, with Cloudflare's
+# published always-pass test keys; these are public test values, not secrets.
+# The Logic App is a stub on the same host, so nothing reaches Dynamics 365 or
+# a guest. Any non-2xx from /api/apply fails the job, and deploy:apply-proxy
+# needs it, so a proxy that refuses real inquiries is never published.
+synthetic:inquiry:
+  extends: .apply-proxy:verify-rules
+  stage: preflight
+  interruptible: true
+  # renovate: datasource=docker depName=playwright registryUrl=https://mcr.microsoft.com
+  image: "harbor.focuscell.org/mcr-proxy/playwright:v1.62.1-noble"
+  timeout: 20m
+  variables:
+    SYNTHETIC_HOST_URL: "http://127.0.0.1:7071"
+    TURNSTILE_SITE_KEY: "1x00000000000000000000AA"
+    TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA"
+    TURNSTILE_ACCEPT_TEST_KEYS: "true"
+    # Cloudflare answers every test-key token with this hostname.
+    TURNSTILE_ALLOWED_HOSTNAMES: "example.com"
+    LOGICAPP_URL_APPLICATION: "http://127.0.0.1:7071/__intake/trigger"
+    PYTHONDONTWRITEBYTECODE: "1"
+  script:
+    - set -eu
+    - |
+      if ! python3 -m venv --help >/dev/null 2>&1; then
+        apt-get update -qq
+        DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3 python3-venv >/dev/null
+      fi
+    - python3 -m venv /tmp/apply-proxy-venv
+    - /tmp/apply-proxy-venv/bin/pip install --disable-pip-version-check --no-input --quiet -r infra/azure/apply-proxy/requirements.txt
+    - nohup /tmp/apply-proxy-venv/bin/python -I infra/azure/apply-proxy/ci/synthetic_host.py --port 7071 > synthetic-host.log 2>&1 &
+    - |
+      ready=no
+      for attempt in $(seq 1 30); do
+        if node -e 'fetch(process.argv[1]).then((r) => process.exit(r.status === 503 ? 0 : 1), () => process.exit(1))' "$SYNTHETIC_HOST_URL/api/health?deep=1"; then
+          ready=yes
+          break
+        fi
+        sleep 1
+      done
+      if [ "$ready" != yes ]; then cat synthetic-host.log; exit 1; fi
+    - cd e2e
+    - npm ci --no-audit --no-fund
+    - npx playwright test tests/synthetic-inquiry.spec.js
+  after_script:
+    - tail -n 50 synthetic-host.log || true
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - synthetic-host.log
+      - e2e/playwright-report/
+      - e2e/test-results/
 
 # Builds the zip the Function App runs: the app files at the archive root plus
 # BUILD_COMMIT, which /api/health reports as `commit`. A new Python module must
@@ -335,6 +394,9 @@ deploy:apply-proxy:
   needs:
     - job: package:apply-proxy
       artifacts: true
+    # A proxy that refuses a guest's real-form inquiry is never published (#85).
+    - job: synthetic:inquiry
+      artifacts: false
   variables:
     # The template pulls ${IMAGE_REGISTRY}/mcr-proxy/azure-cli.
     IMAGE_REGISTRY: "harbor.focuscell.org"
