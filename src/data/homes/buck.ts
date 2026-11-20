@@ -8,13 +8,33 @@ import kitchen from "../../../assets/images/cottages/parkersburg-02/buck-kitchen
 import bed from "../../../assets/images/cottages/parkersburg-02/buck-bedroom.jpg";
 import bedAlt from "../../../assets/images/cottages/parkersburg-02/buck-bedroom-alt.jpg";
 import bath from "../../../assets/images/cottages/parkersburg-02/buck-bathroom.jpg";
+import bathTub from "../../../assets/images/cottages/parkersburg-02/buck-bathroom-tub.jpg";
+import bedWide from "../../../assets/images/cottages/parkersburg-02/buck-bedroom-wide.jpg";
+import exterior from "../../../assets/images/cottages/parkersburg-02/buck-exterior.jpg";
+import exteriorIcicles from "../../../assets/images/cottages/parkersburg-02/buck-exterior-icicles.jpg";
+import exteriorViewAutumn from "../../../assets/images/cottages/parkersburg-02/buck-exterior-view-autumn.jpg";
+import wsDesk from "../../../assets/images/cottages/parkersburg-02/buck-workspace-desk.jpg";
+import wsRoom from "../../../assets/images/cottages/parkersburg-02/buck-workspace.jpg";
+import wsWide from "../../../assets/images/cottages/parkersburg-02/buck-workspace-wide.jpg";
+import laundry from "../../../assets/images/cottages/parkersburg-02/buck-laundry.jpg";
 import porch from "../../../assets/images/cottages/parkersburg-02/photo-45.jpg";
 
 // Excluded from the public set: photo-09 (street panorama) and photo-23 (front
 // of house with a visible house number). Buck's street address is not approved.
+// The owner approved publishing Buck's front exterior as buck-exterior.jpg: a
+// summer frame with no house number or mailbox number visible. The autumn
+// porch view and the icicles came from the owner's listing set at the same time
+// and show no house number, mailbox number or plate. Also excluded: the snowy
+// porch view (a neighbour's house number on its porch gable and a business van's
+// phone number are legible), the wide laundry frame, and the laundry frame above
+// the machines (paint cans, a caulk tube and a cordless drill on the shelves);
+// buck-laundry.jpg is cropped to the washer and dryer.
 const ph = (src: HomeMicrosite["hero"]["src"], alt: string, caption: string, focal?: string) => ({ src, alt, caption, ...(focal ? { focal } : {}) });
 
 const photos = {
+  exterior: ph(exterior, "Front of the home, with tan siding, black shutters, a brown shingle roof, a gabled entry porch with wood railings and steps, and a lawn sloping up to the house", "The front of the home, with the gabled entry porch.", "50% 40%"),
+  exteriorViewAutumn: ph(exteriorViewAutumn, "Autumn view from the front porch, looking down through a red maple across the street to neighbouring one-storey houses, driveways, sunset clouds and the hills beyond", "The view from the porch in autumn, over the street below.", "50% 45%"),
+  exteriorIcicles: ph(exteriorIcicles, "Icicles hanging from the roof edge at sunset, seen past the corner of the house, with a bare tree, a snow-covered yard and a neighbouring white cottage beyond", "Icicles at the roof edge on a winter evening.", "55% 40%"),
   living: ph(p49, "Living room with a sage-green reclining sofa and mixed cushions, a pine coffee table on a striped rug, a large framed mirror, rose-coloured curtains, and a glowing floor lamp", "The living room, with a reclining sofa and warm lamplight.", "55% 55%"),
   livingWide: ph(p50, "Living room seen straight on, with the reclining sofa under a window, framed floral paintings, amber lamps on a floor stand and a side table, and dark wood floors", "The same room straight on, with two lamps and framed floral art."),
   bed: ph(bed, "Bedroom with a red-and-black patterned comforter, folded towels, a large wall-mounted TV, a wall clock, brown curtains, and an open door into a bathroom", "A made bed, a wall TV, and a door straight into the bathroom."),
@@ -22,6 +42,12 @@ const photos = {
   desk: ph(p38, "Room with deep blue walls, two tall windows with blinds, a wooden desk with a monitor and keyboard, a blue upholstered desk chair, and a bed with a floral comforter", "A blue room with a desk by the window and a second bed."),
   kitchen: ph(kitchen, "Compact kitchen with pale blue cabinets, a double stainless sink, granite-look counters, a toaster oven, a stainless refrigerator, and a microwave on top", "Pale blue cabinets, a double sink, and a full-size refrigerator."),
   bath: ph(bath, "Bathroom with a tub and shower behind a mint curtain, a grab bar, a toilet with a cabinet above, a white vanity with a mirror cabinet, and a glass-block window", "Tub and shower, a vanity, and a glass-block window for daylight."),
+  bathTub: ph(bathTub, "Tub and shower close up, with a chrome shower head and handle, a hanging wire caddy, the mint-green shower curtain, and the toilet beside the tub", "The tub and shower up close, with the caddy and curtain."),
+  bedWide: ph(bedWide, "Bedroom seen from the doorway, with a red-and-black comforter, folded blue towels on the bed, a nightstand with a lamp, a wall clock and gold wall sculptures, an open white door, and a built-in wooden closet", "The bedroom from the door, with the closet beyond."),
+  wsDesk: ph(wsDesk, "Corner desk with a dark wood top and built-in shelving above holding plants, a toy motorcycle and small boxes, with a black mesh office chair", "The corner desk, with shelving above."),
+  wsRoom: ph(wsRoom, "Workspace room with the corner desk at left, a large framed abstract print, a doorway into the bedroom, a floral valance over a window, and a wall-mounted folding table", "The workspace room, with the desk, art and the bedroom door."),
+  wsWide: ph(wsWide, "The workspace room seen from the kitchen side, with the corner desk and chair, a ceiling fan, a stainless refrigerator and microwave at left, and doorways to the bedroom and a utility area", "The same room from the kitchen side, with the desk and doorways."),
+  laundry: ph(laundry, "Laundry alcove with a white Maytag top-loading washer beside a white LG front-loading dryer, the end of a wooden wall shelf above the dryer, and a rubber mat against the wall", "The washer and dryer, side by side.", "50% 50%"),
   porch: ph(porch, "Covered front porch seen from the open front door, with dark wood posts and railings, a painted ceiling, and autumn trees beyond", "The covered front porch, seen from the front door.", "40% 50%"),
 };
 
@@ -54,6 +80,20 @@ export const buckHome: HomeMicrosite = {
   ],
   rooms: [
     {
+      slug: "exterior",
+      name: "Exterior",
+      summary: "A single-storey home with a gabled entry porch, black shutters, and a lawn sloping up from the street.",
+      photos: [photos.exterior, photos.exteriorViewAutumn, photos.exteriorIcicles],
+      notes: [
+        { text: "Tan siding, black shutters, and a brown shingle roof.", status: "photographed" },
+        { text: "Gabled entry porch with wood railings and steps.", status: "photographed" },
+        { text: "The front yard slopes up from the street.", status: "photographed" },
+        { text: "The porch sits above the street and looks out over the rooftops opposite.", status: "photographed" },
+        { text: "Icicles hang from the roof edge in winter.", status: "photographed" },
+        { text: "Whether off-street parking is available.", status: "confirm" },
+      ],
+    },
+    {
       slug: "living",
       name: "Living room",
       summary: "A reclining sofa, a pine coffee table, framed floral art, and warm lamps.",
@@ -73,10 +113,11 @@ export const buckHome: HomeMicrosite = {
       slug: "bedroom",
       name: "Bedroom",
       summary: "A made bed, a wall-mounted TV, a nightstand, and a door into the bathroom.",
-      photos: [photos.bed, photos.bedAlt],
+      photos: [photos.bed, photos.bedAlt, photos.bedWide],
       notes: [
         { text: "Made bed with towels set out, a nightstand with a lamp, and a tall gold mirror.", status: "photographed" },
         { text: "Wall-mounted TV with a sound bar, and track lighting.", status: "photographed" },
+        { text: "A built-in wooden closet stands beside the bedroom door.", status: "photographed" },
         { text: "A door from the bedroom opens into the bathroom.", status: "photographed" },
         { text: "Bed size.", status: "confirm" },
       ],
@@ -116,10 +157,37 @@ export const buckHome: HomeMicrosite = {
       ],
     },
     {
+      slug: "workspace",
+      name: "Workspace",
+      summary: "A corner desk with built-in shelving, in its own room beside the kitchen and the bedroom.",
+      photos: [photos.wsDesk, photos.wsRoom, photos.wsWide],
+      notes: [
+        { text: "Corner desk with a dark wood top, built-in shelves above, and a black mesh office chair.", status: "photographed" },
+        { text: "Small lights under the upper shelf, and open shelving for books and plants.", status: "photographed" },
+        { text: "An electrical outlet sits behind the desk.", status: "photographed" },
+        { text: "Fiber-optic internet is listed for the home; the connection speed is not published.", status: "listed" },
+        { text: "Whether a monitor is supplied.", status: "confirm" },
+        { text: "Whether this room is part of the one-bedroom layout.", status: "confirm" },
+        { text: "A washer and dryer are visible through the doorway into the laundry alcove.", status: "photographed" },
+      ],
+    },
+    {
+      slug: "laundry",
+      name: "Laundry",
+      summary: "A laundry alcove with a top-loading washer, a front-loading dryer, and shelves for supplies.",
+      photos: [photos.laundry],
+      notes: [
+        { text: "Maytag top-loading washer and LG front-loading dryer side by side.", status: "photographed" },
+        { text: "A wooden wall shelf runs above the dryer.", status: "photographed" },
+        { text: "Whether guests may use the washer and dryer during a stay.", status: "confirm" },
+        { text: "Whether detergent or a drying rack is supplied.", status: "confirm" },
+      ],
+    },
+    {
       slug: "bathroom",
       name: "Bathroom",
       summary: "A tub and shower with a grab bar, a vanity, and a glass-block window.",
-      photos: [photos.bath],
+      photos: [photos.bath, photos.bathTub],
       notes: [
         { text: "Tub with shower and curtain, a grab bar, a toilet, and a white vanity with a mirror cabinet.", status: "photographed" },
         { text: "Glass-block window and wall storage cabinet.", status: "photographed" },
