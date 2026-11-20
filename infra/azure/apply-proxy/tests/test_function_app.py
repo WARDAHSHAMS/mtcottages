@@ -1343,7 +1343,13 @@ def test_real_inquiries_take_the_sales_path_only_after_the_canary_route():
     actions = _owner_team_actions()
     real = actions["Create_D365_Applicant_Lead"]
     assert real["runAfter"] == {"Route_Canary": ["Succeeded"]}
-    assert real["inputs"]["body"]["ownerid@odata.bind"].startswith("@{concat('/teams(")
+    # The connector binds the owner through its own columns; a Web API
+    # `ownerid@odata.bind` key is outside its schema and fails every create
+    # with "A value must be provided for item." (#85).
+    body = real["inputs"]["body"]
+    assert body["_ownerid_type"] == "teams"
+    assert body["_ownerid_value"] == "@{first(body('Find_MtCottages_Owner_Team')?['value'])?['teamid']}"
+    assert not any("@odata" in key for key in body)
     assert "canary" not in json.dumps(real["inputs"]).lower()
     assert "Delete_Canary_Lead" not in actions
     # Nothing outside the canary branch deletes a lead.
