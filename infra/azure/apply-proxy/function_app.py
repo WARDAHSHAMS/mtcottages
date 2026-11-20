@@ -25,6 +25,7 @@ import azure.functions as func
 import analytics
 import deep_health
 import intake_notify
+import intake_outcomes
 import managed_identity
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
@@ -247,7 +248,7 @@ def _cors_headers(origin):
     headers = {
         **SECURITY_HEADERS,
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Accept",
+        "Access-Control-Allow-Headers": "Content-Type, Accept, X-Automated-Browser",
         "Vary": "Origin",
         "Content-Type": "application/json",
     }
@@ -287,6 +288,11 @@ def _deep_health_requested(req):
     return query.get("deep", [""])[0] == "1"
 
 
+def _guest_inquiries():
+    """Deep health's guest-inquiry check (#85): unhealthy when guests were refused or queued and none delivered."""
+    return intake_outcomes.summarise(os.environ.get(analytics.STORAGE_SETTING, ""))
+
+
 def _health_response(req):
     """Liveness, or with ?deep=1 the upstream and queue checks (#16).
 
@@ -296,7 +302,7 @@ def _health_response(req):
     payload = {"status": "ok", "service": "mtcottages-apply-proxy", "commit": BUILD_COMMIT}
     if not _deep_health_requested(req):
         return _response(payload, 200, req.headers.get("Origin", ""))
-    healthy, details = deep_health.cached_evaluate(os.environ, _intake_target)
+    healthy, details = deep_health.cached_evaluate(os.environ, _intake_target, _guest_inquiries)
     payload.update(details)
     if not healthy:
         payload["status"] = "degraded"
@@ -792,6 +798,36 @@ def _queue_notifications(notify, submission_id, outbound, delivery, canary=False
 @app.queue_output(arg_name="retry", queue_name=INTAKE_RETRY_QUEUE, connection=INTAKE_QUEUE_CONNECTION)
 @app.queue_output(arg_name="notify", queue_name=intake_notify.NOTIFY_QUEUE, connection=INTAKE_QUEUE_CONNECTION)
 def apply(req: func.HttpRequest, retry: func.Out[str], notify: func.Out[typing.List[str]]) -> func.HttpResponse:
+    response = _apply(req, retry, notify)
+    if req.method == "POST" and _canonical_host(req):
+        _record_guest_outcome(req, response)
+    return response
+
+
+def _record_guest_outcome(req, response):
+    """Keep what a real guest got (status, stage, reason labels only) for deep health's alert (#85).
+
+    Never changes or delays the guest's answer beyond one storage call, and
+    never fails it: a storage problem is logged and the answer goes out.
+    """
+    if not intake_outcomes.is_guest(req.headers, canary=_canary_request(req)):
+        return
+    stage = reason = ""
+    try:
+        body = json.loads(response.get_body() or b"{}")
+        if isinstance(body, dict):
+            stage, reason = str(body.get("stage", "")), str(body.get("reason", ""))
+    except (TypeError, ValueError, UnicodeDecodeError):
+        pass
+    if not 200 <= response.status_code < 300:
+        logger.warning("Guest inquiry refused: %s %s %s", response.status_code, stage or "-", reason or "-")
+    try:
+        intake_outcomes.record(os.environ.get(analytics.STORAGE_SETTING, ""), response.status_code, stage, reason)
+    except analytics.StorageError as error:
+        logger.error("Guest inquiry outcome not recorded: %s", error.reason)
+
+
+def _apply(req, retry, notify):
     origin = req.headers.get("Origin", "").strip()
     if not _canonical_host(req):
         return _response({"success": False, "message": "Not found"}, 404, origin)
@@ -1035,6 +1071,11 @@ def purge_analytics(timer: func.TimerRequest) -> None:
     except analytics.StorageError as error:
         raise RuntimeError(f"analytics retention failed: {error.reason}") from None
     logger.info("Analytics retention deleted %d monthly tables: %s", len(deleted), ", ".join(deleted) or "none")
+    try:
+        deleted = intake_outcomes.purge(os.environ.get(analytics.STORAGE_SETTING, ""))
+    except analytics.StorageError as error:
+        raise RuntimeError(f"guest-inquiry outcome retention failed: {error.reason}") from None
+    logger.info("Guest-inquiry outcome retention deleted %d monthly tables: %s", len(deleted), ", ".join(deleted) or "none")
 
 
 # ---------------------------------------------------------------------------
