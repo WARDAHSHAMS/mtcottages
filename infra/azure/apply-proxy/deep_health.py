@@ -45,6 +45,7 @@ STORAGE_API_VERSION = "2021-12-02"
 ERROR_CODE_PATTERN = re.compile(r"[A-Za-z0-9_]{1,60}")
 TURNSTILE_SITE_KEY_SETTING = "TURNSTILE_SITE_KEY"
 TURNSTILE_SECRET_SETTING = "TURNSTILE_SECRET_KEY"
+TURNSTILE_ACCEPT_TEST_KEYS_SETTING = "TURNSTILE_ACCEPT_TEST_KEYS"
 # Cloudflare's published Turnstile test site keys and secrets, e.g.
 # 1x00000000000000000000AA and 2x0000000000000000000000000000000AA.
 TURNSTILE_TEST_KEY_PATTERN = re.compile(r"[1-3]x0{20,}[A-Z]{2}")
@@ -194,6 +195,9 @@ def check_turnstile(environ):
     if not site_key or not secret:
         return "not_configured"
     if TURNSTILE_TEST_KEY_PATTERN.fullmatch(site_key) or TURNSTILE_TEST_KEY_PATTERN.fullmatch(secret):
+        return "test_key"
+    # The CI synthetic host's switch (#85): it lets a test-key token through.
+    if str(environ.get(TURNSTILE_ACCEPT_TEST_KEYS_SETTING, "") or "").strip():
         return "test_key"
     return "ok"
 

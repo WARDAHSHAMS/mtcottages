@@ -35,10 +35,18 @@ The site key and the secret must come from **the same widget**. A secret from an
 | Order | `stage` | Refused when | Log line |
 | --- | --- | --- | --- |
 | 1 | `screening` | the body does not parse, a field is not text, or the honeypot is filled | `Inquiry rejected at screening` |
-| 2 | `verification` | Turnstile refuses. `reason` is `missing-token`, `token-too-long`, `rejected:<Cloudflare error-codes>`, `hostname-mismatch` or `action-mismatch` (`not-configured` and `siteverify-unavailable` answer 503) | `Turnstile rejected an inquiry: <codes>` |
+| 2 | `verification` | Turnstile refuses. `reason` is `missing-token`, `token-too-long`, `rejected:<Cloudflare error-codes>`, `hostname-mismatch`, `action-mismatch` or `testing-key` (a Cloudflare test-key token where test keys are not accepted) (`not-configured` and `siteverify-unavailable` answer 503) | `Turnstile rejected an inquiry: <codes>` |
 | 3 | `validation` | a required field is missing or a value is invalid | `Inquiry rejected at validation: <fixed message>` |
 
 Turnstile runs before the field checks, so the live smoke can prove that a real-browser token verifies. It posts the token with an incomplete inquiry, which stops at `validation` and never reaches the Logic App.
+
+### Synthetic real-form submission gate (#85)
+
+`synthetic:inquiry` runs on every merge request and gh-pages push that touches the proxy, and `deploy:apply-proxy` needs it. Chromium opens the real form at `https://stay.mtcottages.com/`; every request to that host is answered by `apply-proxy/ci/synthetic_host.py`, which serves the packaged Function code through the same HTTP functions the Azure host calls (`app.get_functions()`), adding `X-Forwarded-Host` as Front Door does. The test fills every visible field like a guest and submits. Turnstile is the real widget and the real `_verify_turnstile` against Cloudflare's live siteverify, using Cloudflare's published always-pass test keys and `TURNSTILE_ACCEPT_TEST_KEYS=true`; the Logic App is a stub trigger on the same host. Any non-2xx from `/api/apply`, or no lead at the stub, fails the job.
+
+`TURNSTILE_ACCEPT_TEST_KEYS` exists only for this gate. Without it a test-key token is refused (`testing-key`), and with it deep health answers 503 `turnstile: test_key`, so the live host can never run with it.
+
+Run it locally: start the host with the job's variables (`.gitlab-ci.yml`, `synthetic:inquiry`), then `SYNTHETIC_HOST_URL=http://127.0.0.1:7071 npx playwright test tests/synthetic-inquiry.spec.js` in `e2e/`.
 
 ## Dynamics 365 / Dataverse ownership
 

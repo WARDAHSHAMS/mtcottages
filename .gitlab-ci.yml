@@ -252,6 +252,7 @@ verify:site-live:
 # commit is published again.
 .apply-proxy:paths: &apply_proxy_paths
   - infra/azure/apply-proxy/**/*
+  - e2e/tests/synthetic-inquiry.spec.js
   # verify:analytics proves each deploy, so a change to it re-runs the chain.
   - infra/azure/analytics-verify.sh
   - .gitlab-ci.yml
@@ -295,8 +296,90 @@ test:apply-proxy:
   image: "harbor.focuscell.org/dockerhub-proxy/library/python:3.14-slim"
   script:
     - python3 -m pip install --disable-pip-version-check --no-input --quiet "pytest>=8,<9"
-    - python3 -m py_compile infra/azure/apply-proxy/function_app.py infra/azure/apply-proxy/intake_notify.py infra/azure/apply-proxy/deep_health.py infra/azure/apply-proxy/managed_identity.py infra/azure/apply-proxy/analytics.py infra/azure/apply-proxy/intake_outcomes.py
+    - python3 -m py_compile infra/azure/apply-proxy/function_app.py infra/azure/apply-proxy/intake_notify.py infra/azure/apply-proxy/deep_health.py infra/azure/apply-proxy/managed_identity.py infra/azure/apply-proxy/analytics.py infra/azure/apply-proxy/intake_outcomes.py infra/azure/apply-proxy/ci/synthetic_host.py
     - python3 -m pytest -q infra/azure/apply-proxy/tests
+
+# The intake gate (#85): every real guest inquiry got HTTP 400 for weeks and
+# no check noticed. This job submits the real form like a guest, in Chromium,
+# against the packaged Function code itself (ci/synthetic_host.py runs the same
+# HTTP functions the Azure host calls). Turnstile runs the real widget and the
+# real verify code against Cloudflare's live siteverify, with Cloudflare's
+# published always-pass test keys; these are public test values, not secrets.
+# The Logic App is a stub on the same host, so nothing reaches Dynamics 365 or
+# a guest. Any non-2xx from /api/apply fails the job, and deploy:apply-proxy
+# needs it, so a proxy that refuses real inquiries is never published.
+# The Playwright image's python3 has no pip and the job runs without root, so
+# the Function's dependencies are installed here, for that interpreter's
+# version, and handed over as an artifact.
+synthetic:deps:
+  extends: .apply-proxy:verify-rules
+  stage: preflight
+  interruptible: true
+  # renovate: datasource=docker depName=python
+  image: "harbor.focuscell.org/dockerhub-proxy/library/python:3.14-slim"
+  variables:
+    # python3 in the Playwright noble image; synthetic:inquiry fails loudly if it changes.
+    SYNTHETIC_PYTHON_VERSION: "3.12"
+  script:
+    - >-
+      python3 -m pip install --disable-pip-version-check --no-input --quiet
+      --target synthetic-deps --python-version "$SYNTHETIC_PYTHON_VERSION" --only-binary=:all:
+      -r infra/azure/apply-proxy/requirements.txt
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - synthetic-deps/
+
+synthetic:inquiry:
+  extends: .apply-proxy:verify-rules
+  stage: preflight
+  interruptible: true
+  # renovate: datasource=docker depName=playwright registryUrl=https://mcr.microsoft.com
+  image: "harbor.focuscell.org/mcr-proxy/playwright:v1.62.1-noble"
+  timeout: 20m
+  needs:
+    - job: synthetic:deps
+      artifacts: true
+  variables:
+    SYNTHETIC_HOST_URL: "http://127.0.0.1:7071"
+    TURNSTILE_SITE_KEY: "1x00000000000000000000AA"
+    TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA"
+    TURNSTILE_ACCEPT_TEST_KEYS: "true"
+    # Cloudflare answers every test-key token with this hostname.
+    TURNSTILE_ALLOWED_HOSTNAMES: "example.com"
+    LOGICAPP_URL_APPLICATION: "http://127.0.0.1:7071/__intake/trigger"
+    PYTHONDONTWRITEBYTECODE: "1"
+  script:
+    - set -eu
+    - |
+      actual="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
+      if [ "$actual" != "3.12" ]; then
+        echo "python3 here is $actual; set SYNTHETIC_PYTHON_VERSION in synthetic:deps to match" >&2
+        exit 1
+      fi
+    - nohup python3 -I infra/azure/apply-proxy/ci/synthetic_host.py --port 7071 --deps-dir synthetic-deps > synthetic-host.log 2>&1 &
+    - |
+      ready=no
+      for attempt in $(seq 1 30); do
+        if node -e 'fetch(process.argv[1]).then((r) => process.exit(r.status === 503 ? 0 : 1), () => process.exit(1))' "$SYNTHETIC_HOST_URL/api/health?deep=1"; then
+          ready=yes
+          break
+        fi
+        sleep 1
+      done
+      if [ "$ready" != yes ]; then cat synthetic-host.log; exit 1; fi
+    - cd e2e
+    - npm ci --no-audit --no-fund
+    - npx playwright test tests/synthetic-inquiry.spec.js
+  after_script:
+    - tail -n 50 synthetic-host.log || true
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - synthetic-host.log
+      - e2e/playwright-report/
+      - e2e/test-results/
 
 # Builds the zip the Function App runs: the app files at the archive root plus
 # BUILD_COMMIT, which /api/health reports as `commit`. A new Python module must
@@ -335,6 +418,9 @@ deploy:apply-proxy:
   needs:
     - job: package:apply-proxy
       artifacts: true
+    # A proxy that refuses a guest's real-form inquiry is never published (#85).
+    - job: synthetic:inquiry
+      artifacts: false
   variables:
     # The template pulls ${IMAGE_REGISTRY}/mcr-proxy/azure-cli.
     IMAGE_REGISTRY: "harbor.focuscell.org"
