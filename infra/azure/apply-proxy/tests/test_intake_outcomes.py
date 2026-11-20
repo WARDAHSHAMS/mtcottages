@@ -104,17 +104,26 @@ def test_refused_guests_with_none_accepted_are_unhealthy(tables):
     healthy, details = intake_outcomes.summarise(CONNECTION, now=NOW)
     assert not healthy
     assert details == {
-        "state": "guest_refused", "window_hours": 3, "guest_accepted": 0, "guest_refused": 3,
+        "state": "guest_refused", "window_hours": 3, "guest_delivered": 0, "guest_queued": 0, "guest_refused": 3,
         "refused": {"400:verification:rejected:invalid-input-response": 2, "400:screening": 1},
     }
 
 
-def test_one_accepted_guest_in_the_window_is_healthy(tables):
+def test_leads_that_only_queue_are_unhealthy(tables):
+    """#85's root cause: the Logic App failed every lead, guests saw 202 'received'."""
+    intake_outcomes.record(CONNECTION, 202, now=NOW - timedelta(minutes=40))
+    intake_outcomes.record(CONNECTION, 202, now=NOW - timedelta(minutes=5))
+    healthy, details = intake_outcomes.summarise(CONNECTION, now=NOW)
+    assert not healthy
+    assert (details["state"], details["guest_queued"], details["guest_delivered"]) == ("guest_queued", 2, 0)
+
+
+def test_one_delivered_guest_in_the_window_is_healthy(tables):
     intake_outcomes.record(CONNECTION, 400, "validation", "email", now=NOW - timedelta(minutes=20))
     intake_outcomes.record(CONNECTION, 200, now=NOW - timedelta(minutes=19))
     healthy, details = intake_outcomes.summarise(CONNECTION, now=NOW)
     assert healthy and details["state"] == "ok"
-    assert (details["guest_accepted"], details["guest_refused"]) == (1, 1)
+    assert (details["guest_delivered"], details["guest_refused"]) == (1, 1)
 
 
 def test_refusals_older_than_the_window_are_forgotten(tables):
@@ -125,7 +134,7 @@ def test_refusals_older_than_the_window_are_forgotten(tables):
 
 def test_no_guests_at_all_is_healthy(tables):
     assert intake_outcomes.summarise(CONNECTION, now=NOW) == (True, {
-        "state": "ok", "window_hours": 3, "guest_accepted": 0, "guest_refused": 0, "refused": {},
+        "state": "ok", "window_hours": 3, "guest_delivered": 0, "guest_queued": 0, "guest_refused": 0, "refused": {},
     })
 
 

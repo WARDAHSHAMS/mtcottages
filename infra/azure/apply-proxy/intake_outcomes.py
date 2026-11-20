@@ -4,8 +4,10 @@ Every real guest inquiry got HTTP 400 for weeks and nothing alerted: the
 Function answered, so every liveness check stayed green. This module keeps one
 row per guest answer in the Function's own Table Storage (``AzureWebJobsStorage``,
 the account analytics already uses) and summarises the recent window for
-``/api/health?deep=1``. Deep health answers 503 (``inquiries: guest_refused``)
-when guests were refused and none was accepted in the window, and the in-cluster
+``/api/health?deep=1``. Deep health answers 503 (``inquiries: guest_refused``
+or ``guest_queued``) when guests were refused, or their leads only queued
+because the Logic App did not take them, and no guest's lead was delivered in
+the window, and the in-cluster
 hourly blackbox probe of deep health (FocusApiary/monitoring-k8s,
 ``intake-synthetic``) turns that into the platform alert.
 
@@ -121,12 +123,19 @@ def _rows_since(account, since):
     return rows
 
 
+DELIVERED_STATUS = 200  # apply() answers 200 only when the Logic App accepted the lead.
+QUEUED_STATUS = 202  # Intake refused or failed; the lead waits on intake-retry.
+
+
 def summarise(connection_string, now=None, window_hours=WINDOW_HOURS):
     """(healthy, details) for deep health.
 
-    healthy is False only when at least one guest was refused and none was
-    accepted in the window: one guest fixing a typo and sending again is fine,
-    a proxy that refuses every guest is not. A storage problem reports
+    healthy is False only when at least one guest was refused or queued and no
+    guest's inquiry reached the Logic App in the window. A 202 counts against
+    health: it means the Logic App (or Dynamics 365 behind it) did not take the
+    lead, which is how #85's leads were lost while guests saw "received". One
+    guest fixing a typo and sending again is fine; a host where no guest's
+    inquiry gets through is not. A storage problem reports
     ``unknown_<reason>`` and stays healthy, like the queue checks: deep health
     must not page on its own plumbing.
     """
@@ -137,18 +146,22 @@ def summarise(connection_string, now=None, window_hours=WINDOW_HOURS):
         rows = _rows_since(account, since)
     except analytics.StorageError as error:
         return True, {"state": f"unknown_{error.reason}", "window_hours": window_hours}
-    accepted = sum(1 for row in rows if 200 <= int(row.get("status", 0) or 0) < 300)
-    refused_rows = [row for row in rows if not 200 <= int(row.get("status", 0) or 0) < 300]
+    statuses = [int(row.get("status", 0) or 0) for row in rows]
+    delivered = statuses.count(DELIVERED_STATUS)
+    queued = statuses.count(QUEUED_STATUS)
+    refused_rows = [row for row, status in zip(rows, statuses) if not 200 <= status < 300]
     kinds = {}
     for row in refused_rows:
         key = ":".join(part for part in (str(row.get("status", "")), row.get("stage", ""), row.get("reason", "")) if part)
         kinds[key] = kinds.get(key, 0) + 1
     top = dict(sorted(kinds.items(), key=lambda item: -item[1])[:MAX_REFUSAL_KINDS])
-    healthy = not (refused_rows and accepted == 0)
+    healthy = delivered > 0 or not (refused_rows or queued)
+    state = "ok" if healthy else ("guest_refused" if refused_rows else "guest_queued")
     return healthy, {
-        "state": "ok" if healthy else "guest_refused",
+        "state": state,
         "window_hours": window_hours,
-        "guest_accepted": accepted,
+        "guest_delivered": delivered,
+        "guest_queued": queued,
         "guest_refused": len(refused_rows),
         "refused": top,
     }

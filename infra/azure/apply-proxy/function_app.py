@@ -289,7 +289,7 @@ def _deep_health_requested(req):
 
 
 def _guest_inquiries():
-    """Deep health's guest-inquiry check (#85): unhealthy when guests were refused and none accepted."""
+    """Deep health's guest-inquiry check (#85): unhealthy when guests were refused or queued and none delivered."""
     return intake_outcomes.summarise(os.environ.get(analytics.STORAGE_SETTING, ""))
 
 
