@@ -30,6 +30,10 @@ def _load_function_app():
                 self.headers = headers or {}
                 self.mimetype = mimetype
 
+            def get_body(self):
+                # Like azure.functions.HttpResponse: the body as bytes.
+                return self.body.encode("utf-8") if isinstance(self.body, str) else self.body
+
         class FunctionApp:
             """Records each function in registration order, like the real app's get_functions()."""
 

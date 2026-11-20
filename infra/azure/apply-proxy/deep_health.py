@@ -198,22 +198,30 @@ def check_turnstile(environ):
     return "ok"
 
 
-def evaluate(environ, prepare=None):
-    """(healthy, details) for the current settings. Not cached."""
+def evaluate(environ, prepare=None, inquiries=None):
+    """(healthy, details) for the current settings. Not cached.
+
+    ``inquiries``, when given, returns (healthy, details) for what real guests
+    got from /api/apply recently (#85, intake_outcomes.summarise).
+    """
     upstream = {UPSTREAM_SETTING: check_upstream(environ.get(UPSTREAM_SETTING, ""), prepare)}
     queues = check_queues(environ.get(STORAGE_SETTING, ""))
     turnstile = check_turnstile(environ)
     poisoned = any(isinstance(queues.get(queue), int) and queues[queue] > 0 for queue in POISON_QUEUES)
     healthy = all(value == "ok" for value in upstream.values()) and not poisoned and turnstile == "ok"
-    return healthy, {"upstream": upstream, "queues": queues, "turnstile": turnstile}
+    details = {"upstream": upstream, "queues": queues, "turnstile": turnstile}
+    if inquiries is not None:
+        guests_ok, details["inquiries"] = inquiries()
+        healthy = healthy and guests_ok
+    return healthy, details
 
 
-def cached_evaluate(environ, prepare=None, now=None):
+def cached_evaluate(environ, prepare=None, inquiries=None, now=None):
     now = time.monotonic() if now is None else now
     with _cache_lock:
         if _cache["result"] is not None and now < _cache["expires_at"]:
             return _cache["result"]
-    result = evaluate(environ, prepare)
+    result = evaluate(environ, prepare, inquiries)
     with _cache_lock:
         _cache["result"] = result
         _cache["expires_at"] = now + CACHE_SECONDS
