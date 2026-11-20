@@ -76,8 +76,9 @@ if (searchConsoleToken && !/^[A-Za-z0-9_-]{20,100}$/.test(searchConsoleToken)) {
     <link rel="canonical" href={canonicalUrl} />
     {searchConsoleToken && <meta name="google-site-verification" content={searchConsoleToken} />}
     <link rel="icon" href={favicon.src} />
-    {/* The two fonts the first screen paints with (body copy and the h1); the bold body weight loads when it is first used. */}
+    {/* Every face the first screen paints with: body copy, the h1 and the bold nav, button and label text. A face discovered late swaps in after first paint and shifts the layout (Lighthouse CLS), so all three load up front; they are 52 KB in all. */}
     <link rel="preload" href="/fonts/source-sans-3-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/source-sans-3-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/source-serif-4-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Mt Cottages" />

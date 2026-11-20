@@ -50,11 +50,11 @@ for (const path of PAGES) {
       }
     });
 
-    test("fonts are preloaded at most twice and buttons carry the crisp radius", async ({ page }) => {
+    test("the three fonts are preloaded and buttons carry the crisp radius", async ({ page }) => {
       await page.goto(path);
       const preloads = await page.locator('link[rel="preload"][as="font"]').count();
       expect(preloads).toBeGreaterThan(0);
-      expect(preloads).toBeLessThanOrEqual(2);
+      expect(preloads).toBeLessThanOrEqual(3);
       const radius = await page.locator(".header-cta").first().evaluate((element) => getComputedStyle(element).borderTopLeftRadius);
       const expected = await page.evaluate((value) => {
         const probe = document.createElement("div");
