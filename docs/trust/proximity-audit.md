@@ -112,3 +112,29 @@ Two pairs (Frederick to Selby General and to Washington State) were re-run throu
 - a line's minutes or miles differ from its measurement, or a measurement is older than 12 months;
 - a measured origin is a street address other than the four approved ones, or a town-centre figure is not labelled as one;
 - any wrong claim from this audit (for example "10 min to Jackson General", "walkable to downtown") appears in the inventory or on a built page.
+
+## Re-check, 2026-11-19: pages added after the first audit
+
+The first audit gated `_data/houses.json` and the microsites. The hubs and landing pages built since (#24, #28, #29, #32, #33, #34, #47) were swept for every minute, mile, walk and neighbourhood claim.
+
+| Page | Where the figures come from | Finding |
+|---|---|---|
+| Home page drive chart | `distancesFor()` | Correct; nothing typed by hand |
+| Travel-nurse hub, Camden Clark and Memorial Health landings, corporate hub, employer-commutes guide | `driveMatrix()` / `distancesFor()` | Correct; nothing typed by hand |
+| Marietta landing (`/marietta/`) | Typed into `src/data/townLanding.ts` | **Wrong:** "about ten minutes" and "10 minutes (3.5 miles)" to Marietta Memorial Hospital in the lede, the table, an audience card and the FAQ; measured 11 min. Walks typed as 44 min to downtown and 14 min to Kroger, with no recorded measurement; measured 45 and 15 |
+| Parkersburg landing (`/parkersburg/`) | Typed into `src/data/townLanding.ts` | **Wrong:** downtown typed as 2.8 / 3.0 mi to Point Park, with no recorded measurement; the measured downtown point (5th Street) is 2.7 / 2.6 mi. I-77 typed as 4.3 / 3.7 mi; measured 4.1 / 3.9. "Buck Cottage is on the north side of Parkersburg" came back twice, although the first audit removed it because Buck's address is not approved |
+
+**Fix.** The town landing pages no longer hold a typed figure. Every minute and mile in their tables and prose is read from `_data/distances.json` through `measuredDrive()` and `measuredWalk()` in `src/data/distances.ts`, which fail the build when a pair was never measured. The source line under each table is dated from the rows it shows. Buck's lines now say its street is shared on inquiry.
+
+**Walking routes** are now recorded too, under `walks` in `_data/distances.json`: the same shape and validation as the drive rows, measured with the FOSSGIS OSRM foot profile (`routing.openstreetmap.de/routed-foot`) from Frederick's approved address on 2026-11-19 (request URL in `sources.walk-frederick`). The validator refuses a walk from a town centre.
+
+| From Frederick Cottage, on foot | Minutes | Miles |
+|---|---|---|
+| Marietta Memorial Hospital | 67 | 3.1 |
+| Marietta College | 35 | 1.6 |
+| Downtown Marietta (courthouse, Putnam Street) | 45 | 2.1 |
+| Kroger, Acme Street | 15 | 0.7 |
+
+**New banned claims** (`scripts/lib/claims.mjs`): one to ten minutes (digits or words) to or from Marietta Memorial, "north side/end of Parkersburg", and "north side" in the same sentence as "Buck Cottage".
+
+**For the owner (#11):** no decision is needed. The published Marietta Memorial time rises from 10 to 11 minutes, the Frederick walks to downtown and Kroger rise by a minute each, and Buck's neighbourhood is no longer named.

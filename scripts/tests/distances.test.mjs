@@ -12,7 +12,7 @@ const file = new URL("../../_data/distances.json", import.meta.url);
 const real = JSON.parse(readFileSync(file, "utf8"));
 // The newest stamp in the file, so adding a row on a later day does not break this fixture
 // (pipeline 148591 pinned 2026-11-15 and failed once rows stamped 2026-11-17 landed).
-const newestStamp = real.rows.map((row) => row.measured).sort().at(-1);
+const newestStamp = [...real.rows, ...(real.walks ?? [])].map((row) => row.measured).sort().at(-1);
 // Noon in Ohio on that day: 17:00Z in winter (EST), 16:00Z in summer (EDT); 17:00Z is noon or 1 pm, same day either way.
 const measuredOn = new Date(`${newestStamp}T17:00:00Z`);
 const clone = () => structuredClone(real);
@@ -42,7 +42,7 @@ test("a late-night measurement is today, not tomorrow or the future", () => {
   // The pipeline 148591 moment: 01:39 EST on the 17th checks a row stamped the 17th.
   assert.equal(ageInDays("2026-11-17", new Date("2026-11-17T06:39:00Z")), 0);
   const data = clone();
-  for (const row of data.rows) row.measured = "2026-11-17";
+  for (const row of [...data.rows, ...data.walks]) row.measured = "2026-11-17";
   assert.deepEqual(validateDistances(data, { today: lateNight }), []);
 });
 
@@ -176,6 +176,25 @@ test("a source must be an https URL", () => {
 test("a malformed file is reported, not thrown", () => {
   assert.deepEqual(validateDistances(null), ["distances.json must be a JSON object"]);
   assert.ok(validateDistances({ origins: {} }).some((message) => /rows must be an array/.test(message)));
+});
+
+test("walking routes follow the same rules as drive rows", () => {
+  const data = clone();
+  assert.ok(data.walks.length > 0, "the Marietta landing page's walk times need measured walks");
+  data.walks[0].minutes += 1;
+  expectError(data, /^walk frederick:\S+: minutes \d+ should be \d+/);
+});
+
+test("a walking route from a town centre fails", () => {
+  const data = clone();
+  data.walks.push({ ...structuredClone(data.walks[0]), id: "parkersburg-centre:camden-clark", origin: "parkersburg-centre", destination: "camden-clark" });
+  expectError(data, /walk parkersburg-centre:camden-clark: a walking route needs an approved street-address origin/);
+});
+
+test("walks must be a list when present", () => {
+  const data = clone();
+  data.walks = {};
+  expectError(data, /walks must be an array/);
 });
 
 test("the age limit is twelve months", () => {
