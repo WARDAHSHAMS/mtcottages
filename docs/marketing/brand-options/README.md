@@ -1,6 +1,6 @@
 # Brand-system options
 
-_Issue: WorldEnterpriseGroup/mtcottages#27. Prepared 2026-11-15 for the CEO's pick (owner decision D2 in `docs/marketing/brand-and-positioning.md`). Nothing here is live: the production site keeps its current look until an option is chosen and an "apply brand tokens" issue ships it._
+_Issue: WorldEnterpriseGroup/mtcottages#27. Prepared 2026-11-15 for the CEO's pick (owner decision D2 in `docs/marketing/brand-and-positioning.md`). Option A was chosen on #27 and applied in #59: its tokens and fonts are live on the site and the stay form. Options B and C remain here for reference only. The logo and wordmark were not changed._
 
 All three follow the brand brief: river blue, brick and limestone; a heritage serif with a clean sans; free, self-hosted fonts. They differ in mood:
 
