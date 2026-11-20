@@ -21,6 +21,11 @@ test("every wrong claim from the fact-check is caught", () => {
     "Steps from restaurants and shopping",
     "Multiple bathrooms",
     "On Parkersburg's north side",
+    // Regressions found by the 2026-11-19 sweep of the town landing pages.
+    "about ten minutes from Marietta Memorial Hospital",
+    "About 10 minutes (3.5 miles) by car to Marietta Memorial Hospital",
+    "Buck Cottage is on the north side of Parkersburg.",
+    "Buck Cottage Best for one person or a couple who wants a compact, easy home on the north side.",
   ]) {
     assert.ok(banned(text), text);
   }
@@ -32,6 +37,9 @@ test("the corrected, measured claims pass", () => {
     "About 11 min (3.5 mi) to Marietta Memorial Hospital",
     "About 7 min (2.7 mi) to downtown Parkersburg",
     "From the Ravenswood town centre: about 16 min (11.6 mi) to Jackson General Hospital in Ripley",
+    "about 11 minutes from Marietta Memorial Hospital",
+    "Broad and Oak Cottages sit a few blocks apart on Broad Street in North Parkersburg.",
+    "25 minutes from Marietta Memorial Hospital",
   ]) {
     assert.deepEqual(findBannedClaims(text), [], text);
   }

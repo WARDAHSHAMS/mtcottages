@@ -165,11 +165,13 @@ The body holds labels and counts only, never a URL, key or lead field. The hourl
 ### Lost-inquiry count (#12)
 
 `count:intake-loss` (`infra/azure/intake-loss-count.sh`) is read-only and prints aggregates only. It covers:
-- `POST /api/apply` attempts on `stay.mtcottages.com` per day and HTTP status, from the Front Door access log in `TLIMainAnalytics`, with the workspace's retention and earliest record so the covered window is explicit;
+- `POST /api/apply` attempts on `stay.mtcottages.com` per day, client and HTTP status, from the Front Door access log in `TLIMainAnalytics`, with the workspace's retention and earliest record so the covered window is explicit. `guest-browser` is a non-headless browser whose referrer is the form host, which is what a real inquiry looks like; everything else (the platform's hourly synthetic probe, CI smoke, the canary) is `automation`. The guest-browser total is the number that says whether guests get through;
 - for the last 24 hours on the whole host, requests and 502/503/504 counts per path and Front Door origin, with the status and `ErrorInfo` labels seen (#85: a guest who gets a 502 on the form page never reaches `/api/apply`);
 - the `mtcottages-intake` runs per day and status.
 
 The stay form guards against gateway errors: before it sends, it makes a throwaway `GET /api/health` so the idle origin's first 502 lands there and not on the inquiry. It also resends a 502/503/504 or a dropped connection up to twice, with the same `submissionId`. The form page's own first load can still get a 502; only an origin-side fix removes that.
+
+The access log does not match its documented columns: `requestUri_s` carries the port (`https://stay.mtcottages.com:443/api/apply`) and the status sits in `httpStatusCode_d` while `httpStatusCode_s` is empty. The job parses host and path out of the URI and reads whichever status column holds a value. It fails, rather than printing a silent zero, when the host has no records or any record has no readable status (#85).
 
 Run it with "Run pipeline" on `gh-pages` and `INTAKE_LOSS_COUNT=true`; add `INTAKE_LOSS_SINCE` to change the default window start of `2026-07-01`. A manual pipeline also republishes the current proxy commit, which is harmless.
 
