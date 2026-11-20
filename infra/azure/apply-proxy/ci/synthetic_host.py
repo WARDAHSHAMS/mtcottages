@@ -22,7 +22,10 @@ does, so the canonical-host checks run as they do in production.
 ``GET /__synthetic/deliveries`` returns ``{"count": n, "fields": [[...], ...]}``
 (sorted field names per delivery, never values) for the test to assert on.
 
-Usage: python3 -I synthetic_host.py --port 7071 --app-dir infra/azure/apply-proxy
+Usage: python3 -I synthetic_host.py --port 7071 --app-dir infra/azure/apply-proxy [--deps-dir DIR]
+
+``--deps-dir`` is a ``pip install --target`` directory holding the Function's
+requirements (CI job ``synthetic:deps``), for an interpreter without pip.
 """
 
 import argparse
@@ -191,7 +194,12 @@ def main(argv=None):
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=7071)
     parser.add_argument("--app-dir", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--deps-dir", type=Path, help="a pip --target directory with the Function's requirements")
     arguments = parser.parse_args(argv)
+    if arguments.deps_dir is not None:
+        if not arguments.deps_dir.is_dir():
+            parser.error(f"--deps-dir {arguments.deps_dir} is not a directory")
+        sys.path.insert(0, str(arguments.deps_dir.resolve()))
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
     routes = load_http_functions(arguments.app_dir.resolve())
     server = SyntheticHost((arguments.host, arguments.port), routes)

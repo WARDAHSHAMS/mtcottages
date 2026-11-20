@@ -308,6 +308,28 @@ test:apply-proxy:
 # The Logic App is a stub on the same host, so nothing reaches Dynamics 365 or
 # a guest. Any non-2xx from /api/apply fails the job, and deploy:apply-proxy
 # needs it, so a proxy that refuses real inquiries is never published.
+# The Playwright image's python3 has no pip and the job runs without root, so
+# the Function's dependencies are installed here, for that interpreter's
+# version, and handed over as an artifact.
+synthetic:deps:
+  extends: .apply-proxy:verify-rules
+  stage: preflight
+  interruptible: true
+  # renovate: datasource=docker depName=python
+  image: "harbor.focuscell.org/dockerhub-proxy/library/python:3.14-slim"
+  variables:
+    # python3 in the Playwright noble image; synthetic:inquiry fails loudly if it changes.
+    SYNTHETIC_PYTHON_VERSION: "3.12"
+  script:
+    - >-
+      python3 -m pip install --disable-pip-version-check --no-input --quiet
+      --target synthetic-deps --python-version "$SYNTHETIC_PYTHON_VERSION" --only-binary=:all:
+      -r infra/azure/apply-proxy/requirements.txt
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - synthetic-deps/
+
 synthetic:inquiry:
   extends: .apply-proxy:verify-rules
   stage: preflight
@@ -315,6 +337,9 @@ synthetic:inquiry:
   # renovate: datasource=docker depName=playwright registryUrl=https://mcr.microsoft.com
   image: "harbor.focuscell.org/mcr-proxy/playwright:v1.62.1-noble"
   timeout: 20m
+  needs:
+    - job: synthetic:deps
+      artifacts: true
   variables:
     SYNTHETIC_HOST_URL: "http://127.0.0.1:7071"
     TURNSTILE_SITE_KEY: "1x00000000000000000000AA"
@@ -327,14 +352,12 @@ synthetic:inquiry:
   script:
     - set -eu
     - |
-      # The Playwright image ships python3 without ensurepip, so venv cannot bootstrap pip.
-      if ! python3 -c 'import ensurepip, venv' >/dev/null 2>&1; then
-        apt-get update -qq
-        DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3 python3-venv >/dev/null
+      actual="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
+      if [ "$actual" != "3.12" ]; then
+        echo "python3 here is $actual; set SYNTHETIC_PYTHON_VERSION in synthetic:deps to match" >&2
+        exit 1
       fi
-    - python3 -m venv /tmp/apply-proxy-venv
-    - /tmp/apply-proxy-venv/bin/pip install --disable-pip-version-check --no-input --quiet -r infra/azure/apply-proxy/requirements.txt
-    - nohup /tmp/apply-proxy-venv/bin/python -I infra/azure/apply-proxy/ci/synthetic_host.py --port 7071 > synthetic-host.log 2>&1 &
+    - nohup python3 -I infra/azure/apply-proxy/ci/synthetic_host.py --port 7071 --deps-dir synthetic-deps > synthetic-host.log 2>&1 &
     - |
       ready=no
       for attempt in $(seq 1 30); do
