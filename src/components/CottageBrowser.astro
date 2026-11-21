@@ -1,0 +1,191 @@
+---
+/**
+ * Filter and compare on the cottages index (WorldEnterpriseGroup/mtcottages#79).
+ *
+ * The cards, the filters and the compare table all read the same data:
+ * src/data/site.ts for the homes and src/data/terms.ts (terms.json) for the
+ * rate, move-in date, minimum stay, pets and utilities. Nothing is typed here.
+ *
+ * Progressive enhancement: without JavaScript every home and every table row
+ * shows and the filter form stays hidden (it would do nothing). With it, the
+ * native radio and checkbox controls hide non-matching cards and table rows,
+ * and a polite live region says how many homes match.
+ *
+ * Pets: a filter is offered only when the homes' pet policies differ. Today
+ * every home is "No pets" (house rules, #70), so the page says so once instead
+ * of offering a control that could only ever return zero homes.
+ */
+import "../styles/cottage-browser.css";
+import PropertyCard from "./PropertyCard.astro";
+import type { Cottage } from "../data/site";
+import { cardTerms, termRows } from "../data/terms";
+
+const { cottages } = Astro.props as { cottages: Cottage[] };
+if (cottages.length === 0) throw new Error("CottageBrowser needs at least one home");
+
+const confirmText = "Confirm on inquiry";
+const today = new Date();
+
+type BrowserHome = {
+  cottage: Cottage;
+  townKey: string;
+  townName: string;
+  bedrooms: number;
+  /** True only when the move-in date is confirmed and is today or earlier. */
+  availableNow: boolean;
+  rate: string;
+  available: string;
+  minimumStay: string;
+  pets: string;
+  utilities: string;
+};
+
+const homes: BrowserHome[] = cottages.map((cottage) => {
+  const bedrooms = Number.parseInt(cottage.bedrooms, 10);
+  if (!Number.isInteger(bedrooms) || bedrooms < 1) throw new Error(`${cottage.id}: cannot read a bedroom count from "${cottage.bedrooms}"`);
+  const townName = cottage.town.split(",")[0]?.trim();
+  if (!townName) throw new Error(`${cottage.id}: cannot read a town from "${cottage.town}"`);
+  const card = cardTerms(cottage.id, today);
+  const rows = termRows(cottage.id, today);
+  const rowValue = (field: string): string => rows.find((row) => row.field === field)?.value ?? confirmText;
+  return {
+    cottage,
+    townKey: townName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    townName,
+    bedrooms,
+    availableNow: card.available === "Available now",
+    rate: card.rate,
+    available: card.available,
+    minimumStay: card.minimumStay ?? confirmText,
+    pets: rowValue("pets"),
+    utilities: rowValue("utilities"),
+  };
+});
+
+const towns = [...new Map(homes.map((home) => [home.townKey, home.townName])).entries()];
+const bedroomCounts = [...new Set(homes.map((home) => home.bedrooms))].sort((a, b) => a - b);
+const petPolicies = [...new Set(homes.map((home) => home.pets))];
+const petKey = (policy: string) => policy.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+const anyAvailableNow = homes.some((home) => home.availableNow);
+const bedroomLabel = (count: number) => `${count} bedroom${count === 1 ? "" : "s"}`;
+---
+
+<div class="cottage-browser" data-cottage-browser>
+  <form class="cb-filters mt-4" data-cb-form aria-labelledby="cb-filters-title" hidden>
+    <h2 id="cb-filters-title" class="cb-filters__title">Narrow the homes</h2>
+    <div class="cb-filters__groups">
+      <fieldset>
+        <legend>Town</legend>
+        <label><input type="radio" name="town" value="" checked /> Any town</label>
+        {towns.map(([key, name]) => <label><input type="radio" name="town" value={key} /> {name}</label>)}
+      </fieldset>
+      <fieldset>
+        <legend>Bedrooms</legend>
+        <label><input type="radio" name="bedrooms" value="" checked /> Any</label>
+        {bedroomCounts.map((count) => <label><input type="radio" name="bedrooms" value={String(count)} /> {bedroomLabel(count)}</label>)}
+      </fieldset>
+      {petPolicies.length > 1 && (
+        <fieldset>
+          <legend>Pets</legend>
+          <label><input type="radio" name="pets" value="" checked /> Any policy</label>
+          {petPolicies.map((policy) => <label><input type="radio" name="pets" value={petKey(policy)} /> {policy}</label>)}
+        </fieldset>
+      )}
+      {anyAvailableNow && (
+        <fieldset>
+          <legend>Move-in</legend>
+          <label><input type="checkbox" name="now" value="1" /> Available now (confirmed)</label>
+          <p class="cb-hint">Homes marked “Dates on inquiry” may be open too; ask us.</p>
+        </fieldset>
+      )}
+    </div>
+    {petPolicies.length === 1 && <p class="cb-hint" data-cb-pets-note>Pets: {petPolicies[0]} in every home, under the house rules.</p>}
+    <div class="cb-filters__footer">
+      <p class="cb-count" role="status" aria-live="polite" data-cb-count>Showing all {homes.length} homes.</p>
+      <button class="cb-reset" type="reset">Clear filters</button>
+    </div>
+  </form>
+
+  <div class="card-grid mt-4" data-cb-cards>
+    {homes.map((home) => (
+      <div class="cb-item" data-cb-home={home.cottage.id} data-town={home.townKey} data-bedrooms={String(home.bedrooms)} data-pets={petKey(home.pets)} data-now={home.availableNow ? "1" : "0"}>
+        <PropertyCard cottage={home.cottage} />
+      </div>
+    ))}
+  </div>
+  <p class="cb-empty mt-3" data-cb-empty hidden>No home matches every filter. <button type="button" class="cb-reset" data-cb-clear>Clear filters</button> or ask us about your dates.</p>
+
+  <section class="cb-compare mt-4" aria-labelledby="cb-compare-title">
+    <h2 id="cb-compare-title">Compare the homes</h2>
+    <p class="mt-1">The same rates and terms as each home’s own site. “{confirmText}” means we confirm it with you before you commit.</p>
+    <div class="cb-table-scroll mt-3" role="region" aria-labelledby="cb-compare-title" tabindex="0">
+      <table class="cottage-compare">
+        <caption class="sr-only">Town, bedrooms, monthly rate, move-in, minimum stay, pets and utilities for each home</caption>
+        <thead>
+          <tr><th scope="col">Home</th><th scope="col">Town</th><th scope="col">Bedrooms</th><th scope="col">Monthly</th><th scope="col">Move-in</th><th scope="col">Minimum stay</th><th scope="col">Pets</th><th scope="col">Utilities</th></tr>
+        </thead>
+        <tbody>
+          {homes.map((home) => (
+            <tr data-cb-home={home.cottage.id} data-town={home.townKey} data-bedrooms={String(home.bedrooms)} data-pets={petKey(home.pets)} data-now={home.availableNow ? "1" : "0"}>
+              <th scope="row"><a href={`/${home.cottage.path}`}>{home.cottage.name}</a></th>
+              <td>{home.cottage.town}</td>
+              <td>{home.bedrooms}</td>
+              <td data-term="rate">{home.rate}</td>
+              <td data-term="available">{home.available}</td>
+              <td data-term="minimum-stay">{home.minimumStay}</td>
+              <td data-term="pets">{home.pets}</td>
+              <td data-term="utilities">{home.utilities}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>("[data-cottage-browser]");
+  const form = root?.querySelector<HTMLFormElement>("[data-cb-form]");
+  if (root && form) {
+    const cards = [...root.querySelectorAll<HTMLElement>("[data-cb-cards] [data-cb-home]")];
+    const rows = [...root.querySelectorAll<HTMLElement>("tbody [data-cb-home]")];
+    const count = root.querySelector<HTMLElement>("[data-cb-count]");
+    const empty = root.querySelector<HTMLElement>("[data-cb-empty]");
+    const total = cards.length;
+
+    const apply = () => {
+      const data = new FormData(form);
+      const want = {
+        town: String(data.get("town") ?? ""),
+        bedrooms: String(data.get("bedrooms") ?? ""),
+        pets: String(data.get("pets") ?? ""),
+        now: data.get("now") === "1",
+      };
+      const matches = (element: HTMLElement) =>
+        (!want.town || element.dataset.town === want.town) &&
+        (!want.bedrooms || element.dataset.bedrooms === want.bedrooms) &&
+        (!want.pets || element.dataset.pets === want.pets) &&
+        (!want.now || element.dataset.now === "1");
+      let shown = 0;
+      for (const card of cards) {
+        const match = matches(card);
+        card.hidden = !match;
+        if (match) shown += 1;
+      }
+      for (const row of rows) row.hidden = !matches(row);
+      if (count) count.textContent = shown === total ? `Showing all ${total} homes.` : `Showing ${shown} of ${total} homes.`;
+      if (empty) empty.hidden = shown > 0;
+    };
+
+    form.hidden = false;
+    form.addEventListener("change", apply);
+    form.addEventListener("submit", (event) => event.preventDefault());
+    // "reset" fires before the controls change back, so apply on the next frame.
+    form.addEventListener("reset", () => window.requestAnimationFrame(apply));
+    root.querySelector("[data-cb-clear]")?.addEventListener("click", () => {
+      form.reset();
+      form.querySelector<HTMLInputElement>("input")?.focus();
+    });
+    apply();
+  }
+</script>

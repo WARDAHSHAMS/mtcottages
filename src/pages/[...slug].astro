@@ -1,6 +1,7 @@
 ---
 import SiteLayout from "../layouts/SiteLayout.astro";
 import PropertyCard from "../components/PropertyCard.astro";
+import CottageBrowser from "../components/CottageBrowser.astro";
 import GuidePage from "../components/GuidePage.astro";
 import LocationsDirectory from "../components/LocationsDirectory.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
@@ -75,7 +76,7 @@ const crumbs: Crumb[] = pageLocation
   ) : utilityPage && routePath !== "cottages.html" ? (
     <GuidePage guide={{ ...utilityPage, path: routePath, intro: utilityPage.description, sections: utilityPage.sections }} cottages={[]} crumbs={crumbs} related={pageRelated[routePath]} />
   ) : routePath === "cottages.html" || routePath === "cozy-places.html" || routePath === "room-to-settle.html" ? (
-    <><section class="section"><div class="site-width"><Breadcrumbs items={crumbs} /><p class="eyebrow mt-3">Cottages</p><h1>{routePath === "cozy-places.html" ? "Cozy places." : routePath === "room-to-settle.html" ? "Room to settle in." : "Browse our furnished homes."}</h1><p class="lede mt-2">Browse the listed homes by town, bedroom count, price, and the photographs that help you see the fit.</p><div class="card-grid mt-4">{(routePath === "cozy-places.html" ? cottages.filter((item) => item.bedrooms === "1 Bedroom") : routePath === "room-to-settle.html" ? cottages.filter((item) => item.bedrooms !== "1 Bedroom") : cottages).map((item) => <PropertyCard cottage={item} />)}</div></div></section></>
+    <><section class="section"><div class="site-width"><Breadcrumbs items={crumbs} /><p class="eyebrow mt-3">Cottages</p><h1>{routePath === "cozy-places.html" ? "Cozy places." : routePath === "room-to-settle.html" ? "Room to settle in." : "Browse our furnished homes."}</h1><p class="lede mt-2">Browse the listed homes by town, bedroom count, price, and the photographs that help you see the fit.</p>{routePath === "cottages.html" ? <CottageBrowser cottages={cottages} /> : <div class="card-grid mt-4">{(routePath === "cozy-places.html" ? cottages.filter((item) => item.bedrooms === "1 Bedroom") : cottages.filter((item) => item.bedrooms !== "1 Bedroom")).map((item) => <PropertyCard cottage={item} />)}</div>}</div></section></>
   ) : (
     <GuidePage guide={{ path: routePath, eyebrow: "Mt Cottages", title: headline, description, intro: "Explore the homes, location guides, and practical support around a furnished stay.", sections: [{ title: "Start with the main paths", body: "Browse cottages, compare locations, explore living guides, or start a direct conversation about your timing and household." }] }} crumbs={crumbs} />
   )}
