@@ -97,10 +97,10 @@ test.describe("cottages index: filter and compare (#79)", () => {
     await expect(page.locator("[data-cb-cards] .property-card:visible")).toHaveCount(expected);
   });
 
-  test("has no axe violations, with filters on", async ({ page }) => {
+  test("has no axe violations (default rules, best practices included), with filters on", async ({ page }) => {
     await page.goto(PAGE);
     await page.locator("[data-cb-form]").getByLabel(homes[0].town, { exact: true }).check();
-    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+    const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`)).toEqual([]);
   });
 
