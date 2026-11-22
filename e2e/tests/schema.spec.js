@@ -2,8 +2,10 @@ const { test, expect } = require("@playwright/test");
 
 // Structured data (#22): one LodgingBusiness with a stable @id and no street
 // address, an Accommodation per home that publishes a street only for the four
-// approved homes, BreadcrumbList on home and town pages, and no rating, review
-// or price markup anywhere. Parses the JSON-LD the way a crawler does.
+// approved homes, BreadcrumbList on home and town pages, and no rating or price
+// markup anywhere. Review nodes appear only on home pages, for the consented
+// reviews they show (#61; e2e/tests/reviews.spec.js checks the match). Parses
+// the JSON-LD the way a crawler does.
 const origin = "https://mtcottages.com";
 const businessId = `${origin}/#business`;
 const homes = [
@@ -122,6 +124,9 @@ test("no page publishes rating, review or price markup, and every block parses",
     const nodes = await nodesOf(request, path);
     const keys = new Set(keysDeep(nodes));
     for (const key of forbiddenKeys) expect(keys.has(key), `${path} publishes ${key}`).toBe(false);
+    if (!homes.some((home) => home.base === path)) {
+      expect(nodes.filter((node) => node["@type"] === "Review"), `${path} is not a home page, so it publishes no Review`).toHaveLength(0);
+    }
     const business = nodes.filter((node) => node["@type"] === "LodgingBusiness");
     expect(business, `${path} carries the one business node`).toHaveLength(1);
     expect(business[0]["@id"]).toBe(businessId);

@@ -9,9 +9,10 @@
  * offline in every pipeline, with no third-party validator in the path.
  *
  * Honesty rules: no street address for the business (it has no public office),
- * no rating or review markup until real reviews exist, and no price or offer
- * until prices are owner-confirmed. e2e/tests/schema.spec.js enforces these on
- * the built pages.
+ * no rating markup at all, Review markup only for consented reviews a home
+ * page shows word for word (src/data/reviews.ts, #61), and no price or offer
+ * until prices are owner-confirmed. e2e/tests/schema.spec.js and
+ * e2e/tests/reviews.spec.js enforce these on the built pages.
  */
 import type { ArticleLeaf, BreadcrumbListLeaf, CityLeaf, FAQPageLeaf, JsonLdObject, ListItemLeaf, LodgingBusinessLeaf, QuestionLeaf, WithContext } from "schema-dts";
 import { homes } from "./homes";
