@@ -137,8 +137,9 @@ test("the cottages and locations indexes expose useful property details", async 
   for (const [name, price] of Object.entries(shownPrices)) {
     await expect(page.locator(".property-card").filter({ has: page.locator("h2", { hasText: name }) }).locator(".property-price")).toHaveText(new RegExp(`^\\${price}( guide)?$`));
   }
+  // The August 2026 hand-typed comparison table stays gone; #79's compare table reads the terms data (cottage-browser.spec.js).
   await expect(page.locator(".comparison-table")).toHaveCount(0);
-  await expect(page.getByText("Compare at a glance")).toHaveCount(0);
+  await expect(page.locator(".cottage-compare tbody tr")).toHaveCount(listedHomes.length);
   await expect(page.locator(".property-card").filter({ hasText: "$2,575/month" }).first()).toBeVisible();
   await expect(page.locator(".property-card").filter({ hasText: "$2,295/month" }).first()).toBeVisible();
   await expect(page.locator(".property-card").filter({ hasText: "$1,895/month" }).first()).toBeVisible();
