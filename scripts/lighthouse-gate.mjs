@@ -92,6 +92,11 @@ try {
       const scores = Object.fromEntries(Object.entries(result.lhr.categories).map(([id, category]) => [id, category.score]));
       const lcp = result.lhr.audits["largest-contentful-paint"]?.displayValue ?? "n/a";
       const cls = result.lhr.audits["cumulative-layout-shift"]?.displayValue ?? "n/a";
+      // Name what moved when a page shifts, so a CLS regression is a one-run diagnosis.
+      const shifted = result.lhr.audits["layout-shift-elements"]?.details?.items ?? [];
+      if (Number.parseFloat(cls) > 0.05 && shifted.length > 0) {
+        console.log(`  layout shift on ${route}: ${shifted.map((item) => `${item.node?.selector ?? "?"} (${(item.score ?? 0).toFixed(3)})`).join(", ")}`);
+      }
       const ok = Object.entries(thresholds).every(([id, min]) => scores[id] >= min);
       const total = Object.values(scores).reduce((sum, score) => sum + (score ?? 0), 0);
       if (!best || ok || total > best.total) best = { scores, lcp, cls, ok, total };

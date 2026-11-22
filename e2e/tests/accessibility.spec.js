@@ -230,8 +230,8 @@ test.describe("stay form", () => {
     }
     expect(missing).toEqual([]);
     // The consent checkboxes and the Turnstile slot use the stronger accent ring.
-    expect(formHtml).toMatch(/\.consent input:focus-visible[^{]*\{outline:\.2rem solid var\(--accent-strong\)/);
-    expect(formHtml).toMatch(/\.cf-turnstile:focus-within\{outline:\.2rem solid var\(--accent-strong\)/);
+    expect(formHtml).toMatch(/\.consent input:focus-visible[^{]*\{outline:\.2rem solid var\(--accent-ink\)/);
+    expect(formHtml).toMatch(/\.cf-turnstile:focus-within\{outline:\.2rem solid var\(--accent-ink\)/);
     expect(methods, "nothing was submitted").toEqual([]);
     await context.close();
   });

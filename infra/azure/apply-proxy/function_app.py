@@ -147,6 +147,12 @@ REQUIRED_FIELDS = (
 VALID_BOOLEAN_VALUES = frozenset({"yes", "true", "on"})
 
 
+# The brand fonts are self-hosted by the marketing site (public/fonts, #59) and
+# the form loads them from there, so the font bytes live in one place. The files
+# are Latin woff2 only; if the host is unreachable the page keeps its fallbacks.
+FONT_SOURCES = "'self' https://mtcottages.com"
+
+
 def _content_security_policy(script_nonce=None, style_source=None):
     script_sources = "'self' https://challenges.cloudflare.com"
     if script_nonce:
@@ -165,7 +171,7 @@ def _content_security_policy(script_nonce=None, style_source=None):
         "connect-src 'self' https://challenges.cloudflare.com; "
         "frame-src 'self' https://challenges.cloudflare.com; "
         "img-src 'self'; "
-        "font-src 'self'"
+        f"font-src {FONT_SOURCES}"
     )
 
 

@@ -171,6 +171,8 @@ brand:capture:
   timeout: 90 minutes
   variables:
     BASE_URL: "http://127.0.0.1:4173"
+    # Full history: the build's sitemap lastmod step fails on a shallow clone (#82).
+    GIT_DEPTH: "0"
     BRAND_FONT_DIR: "/tmp/brand-fonts"
     BRAND_SHOT_DIR: "$CI_PROJECT_DIR/brand-screenshots"
     npm_config_cache: "$CI_PROJECT_DIR/.npm"
