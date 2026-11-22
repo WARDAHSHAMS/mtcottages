@@ -39,9 +39,9 @@ PLACES = [
     ("wood-county", "Wood County", "050", "107", "00000"),
 ]
 
-FMR_URL = "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx"
+FMR_URL = "https://www.huduser.gov/portal/datasets/fmr/fmr2027/FY27_FMRs.xlsx"
 FMR_PAGE = "https://www.huduser.gov/portal/datasets/fmr.html"
-FISCAL_YEAR = 2026
+FISCAL_YEAR = 2027
 # (id, label, state, county name, expected HUD area name)
 FMR_AREAS = [
     ("parkersburg-vienna", "Parkersburg-Vienna metro (Wood and Wirt counties, WV)", "WV", "Wood County", "Parkersburg-Vienna, WV MSA"),

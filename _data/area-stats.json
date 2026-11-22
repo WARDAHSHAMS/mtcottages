@@ -81,11 +81,11 @@
     ]
   },
   "fairMarketRent": {
-    "fiscalYear": 2026,
+    "fiscalYear": 2027,
     "source": {
-      "label": "HUD Fair Market Rents, FY2026",
+      "label": "HUD Fair Market Rents, FY2027",
       "url": "https://www.huduser.gov/portal/datasets/fmr.html",
-      "file": "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx"
+      "file": "https://www.huduser.gov/portal/datasets/fmr/fmr2027/FY27_FMRs.xlsx"
     },
     "areas": [
       {
@@ -93,11 +93,11 @@
         "label": "Parkersburg-Vienna metro (Wood and Wirt counties, WV)",
         "hudArea": "Parkersburg-Vienna, WV MSA",
         "rents": [
-          741,
-          745,
-          928,
-          1194,
-          1253
+          793,
+          798,
+          974,
+          1214,
+          1281
         ]
       },
       {
@@ -105,11 +105,11 @@
         "label": "Washington County, OH (Marietta)",
         "hudArea": "Washington County, OH",
         "rents": [
-          756,
-          760,
-          973,
-          1313,
-          1449
+          809,
+          814,
+          1003,
+          1359,
+          1521
         ]
       }
     ]
