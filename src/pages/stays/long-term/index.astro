@@ -1,0 +1,27 @@
+---
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import GuideArticle from "../../../components/guides/GuideArticle.astro";
+import RelatedLinks from "../../../components/RelatedLinks.astro";
+import { articleSchema, type Crumb } from "../../../data/schema";
+import { articlesForAudience, guideHref, TITLE_SUFFIX } from "../../../data/guides";
+import { hubAudience, hubHref, longTermHub } from "../../../data/longTermHub";
+import type { RelatedLink } from "../../../data/site";
+
+// The long-term furnished living hub (#46). The content is typed data in
+// src/data/longTermHub.ts, rendered with the guide layout.
+const crumbs: Crumb[] = [
+  { name: "Home", href: "/" },
+  { name: "Long-term furnished stays", href: hubHref },
+];
+const guideLinks: RelatedLink[] = articlesForAudience(hubAudience).map((article) => ({ href: guideHref(article), label: article.h1, note: article.description }));
+---
+<SiteLayout
+  title={`${longTermHub.seoTitle}${TITLE_SUFFIX}`}
+  description={longTermHub.description}
+  audience={hubAudience}
+  breadcrumbs={crumbs}
+  schema={articleSchema({ url: hubHref, headline: longTermHub.h1, description: longTermHub.description, published: longTermHub.published, updated: longTermHub.updated })}
+>
+  <GuideArticle article={longTermHub} crumbs={crumbs} />
+  <RelatedLinks links={guideLinks} eyebrow="Area guides" heading="Guides for a long stay." />
+</SiteLayout>
