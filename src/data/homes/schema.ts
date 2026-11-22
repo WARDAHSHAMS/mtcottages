@@ -3,6 +3,7 @@ import type { HomeMicrosite } from "./types";
 import { homeBase } from "./links";
 import { businessId, cityPlace, homeNodeId, origin } from "../schema";
 import { offerFor } from "../terms";
+import { reviewSchemaFor } from "../reviews";
 
 /**
  * Accommodation structured data. Owner-approved homes carry a full postal
@@ -51,8 +52,12 @@ export const homeSchema = (home: HomeMicrosite): WithContext<AccommodationLeaf> 
  * HomeLayout publishes that from the same trail it shows (#35), so each page
  * has exactly one. The Offer comes from src/data/terms.json and exists only
  * once the owner confirms the home's monthly rate; a published guide is not an offer.
+ * Review nodes come from src/data/reviews.json and match the reviews the page
+ * shows (#61); with none, there are none.
  */
 export const homePageSchema = (home: HomeMicrosite) => {
-  const offer = offerFor(home.id, new URL(homeBase(home), origin).toString(), homeNodeId(homeBase(home)));
-  return [homeSchema(home), ...(offer ? [offer] : [])];
+  const url = new URL(homeBase(home), origin).toString();
+  const node = homeNodeId(homeBase(home));
+  const offer = offerFor(home.id, url, node);
+  return [homeSchema(home), ...(offer ? [offer] : []), ...reviewSchemaFor(home.id, url, node)];
 };

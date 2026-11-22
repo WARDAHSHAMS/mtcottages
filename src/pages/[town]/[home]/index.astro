@@ -3,6 +3,7 @@ import HomeLayout from "../../../layouts/HomeLayout.astro";
 import ResponsivePhoto from "../../../components/ResponsivePhoto.astro";
 import FactGrid from "../../../components/home/FactGrid.astro";
 import TermsBlock from "../../../components/home/TermsBlock.astro";
+import GuestReviews from "../../../components/home/GuestReviews.astro";
 import { assertTermsOwnedByBlock } from "../../../data/terms";
 import { homeShell } from "../../../components/home/shell";
 import { homes } from "../../../data/homes";
@@ -48,6 +49,8 @@ const bedLabel = `${home.bedrooms} ${home.bedrooms === 1 ? "bedroom" : "bedrooms
       </div>
     </div>
   </section>
+
+  <GuestReviews home={home} />
 
   {home.highlights.length > 0 && (
     <section class="section" aria-labelledby="highlights-title">
