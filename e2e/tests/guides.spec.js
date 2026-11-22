@@ -132,7 +132,61 @@ test("the Sternwheel guide is linked from the guides index, Frederick's microsit
   expect(await sitemap.text()).toContain(`https://mtcottages.com${STERNWHEEL}`);
 });
 
-for (const url of ["/guides/", GUIDE, STERNWHEEL]) {
+// The Blennerhassett Island visitor guide (#50): the season, boat and prices
+// name the year they describe and point at the park's own schedule, the
+// package saving is the sum of the listed prices, the drive figures are the
+// measured rows, and the call to action is a month in Parkersburg.
+const ISLAND = "/guides/blennerhassett-island-ferry-tickets-season/";
+
+test("the Blennerhassett Island guide dates its facts, cites the park and offers a month", async ({ page }) => {
+  await page.goto(ISLAND);
+  await expect(page).toHaveTitle("Blennerhassett Island: Ferry, Tickets, Season | Mt Cottages");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Visiting Blennerhassett Island: the sternwheeler, tickets and season");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", `https://mtcottages.com${ISLAND}`);
+
+  const season = page.locator("#season");
+  await expect(season).toContainText("early May until the end of October");
+  await expect(season).toContainText("2026: opening day was Friday, May 1");
+  await expect(season).toContainText("2027: the park had not published its 2027 schedule");
+
+  await expect(page.locator("#sternwheeler")).toContainText("on the hour");
+  await expect(page.locator("#sternwheeler")).toContainText("The last boat to the island leaves at 3:00 PM.");
+  await expect(page.locator('[data-guide-diagram="island-visit"] li')).toHaveCount(4);
+
+  // $4 + $12 + $5 + $13 = $34 for an adult, so the $33 package saves $1.
+  const tickets = page.locator("#tickets");
+  await expect(tickets).toContainText("$33 adults, $23 children");
+  await expect(tickets).toContainText("$1 less than the four tickets bought one by one ($34)");
+  await expect(page.locator(".garticle a[href^='https://wvstateparks.com/']").first()).toBeAttached();
+
+  const broad = row("broad", "downtown-parkersburg");
+  const chart = page.locator('[data-guide-chart="downtown-drives"]');
+  await expect(chart.locator('[data-chart-bar="Broad Cottage"] .gc-value')).toHaveText(`${broad.minutes} min`);
+  await expect(chart.locator('[data-chart-bar="Oak Cottage"] .gc-value')).toHaveText(`${row("oak", "downtown-parkersburg").minutes} min`);
+  await expect(page.locator("#staying")).toContainText("30 nights or more");
+
+  const cta = page.locator("[data-guide-cta]");
+  await expect(cta.getByRole("link", { name: /Check dates/ })).toHaveAttribute("href", /audience=long-term/);
+  await expect(cta.getByRole("link", { name: "Oak Cottage, Parkersburg, WV" })).toHaveAttribute("href", "/parkersburg/oak-cottage/");
+
+  const articles = (await jsonLd(page)).filter((node) => node["@type"] === "Article");
+  expect(articles).toHaveLength(1);
+  expect(articles[0].mainEntityOfPage).toBe(`https://mtcottages.com${ISLAND}`);
+});
+
+test("the Blennerhassett guide is linked from the guides index, the Parkersburg microsites and the sitemap", async ({ page, request }) => {
+  await page.goto("/guides/");
+  await page.locator("[data-guide-filter]").getByLabel("Town").selectOption("parkersburg");
+  await expect(page.locator(`[data-guide-list] a[href="${ISLAND}"]`)).toBeVisible();
+  for (const microsite of ["/parkersburg/broad-cottage/", "/parkersburg/oak-cottage/"]) {
+    await page.goto(microsite);
+    await expect(page.locator(`[data-related] a[href="${ISLAND}"]`)).toBeVisible();
+  }
+  const sitemap = await request.get("/sitemap.xml");
+  expect(await sitemap.text()).toContain(`https://mtcottages.com${ISLAND}`);
+});
+
+for (const url of ["/guides/", GUIDE, STERNWHEEL, ISLAND]) {
   test(`${url} has no WCAG A/AA violations`, async ({ page }) => {
     await page.goto(url);
     const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
