@@ -29,6 +29,10 @@ SINCE="${INTAKE_LOSS_SINCE:-2026-07-01}"
 WORKSPACE_RG="${INTAKE_LOSS_WORKSPACE_RESOURCE_GROUP:-tli_interest}"
 WORKSPACE_NAME="${INTAKE_LOSS_WORKSPACE_NAME:-TLIMainAnalytics}"
 HOST_NAME="${INTAKE_LOSS_HOST:-stay.mtcottages.com}"
+# A real guest spends time on the form; a form bot loads it and posts within
+# seconds (#85). Below this many seconds since the same client last loaded the
+# form, a browser-looking POST is counted as bot-shaped, not as a guest.
+MIN_DWELL_SECONDS="${INTAKE_LOSS_MIN_DWELL_SECONDS:-20}"
 WORKFLOW="${INTAKE_LOGICAPP_NAME:-mtcottages-intake}"
 RESOURCE_GROUP="${INTAKE_LOGICAPP_RESOURCE_GROUP:-mtcottages}"
 SUBSCRIPTION="${AZURE_FUNCTION_SUBSCRIPTION_ID:-}"
@@ -39,6 +43,9 @@ command -v jq >/dev/null || fail "jq is required"
 command -v az >/dev/null || fail "az is required"
 [ -n "${SUBSCRIPTION}" ] || fail "AZURE_FUNCTION_SUBSCRIPTION_ID is not set"
 date -u -d "${SINCE}" +%F >/dev/null 2>&1 || fail "INTAKE_LOSS_SINCE must be a date (YYYY-MM-DD)"
+case "${MIN_DWELL_SECONDS}" in
+  ''|*[!0-9]*) fail "INTAKE_LOSS_MIN_DWELL_SECONDS must be a whole number of seconds" ;;
+esac
 case "${HOST_NAME}" in
   *[!A-Za-z0-9.-]*|'') fail "INTAKE_LOSS_HOST must be a plain hostname" ;;
 esac
@@ -91,21 +98,37 @@ else
   # URI and reads the status from whichever status column holds it. Only the
   # host is interpolated, and it was checked to be a plain hostname.
   #
-  # client: "guest-browser" is a browser UA (not headless, not a probe) whose
-  # referrer is the form host, which is what a real inquiry looks like;
-  # everything else (the platform's hourly synthetic probe, CI smoke and e2e,
-  # the canary) is "automation". Both stay counts: no UA or referrer is printed.
+  # client (#85): a POST from a browser UA (not headless, not a probe) whose
+  # referrer is the form host is "guest-browser" only when the same client
+  # loaded the form at least MIN_DWELL_SECONDS earlier (within the hour). A
+  # browser-looking POST that came 0-7 s after the page load, or with no page
+  # load at all, is a form bot ("bot-shaped"): every such POST from 2026-10-29
+  # to 2026-11-22 sent no visit beacon and no /api/health warm-up, which the
+  # real form always sends, and the 10 "lost guests" first reported on #85 were
+  # all of this kind. Everything else (the platform's hourly synthetic probe,
+  # CI smoke and e2e, the canary) is "automation". The client IP is used only
+  # inside the query to pair a POST with its page load; no IP, UA or referrer
+  # is printed.
   prelude="let fd = AzureDiagnostics
 | where Category == 'FrontDoorAccessLog'
 | extend req_host = tostring(parse_url(requestUri_s).Host), path = tostring(parse_url(requestUri_s).Path)
 | where req_host =~ '${HOST_NAME}'
 | extend status = coalesce(toint(column_ifexists('httpStatusCode_d', real(null))), toint(column_ifexists('httpStatusCode_s', '')))
 | extend ua = tostring(column_ifexists('userAgent_s', '')), referrer_host = tostring(parse_url(tostring(column_ifexists('referer_s', ''))).Host)
-| extend client = iff(ua has 'Mozilla' and not(ua has_any ('HeadlessChrome', 'Playwright', 'intake-synthetic', 'canary')) and referrer_host =~ '${HOST_NAME}', 'guest-browser', 'automation');"
-  query="${prelude}
-fd
-| where TimeGenerated >= datetime(${SINCE})
+| extend browser = ua has 'Mozilla' and not(ua has_any ('HeadlessChrome', 'Playwright', 'intake-synthetic', 'canary')) and referrer_host =~ '${HOST_NAME}';
+let page_loads = fd
+| where httpMethod_s == 'GET' and path in ('', '/', '/index.html')
+| project clientIp_s, page_at = TimeGenerated;
+let applies = fd
 | where path == '/api/apply' and httpMethod_s == 'POST'
+| extend request_id = strcat(tostring(column_ifexists('trackingReference_s', '')), '|', tostring(TimeGenerated))
+| join kind=leftouter page_loads on clientIp_s
+| extend dwell = iff(isnotnull(page_at) and page_at <= TimeGenerated and page_at > TimeGenerated - 1h, datetime_diff('second', TimeGenerated, page_at), long(null))
+| summarize dwell = min(dwell) by request_id, TimeGenerated, status, browser
+| extend client = case(not(browser), 'automation', isnull(dwell) or dwell < ${MIN_DWELL_SECONDS}, 'bot-shaped', 'guest-browser');"
+  query="${prelude}
+applies
+| where TimeGenerated >= datetime(${SINCE})
 | summarize attempts = count() by day = format_datetime(bin(TimeGenerated, 1d), 'yyyy-MM-dd'), status = tostring(status), client
 | order by day asc, client asc, status asc"
   # Coverage on this host, plus how many of its records have no readable
@@ -132,8 +155,10 @@ fd
         def ok: (.status | tonumber? // 0) as $s | $s >= 200 and $s < 300;
         def total: map(.attempts | tonumber) | add // 0;
         (map(select(.client == "guest-browser"))) as $guest
+        | (map(select(.client == "bot-shaped"))) as $bots
         | "  total \(total), accepted (2xx) \(map(select(ok)) | total), not accepted \(map(select(ok | not)) | total)",
-          "  guest-browser: total \($guest | total), accepted (2xx) \($guest | map(select(ok)) | total), not accepted \($guest | map(select(ok | not)) | total)"' "${WORK}/attempts.json"
+          "  guest-browser: total \($guest | total), accepted (2xx) \($guest | map(select(ok)) | total), not accepted \($guest | map(select(ok | not)) | total)",
+          "  bot-shaped (browser UA, posted under '"${MIN_DWELL_SECONDS}"' s after loading the form): total \($bots | total)"' "${WORK}/attempts.json"
     fi
   else
     frontdoor_status=1
