@@ -123,7 +123,7 @@ const commuteChart: ChartSpec = {
 export const movingToParkersburg: GuideArticle = {
   slug: "moving-to-parkersburg-wv",
   seoTitle: "Moving to Parkersburg, WV: Jobs, Rent, Commute",
-  description: `Moving to Parkersburg, WV: population, the largest employers, what an unfurnished rental costs, measured commutes, schools and hospitals, all from official sources.`,
+  description: "Moving to Parkersburg, WV: population, the largest employers, what an unfurnished rental costs and measured commutes, all from official sources.",
   h1: "Moving to Parkersburg, West Virginia",
   lede: "Starting a job in Parkersburg, or moving the family? Here is the town in numbers, from official sources: who lives here, who the large employers are, what a rental costs, and how long the drives are. Then a furnished home to live in while you find your own.",
   published: "2026-11-22",

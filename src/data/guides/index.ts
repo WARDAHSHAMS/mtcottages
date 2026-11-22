@@ -32,7 +32,8 @@ function validate(list: GuideArticle[]): string[] {
     slugs.add(article.slug);
     const title = `${article.seoTitle}${TITLE_SUFFIX}`;
     if (title.length > MAX_TITLE) problems.push(`${where}: title "${title}" is ${title.length} characters; the limit is ${MAX_TITLE}`);
-    if (article.description.length < 70 || article.description.length > 200) problems.push(`${where}: description should be 70 to 200 characters, not ${article.description.length}`);
+    // scripts/seo-audit.mjs fails a description over 160 characters; fail it here first, at build.
+    if (article.description.length < 70 || article.description.length > 160) problems.push(`${where}: description should be 70 to 160 characters, not ${article.description.length}`);
     for (const date of [article.published, article.updated]) {
       if (!ISO_DATE.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) problems.push(`${where}: ${date} is not an ISO date`);
     }
