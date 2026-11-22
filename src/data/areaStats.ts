@@ -4,7 +4,7 @@ import raw from "../../_data/area-stats.json";
  * Typed, checked view of _data/area-stats.json (#48): Census population
  * estimates, HUD Fair Market Rents and a sourced employer list. Guides chart
  * these figures and quote them in prose through this module, never by hand.
- * scripts/area-stats.py refreshes the official parts from their source files.
+ * scripts/area-stats.mjs refreshes the official parts from their source files.
  */
 
 export type Source = { label: string; url: string; file?: string };

@@ -6,7 +6,7 @@
  *
  * Every figure comes from a data file: population and Fair Market Rents from
  * _data/area-stats.json (Census Bureau and HUD files, refreshed by
- * scripts/area-stats.py), the employer list from the same file (transcribed
+ * scripts/area-stats.mjs), the employer list from the same file (transcribed
  * from its cited publication), and drive times from _data/distances.json
  * through driveMatrix(). The prose quotes those values through template
  * strings, so nothing is typed by hand. Charts and diagrams only: no area photo.

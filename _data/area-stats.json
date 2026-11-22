@@ -1,5 +1,5 @@
 {
-  "$comment": "Official figures for the area guides (#48). scripts/area-stats.py rewrites population and fairMarketRent from the Census Bureau and HUD files named in each source; employers has no machine-readable source and is transcribed by hand from the cited publication.",
+  "$comment": "Official figures for the area guides (#48). scripts/area-stats.mjs rewrites population and fairMarketRent from the Census Bureau and HUD files named in each source; employers has no machine-readable source and is transcribed by hand from the cited publication.",
   "retrieved": "2026-11-22",
   "employers": {
     "area": "Wood County, WV",
