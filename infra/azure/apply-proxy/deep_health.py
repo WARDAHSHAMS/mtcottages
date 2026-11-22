@@ -49,6 +49,8 @@ TURNSTILE_ACCEPT_TEST_KEYS_SETTING = "TURNSTILE_ACCEPT_TEST_KEYS"
 # Cloudflare's published Turnstile test site keys and secrets, e.g.
 # 1x00000000000000000000AA and 2x0000000000000000000000000000000AA.
 TURNSTILE_TEST_KEY_PATTERN = re.compile(r"[1-3]x0{20,}[A-Z]{2}")
+# The channels that tell a person about a new inquiry (#93); the guest auto-reply does not.
+STAFF_CHANNELS = ("staff-email", "teams")
 
 _cache_lock = threading.Lock()
 _cache = {"result": None, "expires_at": 0.0}
@@ -202,11 +204,17 @@ def check_turnstile(environ):
     return "ok"
 
 
-def evaluate(environ, prepare=None, inquiries=None):
+def staff_notified(channels):
+    """True when at least one channel tells a person about a new inquiry (#93)."""
+    return any(channels.get(channel, "off") != "off" for channel in STAFF_CHANNELS)
+
+
+def evaluate(environ, prepare=None, inquiries=None, notify=None):
     """(healthy, details) for the current settings. Not cached.
 
     ``inquiries``, when given, returns (healthy, details) for what real guests
     got from /api/apply recently (#85, intake_outcomes.summarise).
+    ``notify``, when given, returns {channel: label} (intake_notify.channel_summary).
     """
     upstream = {UPSTREAM_SETTING: check_upstream(environ.get(UPSTREAM_SETTING, ""), prepare)}
     queues = check_queues(environ.get(STORAGE_SETTING, ""))
@@ -217,15 +225,18 @@ def evaluate(environ, prepare=None, inquiries=None):
     if inquiries is not None:
         guests_ok, details["inquiries"] = inquiries()
         healthy = healthy and guests_ok
+    if notify is not None:
+        details["notify"] = notify()
+        healthy = healthy and staff_notified(details["notify"])
     return healthy, details
 
 
-def cached_evaluate(environ, prepare=None, inquiries=None, now=None):
+def cached_evaluate(environ, prepare=None, inquiries=None, now=None, notify=None):
     now = time.monotonic() if now is None else now
     with _cache_lock:
         if _cache["result"] is not None and now < _cache["expires_at"]:
             return _cache["result"]
-    result = evaluate(environ, prepare, inquiries)
+    result = evaluate(environ, prepare, inquiries, notify)
     with _cache_lock:
         _cache["result"] = result
         _cache["expires_at"] = now + CACHE_SECONDS

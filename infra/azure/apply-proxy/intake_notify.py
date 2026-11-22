@@ -26,6 +26,19 @@ Configuration (application settings; no value is ever logged):
 - ``GUEST_AUTOREPLY_ENABLED``: ``true`` sends the guest acknowledgment.
 - ``GUEST_RESPONSE_PROMISE``: default ``within 2 business hours`` (owner decision D6).
 
+The staff alert can instead go through Microsoft Graph ``sendMail`` from the
+owner's own mailbox (#93). It costs nothing and needs no stored secret: the
+Function App's managed identity is the federated credential of a multi-tenant
+app that holds ``Mail.Send`` in the mailbox's tenant, limited there to that one
+mailbox by an Exchange RBAC-for-Applications scope. When these are set, Graph
+carries the staff alert even if ACS is configured too:
+
+- ``GRAPH_MAIL_TENANT_ID``: the mailbox's Entra tenant id.
+- ``GRAPH_MAIL_CLIENT_ID``: the app's client id (not a secret).
+- ``GRAPH_MAIL_SENDER``: the mailbox the alert is sent from, by its user principal name.
+- ``GRAPH_MAIL_LOGIN_ENDPOINT`` / ``GRAPH_MAIL_API_ENDPOINT``: only for CI's
+  synthetic host (http on the loopback address); production uses the defaults.
+
 A channel whose settings are missing is skipped when the inquiry is accepted,
 so nothing waits on a queue for configuration that does not exist yet.
 """
@@ -36,6 +49,8 @@ import json
 import logging
 import os
 import re
+import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -54,6 +69,19 @@ CHANNEL_GUEST_EMAIL = "guest-email"
 CHANNELS = (CHANNEL_STAFF_EMAIL, CHANNEL_TEAMS, CHANNEL_GUEST_EMAIL)
 
 ACS_EMAIL_API_VERSION = "2023-03-31"
+TRANSPORT_GRAPH = "graph"
+TRANSPORT_ACS = "acs"
+GRAPH_LOGIN_ENDPOINT = "https://login.microsoftonline.com"
+GRAPH_API_ENDPOINT = "https://graph.microsoft.com"
+GRAPH_SCOPE = "https://graph.microsoft.com/.default"
+# The audience Entra expects on a managed-identity token used as a federated credential.
+FEDERATED_TOKEN_AUDIENCE = "api://AzureADTokenExchange"
+CLIENT_ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+GUID_PATTERN = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+OAUTH_ERROR_PATTERN = re.compile(r"[a-z_]{1,40}")
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+TOKEN_REFRESH_MARGIN_SECONDS = 300
+SUBMISSION_HEADER = "X-MtC-Submission-Id"
 ACS_TOKEN_RESOURCE = "https://communication.azure.com"
 DEFAULT_REPLY_TO = "stay@mtcottages.com"
 DEFAULT_RESPONSE_PROMISE = "within 2 business hours"
@@ -177,10 +205,62 @@ def _email_configured():
     return bool(_acs_endpoint() and _sender_address())
 
 
+def _guid_setting(name):
+    value = _setting(name)
+    return value.lower() if GUID_PATTERN.fullmatch(value) else ""
+
+
+def _graph_endpoint(name, default):
+    """The default endpoint, or a loopback http one for CI's synthetic host. Anything else is refused."""
+    value = _setting(name, default).rstrip("/")
+    if value == default:
+        return value
+    try:
+        parsed = urllib.parse.urlsplit(value)
+        hostname = parsed.hostname
+    except ValueError:
+        return ""
+    if parsed.query or parsed.fragment or parsed.username or parsed.password:
+        return ""
+    return value if parsed.scheme == "http" and hostname in LOOPBACK_HOSTS else ""
+
+
+def _graph_settings():
+    """(tenant, client id, sender, login endpoint, api endpoint), or None when any is missing or unsafe."""
+    tenant = _guid_setting("GRAPH_MAIL_TENANT_ID")
+    client_id = _guid_setting("GRAPH_MAIL_CLIENT_ID")
+    sender = _setting("GRAPH_MAIL_SENDER")
+    login = _graph_endpoint("GRAPH_MAIL_LOGIN_ENDPOINT", GRAPH_LOGIN_ENDPOINT)
+    api = _graph_endpoint("GRAPH_MAIL_API_ENDPOINT", GRAPH_API_ENDPOINT)
+    if not (tenant and client_id and ADDRESS_PATTERN.fullmatch(sender) and login and api):
+        return None
+    return tenant, client_id, sender, login, api
+
+
+def staff_transport():
+    """``graph``, ``acs`` or ``""``: how the staff alert is sent with today's settings."""
+    if _graph_settings():
+        return TRANSPORT_GRAPH
+    if _email_configured():
+        return TRANSPORT_ACS
+    return ""
+
+
+def channel_summary():
+    """Labels only, for deep health: which channels an accepted inquiry reaches, and how."""
+    staff = staff_transport() if _staff_recipients() else ""
+    guest = TRANSPORT_ACS if _email_configured() and _guest_autoreply_enabled() else ""
+    return {
+        CHANNEL_STAFF_EMAIL: staff or "off",
+        CHANNEL_TEAMS: "on" if _teams_webhook_url() else "off",
+        CHANNEL_GUEST_EMAIL: guest or "off",
+    }
+
+
 def configured_channels():
     """The channels whose settings are complete, in delivery order."""
     channels = []
-    if _email_configured() and _staff_recipients():
+    if staff_transport() and _staff_recipients():
         channels.append(CHANNEL_STAFF_EMAIL)
     if _teams_webhook_url():
         channels.append(CHANNEL_TEAMS)
@@ -476,10 +556,10 @@ def _post_json(url, payload, headers, label):
     return status
 
 
-def _managed_identity_token():
-    """A bearer token for ACS from the Function App's managed identity."""
+def _managed_identity_token(resource=ACS_TOKEN_RESOURCE):
+    """A token from the Function App's managed identity: a bearer for ACS, or a federated assertion."""
     try:
-        return managed_identity.get_token(ACS_TOKEN_RESOURCE)
+        return managed_identity.get_token(resource)
     except managed_identity.ManagedIdentityError as error:
         if error.reason == "identity_endpoint_missing":
             raise NotificationConfigError("managed identity is not available to the Function App") from None
@@ -509,6 +589,98 @@ def _send_email(envelope, recipients, subject, text, markup, reply_to):
     _post_json(url, payload, headers, "ACS email")
 
 
+_graph_token_lock = threading.Lock()
+_graph_token_cache = {}
+
+
+def reset_token_cache():
+    with _graph_token_lock:
+        _graph_token_cache.clear()
+
+
+def _oauth_error_label(body):
+    try:
+        parsed = json.loads(body[:MAX_RESPONSE_BYTES].decode("utf-8", errors="replace"))
+    except json.JSONDecodeError:
+        return ""
+    error = parsed.get("error") if isinstance(parsed, dict) else None
+    return error if isinstance(error, str) and OAUTH_ERROR_PATTERN.fullmatch(error) else ""
+
+
+def _graph_token(tenant, client_id, login):
+    """A Graph app-only token for the mail app, with the managed identity's token as its client assertion."""
+    cache_key = (tenant, client_id, login)
+    now = time.time()
+    with _graph_token_lock:
+        cached = _graph_token_cache.get(cache_key)
+    if cached and now < cached[1] - TOKEN_REFRESH_MARGIN_SECONDS:
+        return cached[0]
+    form = urllib.parse.urlencode({
+        "client_id": client_id,
+        "scope": GRAPH_SCOPE,
+        "grant_type": "client_credentials",
+        "client_assertion_type": CLIENT_ASSERTION_TYPE,
+        "client_assertion": _managed_identity_token(FEDERATED_TOKEN_AUDIENCE),
+    }).encode("ascii")
+    request = urllib.request.Request(
+        f"{login}/{tenant}/oauth2/v2.0/token",
+        data=form,
+        headers={"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=SEND_TIMEOUT_SECONDS) as response:
+            body = json.loads(response.read(MAX_RESPONSE_BYTES).decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        try:
+            label = _oauth_error_label(error.read(MAX_RESPONSE_BYTES))
+        except OSError:
+            label = ""
+        finally:
+            error.close()
+        suffix = f" {label}" if label else ""
+        raise NotificationError(f"Graph token answered HTTP {error.code}{suffix}") from None
+    except TimeoutError:
+        raise NotificationError("Graph token timed out") from None
+    except urllib.error.URLError as error:
+        reason = "timed out" if isinstance(error.reason, TimeoutError) else "connection failed"
+        raise NotificationError(f"Graph token {reason}") from None
+    except (OSError, ValueError) as error:
+        raise NotificationError(f"Graph token failed: {type(error).__name__}") from None
+    token = body.get("access_token") if isinstance(body, dict) else None
+    try:
+        lifetime = float(body.get("expires_in", 0)) if isinstance(body, dict) else 0.0
+    except (TypeError, ValueError):
+        lifetime = 0.0
+    if not isinstance(token, str) or not token or lifetime <= 0:
+        raise NotificationError("Graph token answer has no token")
+    with _graph_token_lock:
+        _graph_token_cache[cache_key] = (token, now + lifetime)
+    return token
+
+
+def _send_graph_mail(envelope, settings, recipients, subject, markup, reply_to):
+    """Send from the owner's mailbox with Graph sendMail; Graph answers 202 once it accepts the message.
+
+    Graph has no repeatability id. A retry after a send whose answer was lost
+    can repeat the alert; a duplicate alert is better than a lost lead.
+    """
+    tenant, client_id, sender, login, api = settings
+    token = _graph_token(tenant, client_id, login)
+    payload = {
+        "message": {
+            "subject": subject,
+            "body": {"contentType": "HTML", "content": markup},
+            "toRecipients": [{"emailAddress": {"address": address}} for address in recipients],
+            "replyTo": [{"emailAddress": {"address": reply_to}}],
+            "internetMessageHeaders": [{"name": SUBMISSION_HEADER, "value": envelope["submissionId"]}],
+        },
+        "saveToSentItems": False,
+    }
+    url = f"{api}/v1.0/users/{urllib.parse.quote(sender, safe='@.')}/sendMail"
+    _post_json(url, payload, {"Authorization": f"Bearer {token}"}, "Graph sendMail")
+
+
 def send(envelope):
     """Deliver one channel. Raises NotificationError so the runtime retries it."""
     channel = envelope["channel"]
@@ -520,7 +692,11 @@ def send(envelope):
         guest_address = _one_line(lead.get("email", ""), 254)
         reply_to = guest_address if ADDRESS_PATTERN.fullmatch(guest_address) else _reply_to_address()
         subject, text, markup = staff_email(envelope)
-        _send_email(envelope, recipients, subject, text, markup, reply_to)
+        graph = _graph_settings()
+        if graph:
+            _send_graph_mail(envelope, graph, recipients, subject, markup, reply_to)
+        else:
+            _send_email(envelope, recipients, subject, text, markup, reply_to)
     elif channel == CHANNEL_GUEST_EMAIL:
         guest_address = _one_line(lead.get("email", ""), 254)
         if not ADDRESS_PATTERN.fullmatch(guest_address):

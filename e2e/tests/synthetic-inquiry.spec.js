@@ -12,9 +12,19 @@ const { test, expect } = require("@playwright/test");
 // real Logic App delivery, to a stub trigger. The test fills every field the
 // form shows the way a guest would and fails on anything but a 2xx.
 //
-// Nothing reaches the real Logic App, Dynamics 365 or any guest.
+// Receipt (#93): the accepted inquiry must also reach the owner. The host runs
+// the real notify queue function, whose Graph transport signs in with the
+// managed identity as a federated credential and calls sendMail, all against
+// the host's stubs. The test asserts one staff alert to the configured inbox
+// with the guest as Reply-To.
+//
+// Nothing reaches the real Logic App, Dynamics 365, Graph, an inbox or any guest.
 const HOST = process.env.SYNTHETIC_HOST_URL;
 const STAY = "https://stay.mtcottages.com";
+// The CI job's STAFF_ALERT_RECIPIENTS and GRAPH_MAIL_SENDER.
+const STAFF_INBOX = process.env.STAFF_ALERT_RECIPIENTS || "synthetic-staff@example.invalid";
+const SENDER = process.env.GRAPH_MAIL_SENDER || "synthetic-sender@example.invalid";
+const GUEST_EMAIL = "synthetic-gate@example.invalid";
 
 test.skip(!HOST, "SYNTHETIC_HOST_URL is unset: run synthetic_host.py and point this at it (CI job synthetic:inquiry)");
 
@@ -27,7 +37,7 @@ async function fillLikeAGuest(page) {
   const byName = {
     firstName: "Synthetic",
     lastName: "Gate",
-    email: "synthetic-gate@example.invalid",
+    email: GUEST_EMAIL,
     phone: "304 555 0100",
     occupants: "2",
     monthlyBudget: "1800",
@@ -55,9 +65,10 @@ async function fillLikeAGuest(page) {
   return filled;
 }
 
-test("a guest's real-form inquiry is accepted end to end", async ({ page, request }) => {
+test("a guest's real-form inquiry is accepted and the owner is told", async ({ page, request }) => {
   test.slow();
   const before = await (await request.get(`${HOST}/__synthetic/deliveries`)).json();
+  const mailBefore = await (await request.get(`${HOST}/__synthetic/mail`)).json();
 
   const answers = [];
   await page.route(`${STAY}/**`, async (route) => {
@@ -91,4 +102,21 @@ test("a guest's real-form inquiry is accepted end to end", async ({ page, reques
   const after = await (await request.get(`${HOST}/__synthetic/deliveries`)).json();
   expect(after.count - before.count, "the stub Logic App trigger got no lead").toBe(1);
   expect(after.fields[after.fields.length - 1]).toEqual(expect.arrayContaining(["email", "firstName", "message", "submissionId", "termsAccepted"]));
+
+  // Receipt: the notify queue ran and Graph accepted one staff alert for this inquiry.
+  let mail = mailBefore;
+  await expect
+    .poll(async () => {
+      mail = await (await request.get(`${HOST}/__synthetic/mail`)).json();
+      return mail.count - mailBefore.count;
+    }, { timeout: 30_000, message: "no staff alert reached the stub Graph sendMail" })
+    .toBe(1);
+  expect(mail.queue["intake-notify"], "a notify message failed").toEqual(expect.objectContaining({ failed: 0 }));
+  const alert = mail.messages[mail.messages.length - 1];
+  expect(alert.sender).toBe(SENDER);
+  expect(alert.to).toEqual([STAFF_INBOX]);
+  expect(alert.replyTo, "replying to the alert must reach the guest").toEqual([GUEST_EMAIL]);
+  expect(alert.subject).toContain("Synthetic Gate");
+  expect(alert.submissionId).toMatch(/^[0-9a-f-]{36}$/);
+  expect(alert.hasBody).toBe(true);
 });

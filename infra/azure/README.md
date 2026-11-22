@@ -44,6 +44,8 @@ Turnstile runs before the field checks, so the live smoke can prove that a real-
 
 `synthetic:inquiry` runs on every merge request and gh-pages push that touches the proxy, and `deploy:apply-proxy` needs it. Chromium opens the real form at `https://stay.mtcottages.com/`; every request to that host is answered by `apply-proxy/ci/synthetic_host.py`, which serves the packaged Function code through the same HTTP functions the Azure host calls (`app.get_functions()`), adding `X-Forwarded-Host` as Front Door does. The test fills every visible field like a guest and submits. Turnstile is the real widget and the real `_verify_turnstile` against Cloudflare's live siteverify, using Cloudflare's published always-pass test keys and `TURNSTILE_ACCEPT_TEST_KEYS=true`; the Logic App is a stub trigger on the same host. Any non-2xx from `/api/apply`, or no lead at the stub, fails the job.
 
+The same run proves receipt (#93). The host hands every message `apply` put on `intake-notify` to the real `send_intake_notification`, whose Graph transport signs in with the managed identity as a federated credential and calls `sendMail`, against stubs on the same host (`/__identity/token`, `/__login`, `/__graph`) that check the assertion and the bearer token. The test then requires exactly one staff alert, to `STAFF_ALERT_RECIPIENTS` from `GRAPH_MAIL_SENDER`, with the guest as Reply-To and no failed notify message (`GET /__synthetic/mail`). No mail leaves the job.
+
 `TURNSTILE_ACCEPT_TEST_KEYS` exists only for this gate. Without it a test-key token is refused (`testing-key`), and with it deep health answers 503 `turnstile: test_key`, so the live host can never run with it.
 
 Run it locally: start the host with the job's variables (`.gitlab-ci.yml`, `synthetic:inquiry`), then `SYNTHETIC_HOST_URL=http://127.0.0.1:7071 npx playwright test tests/synthetic-inquiry.spec.js` in `e2e/`.
@@ -79,6 +81,18 @@ Every accepted inquiry, whether delivered or queued for redelivery, puts one mes
 
 `host.json` polls idle queues at least every 10 seconds, so the staff alert lands well inside the SOP's 1 minute. A failed channel is retried up to 8 times, 2 minutes apart, then moved to `intake-notify-poison` (an alert condition, #16). ACS sends carry a `repeatability-request-id` derived from the `submissionId` and channel, so a retried email is sent once. Logs carry the `submissionId` and channel only.
 
+### Staff alert through Microsoft Graph (#93)
+
+The owner reads `stay@mtcottages.com`, an alias on a mailbox in the Tao Mgt Microsoft 365 tenant. The staff alert goes there through Graph `sendMail`, sent from that same mailbox, instead of ACS: it costs nothing (no new spend, ADMIRAL policy 21), stores no secret and uses no person's login.
+
+- **Who signs in.** A multi-tenant app registration in the focushive tenant holds a federated identity credential whose subject is the Function App's system-assigned managed identity. The Function asks its identity for a token with audience `api://AzureADTokenExchange` and hands it to `https://login.microsoftonline.com/<Tao Mgt tenant>/oauth2/v2.0/token` as the `client_assertion` of a client-credentials grant for `https://graph.microsoft.com/.default`. The Graph token is cached until 5 minutes before it expires.
+- **What it may do.** The app's service principal in Tao Mgt is admin-consented for Graph `Mail.Send` (application), and an Exchange Online RBAC-for-Applications management scope limits it to the one sending mailbox, so it cannot send as anyone else.
+- **What is sent.** One HTML message to `STAFF_ALERT_RECIPIENTS`, Reply-To the guest, a `X-MtC-Submission-Id` header, not saved to Sent Items. Graph answers 202. Graph has no repeatability id, so a retry after a lost answer can repeat an alert; a duplicate is better than a lost lead.
+- **Failures.** A refused token logs only the OAuth error label (`invalid_client`, `unauthorized_client`), never the description. Every failure is retried like any channel and ends in `intake-notify-poison`.
+- **The privileged half** (the identity, the app and its credential, the consent, the Exchange scope and these settings) is applied from FocusApiary/infrastructure (#896), not from this repo.
+
+When the Graph settings are complete, Graph carries the staff alert even if ACS is configured too. The guest acknowledgment still needs ACS and stays off until the owner approves its wording.
+
 Application settings (a channel whose settings are missing is simply not queued):
 
 | Setting | Value |
@@ -86,7 +100,11 @@ Application settings (a channel whose settings are missing is simply not queued)
 | `ACS_EMAIL_ENDPOINT` | `https://<resource>.communication.azure.com`. Auth is the Function App's managed identity (needs a role on the ACS resource that allows `emails:send`); no access key. |
 | `NOTIFY_SENDER_ADDRESS` | The verified ACS sender, `stay@mtcottages.com` once the domain is verified in ACS. |
 | `NOTIFY_REPLY_TO` | Optional; default `stay@mtcottages.com`. |
-| `STAFF_ALERT_RECIPIENTS` | Comma-separated staff addresses. |
+| `STAFF_ALERT_RECIPIENTS` | Comma-separated staff addresses: `stay@mtcottages.com`. |
+| `GRAPH_MAIL_TENANT_ID` | The sending mailbox's tenant id (Tao Mgt). |
+| `GRAPH_MAIL_CLIENT_ID` | The mail app's client id. An id, not a secret. |
+| `GRAPH_MAIL_SENDER` | The sending mailbox's user principal name. |
+| `GRAPH_MAIL_LOGIN_ENDPOINT`, `GRAPH_MAIL_API_ENDPOINT` | Unset in Azure. Only an `http://127.0.0.1` (or `localhost`) URL may replace the defaults, for CI's synthetic host; any other value turns the Graph transport off. |
 | `TEAMS_INTAKE_WEBHOOK_URL` | A Key Vault reference (`@Microsoft.KeyVault(...)`) to the Teams Workflows webhook URL. The URL is a credential; never put it in git or a plain setting. |
 | `GUEST_AUTOREPLY_ENABLED` | `true` to send the guest acknowledgment. |
 | `GUEST_RESPONSE_PROMISE` | Default `within 2 business hours`. The owner confirms it (brand decision D6). |
@@ -164,6 +182,7 @@ A push to `gh-pages` that changes `infra/azure/apply-proxy/` or `.gitlab-ci.yml`
 
 - `upstream.LOGICAPP_URL_APPLICATION`: a GET on the trigger, with no payload, so no workflow runs. `ok` means Logic Apps refused the method (400 `TriggerRequestMethodNotValid`), which proves that the URL, signature and caller IP are accepted. `status_401_AuthorizationFailed` means a rotated key or a caller-IP restriction. `status_404` means the workflow or trigger is gone. `unreachable_*` means a network failure, and `not_configured` means the setting is missing.
 - `queues`: the approximate depth of `intake-retry` (informational) and of the two poison queues. Any message in `intake-retry-poison` or `intake-notify-poison` fails the check: a lead or a notification has run out of retries and needs staff (below). It reads the depth with the host storage connection string. If that setting is not key-based, the depths read `unknown` and do not fail the check.
+- `notify`: how each channel is sent, `graph`, `acs`, `on` or `off` (#93). When both `staff-email` and `teams` are `off`, an accepted inquiry becomes a lead that no person is told about, so the check fails.
 - `turnstile`: `ok`, `not_configured`, or `test_key`. `test_key` means the site key or the secret is a Cloudflare test key, so no real guest token can verify. Either failure label fails the check (#85).
 - `inquiries`: what real guests got from `POST /api/apply` in the last 3 hours (#85), from `intake_outcomes.py`. `guest_refused` or `guest_queued` fails the check: at least one guest was refused (non-2xx) or only queued (202: the Logic App or Dynamics 365 behind it did not take the lead), and no guest's lead was delivered (200). That is how #85 went unseen for weeks while every liveness check stayed green. The detail holds `guest_delivered`, `guest_queued`, `guest_refused` and the top refusals as `status:stage:reason` labels. One guest who fixes a typo and sends again is fine. `unknown_<reason>` means the outcome table could not be read and does not fail the check.
 
