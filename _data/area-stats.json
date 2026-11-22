@@ -1,0 +1,117 @@
+{
+  "$comment": "Official figures for the area guides (#48). scripts/area-stats.py rewrites population and fairMarketRent from the Census Bureau and HUD files named in each source; employers has no machine-readable source and is transcribed by hand from the cited publication.",
+  "retrieved": "2026-11-22",
+  "employers": {
+    "area": "Wood County, WV",
+    "source": {
+      "label": "Wood County Economic Development, top employers by number of employees, as published by the News and Sentinel on May 31, 2025",
+      "url": "https://www.newsandsentinel.com/news/business/2025/05/moving-forward-today-west-virginia-and-ohio-employment-data-at-a-glance/"
+    },
+    "list": [
+      {
+        "name": "WVU Medicine Camden Clark Medical Center",
+        "employees": 2275
+      },
+      {
+        "name": "Bureau of the Fiscal Service",
+        "employees": 2000
+      },
+      {
+        "name": "Wood County Schools",
+        "employees": 1714
+      },
+      {
+        "name": "Washington Works (Chemours, Dupont and Kuraray)",
+        "employees": 1522
+      },
+      {
+        "name": "Walmart",
+        "employees": 633
+      },
+      {
+        "name": "Wincore",
+        "employees": 472
+      },
+      {
+        "name": "Westbrook Health Services",
+        "employees": 426
+      },
+      {
+        "name": "Highmark West Virginia",
+        "employees": 425
+      },
+      {
+        "name": "Hino Motors",
+        "employees": 422
+      },
+      {
+        "name": "WVU Parkersburg",
+        "employees": 318
+      }
+    ]
+  },
+  "population": {
+    "vintage": 2025,
+    "estimateDate": "2025-07-01",
+    "baseDate": "2020-04-01",
+    "source": {
+      "label": "U.S. Census Bureau, Vintage 2025 population estimates for cities and towns",
+      "url": "https://www.census.gov/data/tables/time-series/demo/popest/2020s-total-cities-and-towns.html",
+      "file": "https://www2.census.gov/programs-surveys/popest/datasets/2020-2025/cities/totals/sub-est2025_54.csv"
+    },
+    "places": [
+      {
+        "id": "parkersburg",
+        "label": "Parkersburg (city)",
+        "base2020": 29698,
+        "estimate": 28593
+      },
+      {
+        "id": "vienna",
+        "label": "Vienna (city)",
+        "base2020": 10654,
+        "estimate": 10321
+      },
+      {
+        "id": "wood-county",
+        "label": "Wood County",
+        "base2020": 84300,
+        "estimate": 82385
+      }
+    ]
+  },
+  "fairMarketRent": {
+    "fiscalYear": 2026,
+    "source": {
+      "label": "HUD Fair Market Rents, FY2026",
+      "url": "https://www.huduser.gov/portal/datasets/fmr.html",
+      "file": "https://www.huduser.gov/portal/datasets/fmr/fmr2026/FY26_FMRs_revised.xlsx"
+    },
+    "areas": [
+      {
+        "id": "parkersburg-vienna",
+        "label": "Parkersburg-Vienna metro (Wood and Wirt counties, WV)",
+        "hudArea": "Parkersburg-Vienna, WV MSA",
+        "rents": [
+          741,
+          745,
+          928,
+          1194,
+          1253
+        ]
+      },
+      {
+        "id": "washington-county-oh",
+        "label": "Washington County, OH (Marietta)",
+        "hudArea": "Washington County, OH",
+        "rents": [
+          756,
+          760,
+          973,
+          1313,
+          1449
+        ]
+      }
+    ]
+  }
+}
