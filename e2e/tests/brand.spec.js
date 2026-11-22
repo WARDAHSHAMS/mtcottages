@@ -50,11 +50,11 @@ for (const path of PAGES) {
       }
     });
 
-    test("the three fonts are preloaded and buttons carry the crisp radius", async ({ page }) => {
+    test("only the body font is preloaded and buttons carry the crisp radius", async ({ page }) => {
       await page.goto(path);
-      const preloads = await page.locator('link[rel="preload"][as="font"]').count();
-      expect(preloads).toBeGreaterThan(0);
-      expect(preloads).toBeLessThanOrEqual(3);
+      // One preload: more cost first paint more than the late faces cost (site.css).
+      const preloads = await page.locator('link[rel="preload"][as="font"]').evaluateAll((links) => links.map((link) => new URL(link.href).pathname));
+      expect(preloads).toEqual(["/fonts/source-sans-3-latin-400-normal.woff2"]);
       const radius = await page.locator(".header-cta").first().evaluate((element) => getComputedStyle(element).borderTopLeftRadius);
       const expected = await page.evaluate((value) => {
         const probe = document.createElement("div");

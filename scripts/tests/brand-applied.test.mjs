@@ -53,7 +53,7 @@ test("site.css carries option A's shape and heading type", () => {
 
 test("display and body stacks lead with option A's families and keep real fallbacks", () => {
   const { display, body } = declared(siteCss, ["display", "body"]);
-  assert.match(display, new RegExp(`^"${option.fonts.display.family}", Georgia, .*serif$`));
+  assert.match(display, new RegExp(`^"${option.fonts.display.family}", "${option.fonts.display.family} Fallback", Georgia, .*serif$`));
   assert.match(body, new RegExp(`^"${option.fonts.body.family}", .*(system-ui).*sans-serif$`));
   const formStacks = declared(form, ["display", "body"]);
   assert.equal(formStacks.display.replaceAll(",", ", "), display);
