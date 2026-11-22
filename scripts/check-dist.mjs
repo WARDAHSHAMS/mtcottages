@@ -12,7 +12,7 @@ import { join, relative, sep } from "node:path";
 // Broad's 23 old sections, /parkersburg/furnished-rentals/ and
 // /marietta/furnished-rentals/), the travel-nurse hub and its Camden Clark (#32) and Memorial Health (#33) pages,
 // the corporate and crew hub (#34), the /health-professionals.html and /work-relocation.html redirect stubs,
-// /guides/ and its articles (#47; the Sternwheel Festival guide, #52, the Blennerhassett Island guide, #50, and moving to Parkersburg, #48), the accessibility statement (#75),
+// /guides/ and its articles (#47; the Sternwheel Festival guide, #52, the Blennerhassett Island guide, #50, and moving to Parkersburg, #48), the accessibility statement (#75), the stay policies page (#36),
 // the book-safely page (#62), five resident guides (#89) and the rest of the site. Update it whenever a home, page or
 // redirect is added or removed.
 const EXPECTED_PAGES = 125;
