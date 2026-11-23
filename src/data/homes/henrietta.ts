@@ -9,6 +9,11 @@ import p31 from "../../../assets/images/cottages/ravenswood-03/photo-31.avif";
 import p36 from "../../../assets/images/cottages/ravenswood-03/photo-36.avif";
 import p40 from "../../../assets/images/cottages/ravenswood-03/photo-40.avif";
 import p42 from "../../../assets/images/cottages/ravenswood-03/photo-42.avif";
+import exteriorFront from "../../../assets/images/cottages/ravenswood-03/henrietta-exterior-front.avif";
+import exterior02 from "../../../assets/images/cottages/ravenswood-03/henrietta-exterior-02.avif";
+import exterior03 from "../../../assets/images/cottages/ravenswood-03/henrietta-exterior-03.avif";
+import exterior04 from "../../../assets/images/cottages/ravenswood-03/henrietta-exterior-04.avif";
+import exterior05 from "../../../assets/images/cottages/ravenswood-03/henrietta-exterior-05.avif";
 import laundryWasher from "../../../assets/images/cottages/ravenswood-03/unique/available-img-428-c44a6dc5bc-648x470.avif";
 import blueBath from "../../../assets/images/cottages/ravenswood-03/unique/ravenswood-henrietta-cottage-img-250-6435685889-648x470.avif";
 import stripedRoomDoor from "../../../assets/images/cottages/ravenswood-03/unique/ravenswood-henrietta-cottage-img-290-88a4997131-648x470.avif";
@@ -18,6 +23,32 @@ import conceptDining from "../../../assets/images/cottages/ravenswood-03/3d/henr
 import conceptKitchen from "../../../assets/images/cottages/ravenswood-03/3d/henrietta-kitchen-top-down.jpg";
 
 const photos = {
+  front: {
+    src: exteriorFront,
+    alt: "Front of the house from the sidewalk: green clapboard siding with white trim and dark shutters, a white columned entry porch with steps, a black metal arbor over the garden walk, a bay window at right, a covered porch at left and shrubs along the foundation",
+    caption: "The front of the house, with its columned entry porch and garden walk.",
+    focal: "50% 45%",
+  },
+  exterior02: {
+    src: exterior02,
+    alt: "Exterior view of the green clapboard house showing the side and front from a different angle, with mature trees and lawn",
+    caption: "Another angle of the house exterior.",
+  },
+  exterior03: {
+    src: exterior03,
+    alt: "Exterior view of the house showing the porch and yard from the side, with trees and fencing visible",
+    caption: "The house and yard from the side.",
+  },
+  exterior04: {
+    src: exterior04,
+    alt: "Exterior view of the house from across the yard, showing the green siding, white trim and surrounding trees",
+    caption: "The house from across the yard.",
+  },
+  exterior05: {
+    src: exterior05,
+    alt: "Exterior view of the house and garden walk, showing the front porch, landscaping and street",
+    caption: "The house and garden walk.",
+  },
   dining: {
     src: p17,
     alt: "Dining room with light blue walls, an oval dark-wood table with burgundy upholstered chairs, a bookcase, a tall mirror and hardwood floor",
@@ -90,9 +121,9 @@ export const henriettaHome: HomeMicrosite = {
   slug: "henrietta-cottage",
   name: "Henrietta Cottage",
   town: { name: "Ravenswood", state: "WV", slug: "ravenswood" },
-  tagline: "A two-bedroom furnished home with a blue dining room and a lawn in a quiet river town.",
+  tagline: "A two-bedroom furnished home with a blue dining room, a columned front porch and a lawn in a quiet river town.",
   summary:
-    "Henrietta Cottage is a furnished two-bedroom home in Ravenswood. Inside, the photos show a blue dining room with an oval table, a striped-wallpaper room with a round table, an oak-cabinet kitchen with a gas range and an eat-in table, a furnished bedroom, and two bathrooms. Outside there is a lawn with a fence and trees. Details that are not yet confirmed are marked on this page.",
+    "Henrietta Cottage is a furnished two-bedroom home in Ravenswood. Inside, the photos show a blue dining room with an oval table, a striped-wallpaper room with a round table, an oak-cabinet kitchen with a gas range and an eat-in table, a furnished bedroom, and two bathrooms. Outside, the green clapboard front has a white columned entry porch and a garden walk, and there is a lawn with a fence and trees. Details that are not yet confirmed are marked on this page.",
   address: {
     kind: "street",
     streetAddress: "200 Henrietta St",
@@ -103,7 +134,7 @@ export const henriettaHome: HomeMicrosite = {
     lng: -81.757844,
   },
   bedrooms: 2,
-  hero: photos.dining,
+  hero: photos.front,
   highlights: [
     {
       title: "A dining room made for sharing meals",
@@ -135,6 +166,19 @@ export const henriettaHome: HomeMicrosite = {
     { label: "Square footage", value: "Size of the home", status: "confirm" },
   ],
   rooms: [
+    {
+      slug: "exterior",
+      name: "Exterior",
+      summary: "A two-storey green clapboard house with a white columned entry porch, a garden walk and a lawn.",
+      photos: [photos.front, photos.exterior02, photos.exterior03, photos.exterior04, photos.exterior05],
+      notes: [
+        { text: "Green clapboard siding with white trim and dark shutters.", status: "photographed" },
+        { text: "White columned entry porch with steps and a black metal arbor over the front walk.", status: "photographed" },
+        { text: "A bay window to the right of the entry and a covered porch at the left.", status: "photographed" },
+        { text: "Front garden beds and lawn, with a sidewalk along the street.", status: "photographed" },
+        { text: "Whether off-street parking is available.", status: "confirm" },
+      ],
+    },
     {
       slug: "dining",
       name: "Dining room",
@@ -237,7 +281,7 @@ export const henriettaHome: HomeMicrosite = {
         { text: "Lawn, fence and trees.", status: "photographed" },
         { text: "A white porch railing frames the view.", status: "photographed" },
         { text: "Whether the whole yard is private and fenced.", status: "confirm" },
-        { text: "No photo of the front of the house is available yet.", status: "confirm" },
+        { text: "The front of the house is photographed under Exterior.", status: "photographed" },
       ],
       faqs: [
         { q: "Is there a yard?", a: "Yes. A lawn with mature trees and a fence is seen from the porch. Ask us whether the whole yard is private and fenced. Pets are not allowed.", status: "photographed" },
