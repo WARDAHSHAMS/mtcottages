@@ -6,7 +6,7 @@
  * own audience URL and is not listed among the area guides.
  *
  * Every figure is read from a data file, never typed: HUD Fair Market Rents
- * from _data/area-stats.json (scripts/area-stats.py), our furnished guide
+ * from _data/area-stats.json (scripts/area-stats.mjs), our furnished guide
  * rates from src/data/site.ts. The one national figure (BLS household
  * furnishings spending) is kept below with its release and date. The page
  * says plainly that a lease costs less each month.
