@@ -142,7 +142,7 @@ test("audience hubs and town pages carry their audience or town on every inquiry
     ["/ravenswood/index.html", { location: "ravenswood" }],
     ["/racine/index.html", { location: "racine" }],
     ["/grantsville/index.html", { location: "grantsville" }],
-    ["/about.html", {}],
+    ["/about/", {}],
   ];
   for (const [pathname, expected, homes] of cases) {
     await page.goto(pathname);

@@ -29,7 +29,7 @@ const developerCopy = /\bLevel \d\b|\bmicrosite\b|\bpublic (homes?|cottages?|por
 
 const publicPages = [
   "/index.html", "/cottages.html", "/available.html", "/locations.html", "/room-to-settle.html",
-  "/about.html", "/contact.html", "/faq.html", "/cozy-places.html",
+  "/about/", "/contact.html", "/faq.html", "/cozy-places.html",
   "/fully-furnished-homes.html", "/travel-nurses/index.html", "/corporate-housing/index.html",
   "/insurance-housing.html", "/family-stays.html", "/living.html", "/services.html",
   "/home-amenities.html", "/guest-services.html", "/meal-preparation.html", "/property-care.html",

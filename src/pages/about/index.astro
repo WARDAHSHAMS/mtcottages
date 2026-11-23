@@ -1,0 +1,110 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import RelatedLinks from "../../components/RelatedLinks.astro";
+import { homes } from "../../data/homes";
+import { homeBase } from "../../data/homes/links";
+import { termRows } from "../../data/terms";
+import { pageTitle } from "../../data/seo";
+import type { Crumb } from "../../data/schema";
+import type { RelatedLink } from "../../data/site";
+
+// "Who we are" (#38). Trust comes from facts a guest can check, so every line
+// here is either read from the site's own data (the homes, their towns, their
+// terms) or recorded in notes/owner-decisions.md. The decision on #38 (made on
+// #70, 2026-11-16) is: no named people and no explained "Mt" story, because no
+// bio or history is owner-approved and inventing one breaks the honesty rule.
+// When the owner approves people or a story, add them here with their consent
+// recorded on the issue. /about.html is a noindex redirect to this page.
+const href = "/about/";
+const crumbs: Crumb[] = [
+  { name: "Home", href: "/" },
+  { name: "About", href },
+];
+const contact = "stay@mtcottages.com";
+
+// The towns, in the order the homes list them, with their homes.
+const towns = [...new Map(homes.map((home) => [home.town.slug, home.town])).values()].map((town) => ({
+  label: `${town.name}, ${town.state === "OH" ? "Ohio" : "WV"}`,
+  homes: homes.filter((home) => home.town.slug === town.slug),
+}));
+const townList = towns.map((town) => town.label);
+const townText = `${townList.slice(0, -1).join(", ")} and ${townList.at(-1)}`;
+
+// A fact the page states for every home must hold for every home, or the build fails.
+function everyHome(field: "minimumStay" | "utilities" | "pets", accepted: readonly string[]): void {
+  for (const home of homes) {
+    const value = termRows(home.id).find((row) => row.field === field)?.value ?? null;
+    if (value === null || !accepted.includes(value)) {
+      throw new Error(`about: /about/ says every home has the same ${field}, but ${home.name} has "${value ?? "confirm on inquiry"}"; update src/pages/about/index.astro`);
+    }
+  }
+}
+everyHome("minimumStay", ["30 days", "One month"]);
+everyHome("utilities", ["Included"]);
+everyHome("pets", ["No pets"]);
+
+const numberWords = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+const homeCount = numberWords[homes.length] ?? String(homes.length);
+const homeLinks: RelatedLink[] = homes.map((home) => ({ href: homeBase(home), label: `${home.name}, ${home.town.name}, ${home.town.state}`, note: "Photos, floor plan, amenities and map" }));
+---
+<SiteLayout
+  title={pageTitle("About Mt Cottages: furnished homes, month to month")}
+  description={`Who Mt Cottages is: ${homeCount} furnished homes in ${townText}, rented by the month with utilities included, and how to reach us.`}
+  breadcrumbs={crumbs}
+>
+  <section class="guide-hero section--tight">
+    <div class="site-width">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">About</span>
+      </nav>
+      <p class="eyebrow mt-3">About Mt Cottages</p>
+      <h1>Who we are</h1>
+      <p class="lede reading" data-about-summary>Mt Cottages rents {homeCount} furnished homes in {townText}, for stays of a month or more. Here is what we can show you, and how to check it.</p>
+    </div>
+  </section>
+
+  <section class="section section--paper">
+    <div class="site-width prose">
+      <article class="prose-section" id="homes">
+        <h2>The homes</h2>
+        <div class="stack">
+          <p>Each home has its own page with photographs of that home, a floor plan, the amenities and a map. The photos are of the real rooms; drawings and 3D views are labelled as concepts.</p>
+          <ul data-about-towns>
+            {towns.map((town) => (
+              <li><strong>{town.label}:</strong> {town.homes.map((home, index) => <>{index > 0 && ", "}<a href={homeBase(home)}>{home.name}</a></>)}</li>
+            ))}
+          </ul>
+          <p>Frederick, Broad, Oak and Henrietta Cottages publish their street addresses on their own pages, so you can look them up on a map before you write to us.</p>
+        </div>
+      </article>
+
+      <article class="prose-section" id="how-we-host">
+        <h2>How we host</h2>
+        <div class="stack">
+          <ul>
+            <li>Every home is rented by the month: stays start at 30 nights.</li>
+            <li>The utilities are included in the monthly rate, and the home is furnished, with its own kitchen.</li>
+            <li>No pets and no smoking, in every home.</li>
+            <li>An inquiry asks for your dates and contact details only. Any agreement or payment is a separate, later step with its own documents.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="prose-section" id="people">
+        <h2>The people behind it</h2>
+        <div class="stack">
+          <p>We do not show staff names or biographies on this site yet. We would rather show you nothing than a story we have not checked, so this page will name people only when they have agreed to it.</p>
+        </div>
+      </article>
+
+      <article class="prose-section" id="contact">
+        <h2>How to reach us</h2>
+        <div class="stack">
+          <p>Send an inquiry with the "Check dates" button on any page, or email <a href={`mailto:${contact}`}>{contact}</a>. We have no public phone line, so the form and that email address are the ways to reach us. Be wary of anyone writing from a lookalike address.</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <RelatedLinks links={homeLinks} eyebrow="Our homes" heading="Every Mt Cottages home." />
+</SiteLayout>
