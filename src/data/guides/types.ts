@@ -25,13 +25,14 @@ export const guideTownLabel: Record<GuideTown, string> = {
   ravenswood: "Ravenswood, WV",
 };
 
-export type GuideTopic = "commuting" | "healthcare" | "moving" | "things-to-do" | "family";
+export type GuideTopic = "commuting" | "healthcare" | "moving" | "things-to-do" | "dining" | "family";
 
 export const guideTopicLabel: Record<GuideTopic, string> = {
   commuting: "Commuting and work",
   healthcare: "Healthcare",
   moving: "Moving to the area",
   "things-to-do": "Things to do",
+  dining: "Where to eat",
   family: "Family stays",
 };
 
@@ -57,9 +58,18 @@ export type ChartSpec = {
 /** A left-to-right (stacked on phones) sequence of steps drawn as inline SVG. */
 export type DiagramSpec = { id: string; title: string; steps: { label: string; detail: string }[] };
 
+/**
+ * One place in a directory-style guide (where to eat, #57): its name links to
+ * its own site, or to the page an official directory links for it, named in
+ * `via` (for example "Facebook page"). `kind` is what the place is, in the
+ * words of its own site or that directory; never a rating or a review.
+ */
+export type GuidePlace = { name: string; kind: string; url: string; via?: string };
+
 export type GuideBlock =
   | { kind: "p"; text: string }
   | { kind: "list"; items: string[] }
+  | { kind: "places"; places: GuidePlace[] }
   | { kind: "chart"; chart: ChartSpec }
   | { kind: "diagram"; diagram: DiagramSpec }
   | { kind: "cta"; heading: string; text: string }
