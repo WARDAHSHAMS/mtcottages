@@ -1,0 +1,106 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import CheckDates from "../../components/CheckDates.astro";
+import { pageTitle } from "../../data/seo";
+import { faqSchema, type Crumb } from "../../data/schema";
+import { homeTerms, houseRules, policiesHref, policyFaqs } from "../../data/policies";
+
+// Stay policies and FAQ (#36). Every line traces to src/data/terms.json or the
+// house rules recorded in notes/owner-decisions.md; src/data/policies.ts checks
+// them at build time. The FAQ below is published word for word as FAQPage.
+const crumbs: Crumb[] = [
+  { name: "Home", href: "/" },
+  { name: "Stay policies", href: policiesHref },
+];
+---
+<SiteLayout
+  title={pageTitle("Stay policies and FAQ")}
+  description="Mt Cottages stay policies: one-month minimum, utilities included, no pets, no smoking, deposits, cancellation and what happens after you send an inquiry."
+  breadcrumbs={crumbs}
+  schema={faqSchema(policiesHref, policyFaqs)}
+>
+  <section class="guide-hero section--tight">
+    <div class="site-width">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Stay policies</span>
+      </nav>
+      <p class="eyebrow mt-3">Stay policies</p>
+      <h1>How a stay with Mt Cottages works.</h1>
+      <p class="lede reading">The terms that apply to every home, the house rules, and plain answers to the questions guests ask before they inquire. Anything we have not confirmed says so: we answer it with your dates.</p>
+    </div>
+  </section>
+
+  <section class="section section--paper">
+    <div class="site-width prose">
+      <article class="prose-section" id="at-a-glance">
+        <h2>At every home</h2>
+        <div class="stack">
+          <ul data-policy-summary>
+            <li><strong>Minimum stay:</strong> one month (30 nights). No nightly or weekend stays.</li>
+            <li><strong>Utilities:</strong> included in the monthly rate.</li>
+            <li><strong>Pets:</strong> not allowed.</li>
+            <li><strong>Whole home:</strong> each stay is a furnished home of your own, not a shared room.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="prose-section" id="by-home">
+        <h2>Rates, availability and deposits by home</h2>
+        <div class="stack">
+          <p>These are the figures each home's own page shows. A guide rate is the published rate for homes of that size; we confirm the rate for your dates when you ask.</p>
+          <div class="pol-table-scroll" role="region" aria-labelledby="by-home-caption" tabindex="0">
+            <table class="pol-table" data-policy-homes>
+              <caption id="by-home-caption">Terms by home</caption>
+              <thead><tr><th scope="col">Home</th><th scope="col">Monthly rate</th><th scope="col">Available</th><th scope="col">Security deposit</th></tr></thead>
+              <tbody>
+                {homeTerms.map((home) => (
+                  <tr data-policy-home={home.id}>
+                    <th scope="row"><a href={home.href}>{home.name}</a>, {home.town}</th>
+                    <td>{home.rate}</td>
+                    <td>{home.available}</td>
+                    <td>{home.deposit}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </article>
+
+      <article class="prose-section" id="house-rules">
+        <h2>House rules</h2>
+        <div class="stack">
+          <ul data-house-rules>{houseRules.map((rule) => <li>{rule}</li>)}</ul>
+        </div>
+      </article>
+
+      <article class="prose-section" id="faq">
+        <h2>Questions before you inquire</h2>
+        <div class="stack" data-policy-faq>
+          {policyFaqs.map((faq) => (
+            <details>
+              <summary>{faq.q}</summary>
+              <p>{faq.a}</p>
+            </details>
+          ))}
+        </div>
+      </article>
+
+      <CheckDates placement="policies" secondary={{ label: "Browse the cottages", href: "/cottages.html" }} />
+    </div>
+  </section>
+</SiteLayout>
+
+<style>
+  .pol-table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+  .pol-table-scroll:focus-visible { outline: 3px solid var(--accent-ink); outline-offset: 3px; }
+  .pol-table { width: 100%; min-width: 36rem; border-collapse: collapse; }
+  .pol-table caption { padding: .9rem 1rem 0; color: var(--muted); text-align: left; }
+  .pol-table th, .pol-table td { padding: .9rem 1rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  .pol-table thead th { color: var(--muted); font-size: .8rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  .pol-table tbody th { color: var(--forest); font-weight: 600; }
+  .pol-table tbody tr:last-child > * { border-bottom: 0; }
+  [data-policy-faq] details { padding: .8rem 0; border-bottom: 1px solid var(--line); }
+  [data-policy-faq] summary { color: var(--forest); font-weight: 600; cursor: pointer; }
+  [data-policy-faq] details p { margin-top: .5rem; }
+</style>
