@@ -15,7 +15,7 @@ import { join, relative, sep } from "node:path";
 // /guides/ and its articles (#47; the Sternwheel Festival guide, #52, the Blennerhassett Island guide, #50, moving to Parkersburg, #48, and things to do in Marietta, #51), the accessibility statement (#75), the stay policies page (#36),
 // the book-safely page (#62), five resident guides (#89) and the rest of the site. Update it whenever a home, page or
 // redirect is added or removed.
-const EXPECTED_PAGES = 126;
+const EXPECTED_PAGES = 127;
 const MAX_DIST_MB = 70;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const LEGACY_MARKERS = ["jquery", "bootstrap", "modernizr", "swiper", "owl.carousel", "venobox", "gsap", "hotelhub"];
