@@ -22,7 +22,8 @@ const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export const articles: GuideArticle[] = [blennerhassettIsland, employerCommutes, mariettaThingsToDo, movingToParkersburg, sternwheelFestival].sort((a, b) => b.updated.localeCompare(a.updated) || a.slug.localeCompare(b.slug));
 
-function validate(list: GuideArticle[]): string[] {
+/** The checks every guide-model page passes; the long-term hub (src/data/longTermHub.ts) runs them too. */
+export function validateArticles(list: GuideArticle[]): string[] {
   const problems: string[] = [];
   const homeIds = new Set(homes.map((home) => home.id));
   const slugs = new Set<string>();
@@ -55,7 +56,7 @@ function validate(list: GuideArticle[]): string[] {
   return problems;
 }
 
-const problems = validate(articles);
+const problems = validateArticles(articles);
 if (problems.length > 0) throw new Error(`src/data/guides is invalid:\n${problems.join("\n")}`);
 
 export const guideHref = (article: Pick<GuideArticle, "slug">) => `/guides/${article.slug}/`;
