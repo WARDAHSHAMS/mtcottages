@@ -45,9 +45,12 @@ STORAGE_API_VERSION = "2021-12-02"
 ERROR_CODE_PATTERN = re.compile(r"[A-Za-z0-9_]{1,60}")
 TURNSTILE_SITE_KEY_SETTING = "TURNSTILE_SITE_KEY"
 TURNSTILE_SECRET_SETTING = "TURNSTILE_SECRET_KEY"
+TURNSTILE_ACCEPT_TEST_KEYS_SETTING = "TURNSTILE_ACCEPT_TEST_KEYS"
 # Cloudflare's published Turnstile test site keys and secrets, e.g.
 # 1x00000000000000000000AA and 2x0000000000000000000000000000000AA.
 TURNSTILE_TEST_KEY_PATTERN = re.compile(r"[1-3]x0{20,}[A-Z]{2}")
+# The channels that tell a person about a new inquiry (#93); the guest auto-reply does not.
+STAFF_CHANNELS = ("staff-email", "teams")
 
 _cache_lock = threading.Lock()
 _cache = {"result": None, "expires_at": 0.0}
@@ -195,25 +198,45 @@ def check_turnstile(environ):
         return "not_configured"
     if TURNSTILE_TEST_KEY_PATTERN.fullmatch(site_key) or TURNSTILE_TEST_KEY_PATTERN.fullmatch(secret):
         return "test_key"
+    # The CI synthetic host's switch (#85): it lets a test-key token through.
+    if str(environ.get(TURNSTILE_ACCEPT_TEST_KEYS_SETTING, "") or "").strip():
+        return "test_key"
     return "ok"
 
 
-def evaluate(environ, prepare=None):
-    """(healthy, details) for the current settings. Not cached."""
+def staff_notified(channels):
+    """True when at least one channel tells a person about a new inquiry (#93)."""
+    return any(channels.get(channel, "off") != "off" for channel in STAFF_CHANNELS)
+
+
+def evaluate(environ, prepare=None, inquiries=None, notify=None):
+    """(healthy, details) for the current settings. Not cached.
+
+    ``inquiries``, when given, returns (healthy, details) for what real guests
+    got from /api/apply recently (#85, intake_outcomes.summarise).
+    ``notify``, when given, returns {channel: label} (intake_notify.channel_summary).
+    """
     upstream = {UPSTREAM_SETTING: check_upstream(environ.get(UPSTREAM_SETTING, ""), prepare)}
     queues = check_queues(environ.get(STORAGE_SETTING, ""))
     turnstile = check_turnstile(environ)
     poisoned = any(isinstance(queues.get(queue), int) and queues[queue] > 0 for queue in POISON_QUEUES)
     healthy = all(value == "ok" for value in upstream.values()) and not poisoned and turnstile == "ok"
-    return healthy, {"upstream": upstream, "queues": queues, "turnstile": turnstile}
+    details = {"upstream": upstream, "queues": queues, "turnstile": turnstile}
+    if inquiries is not None:
+        guests_ok, details["inquiries"] = inquiries()
+        healthy = healthy and guests_ok
+    if notify is not None:
+        details["notify"] = notify()
+        healthy = healthy and staff_notified(details["notify"])
+    return healthy, details
 
 
-def cached_evaluate(environ, prepare=None, now=None):
+def cached_evaluate(environ, prepare=None, inquiries=None, now=None, notify=None):
     now = time.monotonic() if now is None else now
     with _cache_lock:
         if _cache["result"] is not None and now < _cache["expires_at"]:
             return _cache["result"]
-    result = evaluate(environ, prepare)
+    result = evaluate(environ, prepare, inquiries, notify)
     with _cache_lock:
         _cache["result"] = result
         _cache["expires_at"] = now + CACHE_SECONDS

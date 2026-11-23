@@ -6,7 +6,12 @@
  */
 import { homes } from "../homes";
 import type { Audience } from "../stay-link";
+import { blennerhassettIsland } from "./blennerhassett-island";
 import { employerCommutes } from "./employer-commutes";
+import { mariettaThingsToDo } from "./marietta-things-to-do";
+import { sternwheelFestival } from "./sternwheel-festival";
+import { movingToParkersburg } from "./moving-to-parkersburg";
+import { whereToEat } from "./where-to-eat";
 import { guideTopicLabel, guideTownLabel, type GuideArticle, type GuideTopic, type GuideTown } from "./types";
 
 export * from "./types";
@@ -16,9 +21,10 @@ const MAX_TITLE = 60;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-export const articles: GuideArticle[] = [employerCommutes].sort((a, b) => b.updated.localeCompare(a.updated) || a.slug.localeCompare(b.slug));
+export const articles: GuideArticle[] = [blennerhassettIsland, employerCommutes, mariettaThingsToDo, movingToParkersburg, sternwheelFestival, whereToEat].sort((a, b) => b.updated.localeCompare(a.updated) || a.slug.localeCompare(b.slug));
 
-function validate(list: GuideArticle[]): string[] {
+/** The checks every guide-model page passes; the long-term hub (src/data/longTermHub.ts) runs them too. */
+export function validateArticles(list: GuideArticle[]): string[] {
   const problems: string[] = [];
   const homeIds = new Set(homes.map((home) => home.id));
   const slugs = new Set<string>();
@@ -29,7 +35,8 @@ function validate(list: GuideArticle[]): string[] {
     slugs.add(article.slug);
     const title = `${article.seoTitle}${TITLE_SUFFIX}`;
     if (title.length > MAX_TITLE) problems.push(`${where}: title "${title}" is ${title.length} characters; the limit is ${MAX_TITLE}`);
-    if (article.description.length < 70 || article.description.length > 200) problems.push(`${where}: description should be 70 to 200 characters, not ${article.description.length}`);
+    // scripts/seo-audit.mjs fails a description over 160 characters; fail it here first, at build.
+    if (article.description.length < 70 || article.description.length > 160) problems.push(`${where}: description should be 70 to 160 characters, not ${article.description.length}`);
     for (const date of [article.published, article.updated]) {
       if (!ISO_DATE.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) problems.push(`${where}: ${date} is not an ISO date`);
     }
@@ -42,6 +49,13 @@ function validate(list: GuideArticle[]): string[] {
       sectionIds.add(section.id);
       for (const block of section.blocks) {
         if (block.kind === "figure" && !block.alt.trim()) problems.push(`${where}: a figure in ${section.id} has no alt text`);
+        if (block.kind === "places") {
+          if (block.places.length === 0) problems.push(`${where}: a places list in ${section.id} is empty`);
+          for (const place of block.places) {
+            if (!place.name.trim() || !place.kind.trim()) problems.push(`${where}: a place in ${section.id} needs a name and a kind`);
+            if (!place.url.startsWith("https://")) problems.push(`${where}: ${place.name} must link to an https:// page, not ${place.url}`);
+          }
+        }
         if (block.kind === "chart" && block.chart.groups.every((group) => group.bars.length === 0)) problems.push(`${where}: chart ${block.chart.id} has no bars`);
       }
     }
@@ -50,7 +64,7 @@ function validate(list: GuideArticle[]): string[] {
   return problems;
 }
 
-const problems = validate(articles);
+const problems = validateArticles(articles);
 if (problems.length > 0) throw new Error(`src/data/guides is invalid:\n${problems.join("\n")}`);
 
 export const guideHref = (article: Pick<GuideArticle, "slug">) => `/guides/${article.slug}/`;

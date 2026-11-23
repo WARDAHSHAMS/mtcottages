@@ -5,6 +5,7 @@
     "geocoding": "OpenStreetMap Nominatim (nominatim.openstreetmap.org), cross-checked against the operator's own published address where one exists.",
     "minutes": "ceil(seconds / 60)",
     "miles": "meters / 1609.344, rounded to one decimal",
+    "walking": "FOSSGIS OSRM foot profile (routing.openstreetmap.de/routed-foot), OpenStreetMap streets and footpaths. Rounded the same way; listed under `walks`, never in `rows`, and only measured from an approved street address.",
     "licence": "Routing and geocoding data © OpenStreetMap contributors, ODbL 1.0."
   },
   "origins": {
@@ -69,7 +70,8 @@
     "route-oak-i77": "https://router.project-osrm.org/route/v1/driving/-81.5301764,39.2793150;-81.7578990,38.9490150?overview=false&steps=true",
     "route-henrietta-i77": "https://router.project-osrm.org/route/v1/driving/-81.7578990,38.9490150;-81.7298948,38.8228835?overview=false&steps=true",
     "route-ravenswood-centre-i77": "https://router.project-osrm.org/route/v1/driving/-81.761,38.9481;-81.7298948,38.8228835?overview=false&steps=true",
-    "route-parkersburg-centre-i77": "https://router.project-osrm.org/route/v1/driving/-81.5615,39.2667;-81.7578990,38.9490150?overview=false&steps=true"
+    "route-parkersburg-centre-i77": "https://router.project-osrm.org/route/v1/driving/-81.5615,39.2667;-81.7578990,38.9490150?overview=false&steps=true",
+    "walk-frederick": "https://routing.openstreetmap.de/routed-foot/table/v1/driving/-81.4233393,39.4158196;-81.4645367,39.4317032;-81.4484225,39.416095;-81.4546369,39.4158798;-81.4285942,39.4122728?sources=0&destinations=1;2;3;4&annotations=duration,distance"
   },
   "rows": [
     { "id": "frederick:downtown-marietta", "origin": "frederick", "destination": "downtown-marietta", "seconds": 457.8, "meters": 3780.4, "minutes": 8, "miles": 2.3, "method": "osrm", "source": "table", "measured": "2026-11-15" },
@@ -144,5 +146,11 @@
     { "id": "parkersburg-centre:wvu-parkersburg", "origin": "parkersburg-centre", "destination": "wvu-parkersburg", "seconds": 684.6, "meters": 8726.6, "minutes": 12, "miles": 5.4, "method": "osrm", "source": "table-work-school", "measured": "2026-11-15" },
     { "id": "parkersburg-centre:parkersburg-high-school", "origin": "parkersburg-centre", "destination": "parkersburg-high-school", "seconds": 306.6, "meters": 2827.2, "minutes": 6, "miles": 1.8, "method": "osrm", "source": "table-work-school", "measured": "2026-11-15" },
     { "id": "parkersburg-centre:parkersburg-city-park", "origin": "parkersburg-centre", "destination": "parkersburg-city-park", "seconds": 399.3, "meters": 3651, "minutes": 7, "miles": 2.3, "method": "osrm", "source": "table-work-school", "measured": "2026-11-15" }
+  ],
+  "walks": [
+    { "id": "frederick:marietta-memorial", "origin": "frederick", "destination": "marietta-memorial", "seconds": 3991.6, "meters": 4990.2, "minutes": 67, "miles": 3.1, "method": "osrm-foot", "source": "walk-frederick", "measured": "2026-11-19" },
+    { "id": "frederick:marietta-college", "origin": "frederick", "destination": "marietta-college", "seconds": 2075.5, "meters": 2594.5, "minutes": 35, "miles": 1.6, "method": "osrm-foot", "source": "walk-frederick", "measured": "2026-11-19" },
+    { "id": "frederick:downtown-marietta", "origin": "frederick", "destination": "downtown-marietta", "seconds": 2664.8, "meters": 3331, "minutes": 45, "miles": 2.1, "method": "osrm-foot", "source": "walk-frederick", "measured": "2026-11-19" },
+    { "id": "frederick:kroger-acme-marietta", "origin": "frederick", "destination": "kroger-acme-marietta", "seconds": 844.8, "meters": 1055.9, "minutes": 15, "miles": 0.7, "method": "osrm-foot", "source": "walk-frederick", "measured": "2026-11-19" }
   ]
 }

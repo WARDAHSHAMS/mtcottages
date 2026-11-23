@@ -11,7 +11,7 @@ const { stay } = Astro.props;
   <div class="site-width">
     <div class="footer-grid">
       <div class="stack">
-        <p class="eyebrow" style="color:#e4b482">Furnished living</p>
+        <p class="eyebrow" style="color:var(--gold)">Furnished living</p>
         <h2>A cottage to come home to.</h2>
         <p class="text-light">Whole furnished homes for work, transition, family, and the chapters that take a little longer.</p>
         <a class="button button--light" href={stay.href}>{stay.label} <span aria-hidden="true">↗</span></a>
@@ -28,7 +28,7 @@ const { stay } = Astro.props;
     <div class="footer-bottom">
       <span>© {new Date().getFullYear()} Mt Cottages</span>
       <span>Marietta · Parkersburg · Ravenswood · Racine</span>
-      <span class="footer-legal"><a href="/privacy.html">Privacy</a> · <a href="/accessibility/">Accessibility</a> · <a href="/contact.html">Contact</a></span>
+      <span class="footer-legal"><a href="/privacy.html">Privacy</a> · <a href="/policies/">Stay policies</a> · <a href="/accessibility/">Accessibility</a> · <a href="/book-safely/">Book safely</a> · <a href="/contact.html">Contact</a></span>
     </div>
   </div>
 </footer>

@@ -25,6 +25,7 @@ import azure.functions as func
 import analytics
 import deep_health
 import intake_notify
+import intake_outcomes
 import managed_identity
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
@@ -75,6 +76,7 @@ DEFAULT_TURNSTILE_HOSTNAMES = "stay.mtcottages.com"
 DEFAULT_TURNSTILE_ACTION = "stay-inquiry"
 MAX_BODY_BYTES = 200_000
 MAX_CONFIG_LIST_BYTES = 4_096
+TURNSTILE_ACCEPT_TEST_KEYS_SETTING = "TURNSTILE_ACCEPT_TEST_KEYS"
 MAX_TURNSTILE_TOKEN_LENGTH = 2_048
 MAX_TURNSTILE_RESPONSE_BYTES = 64 * 1_024
 MAX_TURNSTILE_ERROR_CODES = 4
@@ -145,6 +147,12 @@ REQUIRED_FIELDS = (
 VALID_BOOLEAN_VALUES = frozenset({"yes", "true", "on"})
 
 
+# The brand fonts are self-hosted by the marketing site (public/fonts, #59) and
+# the form loads them from there, so the font bytes live in one place. The files
+# are Latin woff2 only; if the host is unreachable the page keeps its fallbacks.
+FONT_SOURCES = "'self' https://mtcottages.com"
+
+
 def _content_security_policy(script_nonce=None, style_source=None):
     script_sources = "'self' https://challenges.cloudflare.com"
     if script_nonce:
@@ -163,7 +171,7 @@ def _content_security_policy(script_nonce=None, style_source=None):
         "connect-src 'self' https://challenges.cloudflare.com; "
         "frame-src 'self' https://challenges.cloudflare.com; "
         "img-src 'self'; "
-        "font-src 'self'"
+        f"font-src {FONT_SOURCES}"
     )
 
 
@@ -247,7 +255,7 @@ def _cors_headers(origin):
     headers = {
         **SECURITY_HEADERS,
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Accept",
+        "Access-Control-Allow-Headers": "Content-Type, Accept, X-Automated-Browser",
         "Vary": "Origin",
         "Content-Type": "application/json",
     }
@@ -287,6 +295,11 @@ def _deep_health_requested(req):
     return query.get("deep", [""])[0] == "1"
 
 
+def _guest_inquiries():
+    """Deep health's guest-inquiry check (#85): unhealthy when guests were refused or queued and none delivered."""
+    return intake_outcomes.summarise(os.environ.get(analytics.STORAGE_SETTING, ""))
+
+
 def _health_response(req):
     """Liveness, or with ?deep=1 the upstream and queue checks (#16).
 
@@ -296,7 +309,9 @@ def _health_response(req):
     payload = {"status": "ok", "service": "mtcottages-apply-proxy", "commit": BUILD_COMMIT}
     if not _deep_health_requested(req):
         return _response(payload, 200, req.headers.get("Origin", ""))
-    healthy, details = deep_health.cached_evaluate(os.environ, _intake_target)
+    healthy, details = deep_health.cached_evaluate(
+        os.environ, _intake_target, _guest_inquiries, notify=intake_notify.channel_summary
+    )
     payload.update(details)
     if not healthy:
         payload["status"] = "degraded"
@@ -367,6 +382,11 @@ def _turnstile_expected_action():
     if not value or len(value) > 64 or not re.fullmatch(r"[A-Za-z0-9_-]+", value):
         return None
     return value
+
+
+def _turnstile_test_keys_accepted():
+    """True only on the CI synthetic host (#85); deep health fails wherever it is set."""
+    return os.environ.get(TURNSTILE_ACCEPT_TEST_KEYS_SETTING, "").strip().lower() == "true"
 
 
 def _turnstile_is_configured():
@@ -481,13 +501,24 @@ def _verify_turnstile(req, payload):
         logger.warning("Turnstile rejected an inquiry: %s", codes)
         return 400, "Please complete the human verification", f"rejected:{codes}"
 
+    # Cloudflare's published test keys (CI's synthetic submission, #85) answer
+    # with this flag, hostname example.com and no action. Such a result counts
+    # only where TURNSTILE_ACCEPT_TEST_KEYS=true; that setting, like a test key,
+    # fails deep health, so the live host can never run with it.
+    metadata = result.get("metadata")
+    testing_key = isinstance(metadata, dict) and metadata.get("result_with_testing_key") is True
+    if testing_key and not _turnstile_test_keys_accepted():
+        logger.warning("Turnstile rejected an inquiry: testing-key")
+        return 400, "Please complete the human verification", "testing-key"
+
     hostname = _normalize_hostname(result.get("hostname", ""))
     if hostname not in _turnstile_hostnames():
         logger.warning("Turnstile returned an unexpected hostname: %s", hostname or "none")
         return 400, "Please complete the human verification", "hostname-mismatch"
 
     expected_action = _turnstile_expected_action()
-    if expected_action is None or result.get("action") != expected_action:
+    action_matches = result.get("action") == expected_action or (testing_key and "action" not in result)
+    if expected_action is None or not action_matches:
         logger.warning(
             "Turnstile returned an unexpected action: %s",
             _label(result.get("action"), TURNSTILE_ACTION_LABEL_PATTERN),
@@ -792,6 +823,36 @@ def _queue_notifications(notify, submission_id, outbound, delivery, canary=False
 @app.queue_output(arg_name="retry", queue_name=INTAKE_RETRY_QUEUE, connection=INTAKE_QUEUE_CONNECTION)
 @app.queue_output(arg_name="notify", queue_name=intake_notify.NOTIFY_QUEUE, connection=INTAKE_QUEUE_CONNECTION)
 def apply(req: func.HttpRequest, retry: func.Out[str], notify: func.Out[typing.List[str]]) -> func.HttpResponse:
+    response = _apply(req, retry, notify)
+    if req.method == "POST" and _canonical_host(req):
+        _record_guest_outcome(req, response)
+    return response
+
+
+def _record_guest_outcome(req, response):
+    """Keep what a real guest got (status, stage, reason labels only) for deep health's alert (#85).
+
+    Never changes or delays the guest's answer beyond one storage call, and
+    never fails it: a storage problem is logged and the answer goes out.
+    """
+    if not intake_outcomes.is_guest(req.headers, canary=_canary_request(req)):
+        return
+    stage = reason = ""
+    try:
+        body = json.loads(response.get_body() or b"{}")
+        if isinstance(body, dict):
+            stage, reason = str(body.get("stage", "")), str(body.get("reason", ""))
+    except (TypeError, ValueError, UnicodeDecodeError):
+        pass
+    if not 200 <= response.status_code < 300:
+        logger.warning("Guest inquiry refused: %s %s %s", response.status_code, stage or "-", reason or "-")
+    try:
+        intake_outcomes.record(os.environ.get(analytics.STORAGE_SETTING, ""), response.status_code, stage, reason)
+    except analytics.StorageError as error:
+        logger.error("Guest inquiry outcome not recorded: %s", error.reason)
+
+
+def _apply(req, retry, notify):
     origin = req.headers.get("Origin", "").strip()
     if not _canonical_host(req):
         return _response({"success": False, "message": "Not found"}, 404, origin)
@@ -1035,6 +1096,11 @@ def purge_analytics(timer: func.TimerRequest) -> None:
     except analytics.StorageError as error:
         raise RuntimeError(f"analytics retention failed: {error.reason}") from None
     logger.info("Analytics retention deleted %d monthly tables: %s", len(deleted), ", ".join(deleted) or "none")
+    try:
+        deleted = intake_outcomes.purge(os.environ.get(analytics.STORAGE_SETTING, ""))
+    except analytics.StorageError as error:
+        raise RuntimeError(f"guest-inquiry outcome retention failed: {error.reason}") from None
+    logger.info("Guest-inquiry outcome retention deleted %d monthly tables: %s", len(deleted), ", ".join(deleted) or "none")
 
 
 # ---------------------------------------------------------------------------

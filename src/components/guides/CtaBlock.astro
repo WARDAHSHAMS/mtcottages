@@ -29,6 +29,7 @@ const inquiryHref = stayLink({ audience, page: Astro.url.pathname });
     <h3>{heading}</h3>
     <p>{text}</p>
     <a class="button" href={inquiryHref} data-cta="guide">Check dates <span aria-hidden="true">↗</span></a>
+    <p class="gcta-policies"><a href="/policies/">Stay policies: one-month minimum, utilities included</a></p>
   </div>
   {offered.length > 0 && (
     <ul class="gcta-homes">
@@ -41,13 +42,16 @@ const inquiryHref = stayLink({ audience, page: Astro.url.pathname });
 
 <style>
   .gcta { display: grid; gap: 1.25rem; margin: 1.5rem 0; padding: clamp(1.1rem, .7rem + 1.6vw, 1.9rem); border-radius: .9rem; background: var(--accent-deep); color: #fff; }
-  .gcta .eyebrow { color: #e4b482; }
+  .gcta .eyebrow { color: var(--gold); }
   .gcta h3 { margin: .25rem 0 .5rem; color: #fff; }
   .gcta p { color: #f1efe6; }
   .gcta .button { margin-top: .75rem; }
+  .gcta-policies { margin-top: .75rem; font-size: .95rem; }
+  .gcta-policies a { color: #fff; }
+  .gcta-policies a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
   .gcta-homes { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
   .gcta-homes a { display: block; padding: .6rem .8rem; border: 1px solid rgb(255 255 255 / .35); border-radius: var(--radius); color: #fff; text-decoration: none; }
   .gcta-homes a:hover, .gcta-homes a:focus-visible { background: rgb(255 255 255 / .12); text-decoration: underline; }
-  .gcta-homes a:focus-visible { outline: 3px solid #e4b482; outline-offset: 2px; }
+  .gcta-homes a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
   @media (min-width: 760px) { .gcta { grid-template-columns: 1.4fr 1fr; align-items: center; } }
 </style>

@@ -14,8 +14,8 @@
   /* Status badges */
   .hm-badge { display: inline-flex; align-items: center; padding: .15rem .6rem; border: 1px solid transparent; border-radius: 99rem; font-size: .72rem; font-weight: 800; letter-spacing: .02em; line-height: 1.5; white-space: nowrap; }
   .hm-badge--confirmed { background: var(--forest); color: #fff; }
-  .hm-badge--listed { background: var(--forest-soft); border-color: #c4d0c0; color: #2f3b2d; }
-  .hm-badge--photographed { background: #e3ecf6; border-color: #b9cde3; color: #1f3d5c; }
+  .hm-badge--listed { background: var(--forest-soft); border-color: color-mix(in srgb, var(--forest) 28%, var(--forest-soft)); color: var(--forest); }
+  .hm-badge--photographed { background: var(--sun); border-color: var(--line); color: var(--ink); }
   .hm-badge--confirm { background: #fff1d9; border-color: #e3b676; color: #6b3410; }
 
   /* Fact grid */
@@ -46,7 +46,7 @@
   .hm-pill:hover { background: var(--forest-soft); }
   .hm-shots { display: grid; gap: .8rem; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
   .hm-shot { overflow: hidden; border: 1px solid var(--line); border-radius: .8rem; background: var(--paper); }
-  .hm-shot img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: contain; }
+  .hm-shot img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; }
   .hm-shot figcaption { display: grid; gap: .35rem; padding: .7rem .85rem .85rem; color: var(--muted); font-size: .86rem; }
   .hm-ai-label { justify-self: start; padding: .15rem .55rem; border-radius: 99rem; background: #3a2a5c; color: #fff; font-size: .72rem; font-weight: 800; letter-spacing: .03em; }
   .hm-notes { display: grid; gap: .5rem; margin-top: var(--space-2); }
@@ -103,11 +103,11 @@
   .hm-links { display: grid; gap: .5rem; margin-top: .75rem; }
   .hm-links a { display: block; padding: .7rem .9rem; border: 1px solid var(--line); border-radius: .7rem; background: var(--paper); color: var(--forest); font-weight: 700; text-decoration: none; }
   .hm-links a:hover { border-color: var(--forest); background: var(--forest-soft); }
-  .hm-map-static { position: relative; margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: .9rem; aspect-ratio: 16 / 9; background: #e5ebe2; }
+  .hm-map-static { position: relative; margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: .9rem; aspect-ratio: 16 / 9; background: var(--forest-soft); }
   .hm-map-static img { display: block; width: 100%; height: 100%; object-fit: cover; }
-  .hm-map-pin { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -34px 0 0 -17px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); transform-origin: 50% 100%; background: #9a4f2e; border: 3px solid #fffefa; box-shadow: 0 3px 8px rgb(0 0 0 / .35); }
-  .hm-map-pin::after { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: #fffefa; }
-  .hm-map-credit { position: absolute; right: 0; bottom: 0; padding: .2rem .5rem; font-size: .75rem; color: #252525; background: rgb(255 254 250 / .92); border-top-left-radius: .5rem; }
+  .hm-map-pin { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -34px 0 0 -17px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); transform-origin: 50% 100%; background: var(--accent-ink); border: 3px solid var(--paper); box-shadow: 0 3px 8px rgb(0 0 0 / .35); }
+  .hm-map-pin::after { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: var(--paper); }
+  .hm-map-credit { position: absolute; right: 0; bottom: 0; padding: .2rem .5rem; font-size: .75rem; color: var(--ink); background: color-mix(in srgb, var(--paper) 92%, transparent); border-top-left-radius: .5rem; }
   .hm-map-credit a { color: inherit; }
   .hm-map-fallback { padding: 1rem; border: 1px solid var(--line); border-radius: .9rem; }
   .hm-map-frame { display: block; width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--line); border-radius: .9rem; }

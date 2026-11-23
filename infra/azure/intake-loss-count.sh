@@ -29,6 +29,10 @@ SINCE="${INTAKE_LOSS_SINCE:-2026-07-01}"
 WORKSPACE_RG="${INTAKE_LOSS_WORKSPACE_RESOURCE_GROUP:-tli_interest}"
 WORKSPACE_NAME="${INTAKE_LOSS_WORKSPACE_NAME:-TLIMainAnalytics}"
 HOST_NAME="${INTAKE_LOSS_HOST:-stay.mtcottages.com}"
+# A real guest spends time on the form; a form bot loads it and posts within
+# seconds (#85). Below this many seconds since the same client last loaded the
+# form, a browser-looking POST is counted as bot-shaped, not as a guest.
+MIN_DWELL_SECONDS="${INTAKE_LOSS_MIN_DWELL_SECONDS:-20}"
 WORKFLOW="${INTAKE_LOGICAPP_NAME:-mtcottages-intake}"
 RESOURCE_GROUP="${INTAKE_LOGICAPP_RESOURCE_GROUP:-mtcottages}"
 SUBSCRIPTION="${AZURE_FUNCTION_SUBSCRIPTION_ID:-}"
@@ -39,6 +43,9 @@ command -v jq >/dev/null || fail "jq is required"
 command -v az >/dev/null || fail "az is required"
 [ -n "${SUBSCRIPTION}" ] || fail "AZURE_FUNCTION_SUBSCRIPTION_ID is not set"
 date -u -d "${SINCE}" +%F >/dev/null 2>&1 || fail "INTAKE_LOSS_SINCE must be a date (YYYY-MM-DD)"
+case "${MIN_DWELL_SECONDS}" in
+  ''|*[!0-9]*) fail "INTAKE_LOSS_MIN_DWELL_SECONDS must be a whole number of seconds" ;;
+esac
 case "${HOST_NAME}" in
   *[!A-Za-z0-9.-]*|'') fail "INTAKE_LOSS_HOST must be a plain hostname" ;;
 esac
@@ -83,48 +90,92 @@ if [ "${frontdoor_status}" -ne 0 ]; then
 else
   workspace_id="$(jq -r '.customerId' "${WORK}/workspace.json")"
   echo "Front Door log workspace retention: $(jq -r '.retentionInDays // "unknown"' "${WORK}/workspace.json") days"
-  # Only the host is interpolated, and it was checked to be a plain hostname.
-  query="AzureDiagnostics
+  # The Front Door access log does not match its documented column names
+  # (#85): requestUri_s carries the port ("https://stay.mtcottages.com:443/
+  # api/apply"), so a substring match on "host/path" never matches, and the
+  # status is in httpStatusCode_d while httpStatusCode_s is empty. Every query
+  # therefore starts from this one prelude: it parses host and path out of the
+  # URI and reads the status from whichever status column holds it. Only the
+  # host is interpolated, and it was checked to be a plain hostname.
+  #
+  # client (#85): a POST from a browser UA (not headless, not a probe) whose
+  # referrer is the form host is "guest-browser" only when the same client
+  # loaded the form at least MIN_DWELL_SECONDS earlier (within the hour). A
+  # browser-looking POST that came 0-7 s after the page load, or with no page
+  # load at all, is a form bot ("bot-shaped"): every such POST from 2026-10-29
+  # to 2026-11-22 sent no visit beacon and no /api/health warm-up, which the
+  # real form always sends, and the 10 "lost guests" first reported on #85 were
+  # all of this kind. Everything else (the platform's hourly synthetic probe,
+  # CI smoke and e2e, the canary) is "automation". The client IP is used only
+  # inside the query to pair a POST with its page load; no IP, UA or referrer
+  # is printed.
+  prelude="let fd = AzureDiagnostics
+| where Category == 'FrontDoorAccessLog'
+| extend req_host = tostring(parse_url(requestUri_s).Host), path = tostring(parse_url(requestUri_s).Path)
+| where req_host =~ '${HOST_NAME}'
+| extend status = coalesce(toint(column_ifexists('httpStatusCode_d', real(null))), toint(column_ifexists('httpStatusCode_s', '')))
+| extend ua = tostring(column_ifexists('userAgent_s', '')), referrer_host = tostring(parse_url(tostring(column_ifexists('referer_s', ''))).Host)
+| extend browser = ua has 'Mozilla' and not(ua has_any ('HeadlessChrome', 'Playwright', 'intake-synthetic', 'canary')) and referrer_host =~ '${HOST_NAME}';
+let page_loads = fd
+| where httpMethod_s == 'GET' and path in ('', '/', '/index.html')
+| project clientIp_s, page_at = TimeGenerated;
+let applies = fd
+| where path == '/api/apply' and httpMethod_s == 'POST'
+| extend request_id = strcat(tostring(column_ifexists('trackingReference_s', '')), '|', tostring(TimeGenerated))
+| join kind=leftouter page_loads on clientIp_s
+| extend dwell = iff(isnotnull(page_at) and page_at <= TimeGenerated and page_at > TimeGenerated - 1h, datetime_diff('second', TimeGenerated, page_at), long(null))
+| summarize dwell = min(dwell) by request_id, TimeGenerated, status, browser
+| extend client = case(not(browser), 'automation', isnull(dwell) or dwell < ${MIN_DWELL_SECONDS}, 'bot-shaped', 'guest-browser');"
+  query="${prelude}
+applies
 | where TimeGenerated >= datetime(${SINCE})
-| where Category == 'FrontDoorAccessLog'
-| where requestUri_s has '${HOST_NAME}/api/apply' and httpMethod_s == 'POST'
-| summarize attempts = count() by day = format_datetime(bin(TimeGenerated, 1d), 'yyyy-MM-dd'), status = tostring(httpStatusCode_s)
-| order by day asc, status asc"
-  coverage="AzureDiagnostics
-| where Category == 'FrontDoorAccessLog'
-| summarize earliest = min(TimeGenerated), latest = max(TimeGenerated)"
+| summarize attempts = count() by day = format_datetime(bin(TimeGenerated, 1d), 'yyyy-MM-dd'), status = tostring(status), client
+| order by day asc, client asc, status asc"
+  # Coverage on this host, plus how many of its records have no readable
+  # status: a non-zero count means the log schema moved again and every count
+  # below would be wrong, so the job fails instead of reporting it.
+  coverage="${prelude}
+fd
+| summarize earliest = min(TimeGenerated), latest = max(TimeGenerated), records = count(), unreadable_status = countif(isnull(status))"
   if az monitor log-analytics query --workspace "${workspace_id}" --analytics-query "${coverage}" \
        --output json --only-show-errors > "${WORK}/coverage.json" \
      && az monitor log-analytics query --workspace "${workspace_id}" --analytics-query "${query}" \
        --output json --only-show-errors > "${WORK}/attempts.json"; then
-    echo "Front Door access log covers: $(jq -r '.[0] | "\(.earliest // "none") .. \(.latest // "none")"' "${WORK}/coverage.json")"
-    echo "POST /api/apply attempts by day and status:"
-    jq -r '.[] | "  \(.day)  \(.status)  \(.attempts)"' "${WORK}/attempts.json"
-    jq -r '
-      (map(.attempts | tonumber) | add // 0) as $all
-      | (map(select((.status | tonumber? // 0) | . >= 200 and . < 300)) | map(.attempts | tonumber) | add // 0) as $ok
-      | "  total \($all), accepted (2xx) \($ok), not accepted \($all - $ok)"' "${WORK}/attempts.json"
+    echo "Front Door access log for ${HOST_NAME} covers: $(jq -r '.[0] | "\(.earliest // "none") .. \(.latest // "none"), \(.records // 0) records"' "${WORK}/coverage.json")"
+    if [ "$(jq -r '.[0].records // "0"' "${WORK}/coverage.json")" = "0" ]; then
+      frontdoor_status=1
+      echo "Front Door: no access-log records for ${HOST_NAME}; the host filter or the diagnostic setting is wrong, so a zero here would be false." >&2
+    elif [ "$(jq -r '.[0].unreadable_status // "0"' "${WORK}/coverage.json")" != "0" ]; then
+      frontdoor_status=1
+      echo "Front Door: $(jq -r '.[0].unreadable_status' "${WORK}/coverage.json") records have no readable HTTP status; the access-log schema changed." >&2
+    else
+      echo "POST /api/apply attempts by day, client and status:"
+      jq -r '.[] | "  \(.day)  \(.client)  \(.status)  \(.attempts)"' "${WORK}/attempts.json"
+      jq -r '
+        def ok: (.status | tonumber? // 0) as $s | $s >= 200 and $s < 300;
+        def total: map(.attempts | tonumber) | add // 0;
+        (map(select(.client == "guest-browser"))) as $guest
+        | (map(select(.client == "bot-shaped"))) as $bots
+        | "  total \(total), accepted (2xx) \(map(select(ok)) | total), not accepted \(map(select(ok | not)) | total)",
+          "  guest-browser: total \($guest | total), accepted (2xx) \($guest | map(select(ok)) | total), not accepted \($guest | map(select(ok | not)) | total)",
+          "  bot-shaped (browser UA, posted under '"${MIN_DWELL_SECONDS}"' s after loading the form): total \($bots | total)"' "${WORK}/attempts.json"
+    fi
   else
     frontdoor_status=1
     echo "Front Door: the log query failed (needs Log Analytics Reader on ${WORKSPACE_NAME})." >&2
   fi
   # Gateway errors over the last 24 hours on the whole host (#85): a guest who
   # meets a 502 on the form page never reaches /api/apply, so these are counted
-  # by path (query string dropped), status, origin and Front Door's ErrorInfo.
-  gateway="AzureDiagnostics
+  # by path, origin and Front Door's ErrorInfo.
+  gateway="${prelude}
+fd
 | where TimeGenerated >= ago(24h)
-| where Category == 'FrontDoorAccessLog'
-| where requestUri_s has '${HOST_NAME}/'
-| extend path = tostring(parse_url(requestUri_s).Path), status = toint(httpStatusCode_s)
 | summarize requests = count(), gateway_errors = countif(status in (502, 503, 504)) by path, origin = tostring(originName_s)
 | join kind=leftouter (
-    AzureDiagnostics
+    fd
     | where TimeGenerated >= ago(24h)
-    | where Category == 'FrontDoorAccessLog'
-    | where requestUri_s has '${HOST_NAME}/'
-    | where toint(httpStatusCode_s) in (502, 503, 504)
-    | extend path = tostring(parse_url(requestUri_s).Path)
-    | summarize causes = make_bag(bag_pack(strcat(httpStatusCode_s, ' ', tostring(errorInfo_s)), 1)) by path, origin = tostring(originName_s)
+    | where status in (502, 503, 504)
+    | summarize causes = make_bag(bag_pack(strcat(tostring(status), ' ', tostring(errorInfo_s)), 1)) by path, origin = tostring(originName_s)
   ) on path, origin
 | project path, origin, requests, gateway_errors, causes
 | order by gateway_errors desc, requests desc"

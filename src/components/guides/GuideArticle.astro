@@ -51,6 +51,16 @@ const related = cottages.filter((cottage) => article.homeIds.includes(cottage.id
             switch (block.kind) {
               case "p": return <p>{block.text}</p>;
               case "list": return <ul>{block.items.map((item) => <li>{item}</li>)}</ul>;
+              case "places": return (
+                <ul class="garticle-places" data-places>
+                  {block.places.map((place) => (
+                    <li data-place={place.name}>
+                      <a href={place.url} rel="noopener" target="_blank">{place.name}<span class="sr-only"> ({place.via ? `${place.via}, ` : ""}new tab)</span></a>
+                      <span class="garticle-place-kind">{place.kind}{place.via && <> · {place.via}</>}</span>
+                    </li>
+                  ))}
+                </ul>
+              );
               case "chart": return <ChartBlock chart={block.chart} />;
               case "diagram": return <DiagramBlock diagram={block.diagram} />;
               case "cta": return <CtaBlock heading={block.heading} text={block.text} homeIds={article.homeIds} towns={article.towns} audience={audience} />;
@@ -87,6 +97,10 @@ const related = cottages.filter((cottage) => article.homeIds.includes(cottage.id
   .garticle-section { margin-bottom: 2.25rem; scroll-margin-top: 6rem; }
   .garticle-section > p, .garticle-section > ul { margin: .75rem 0; line-height: 1.65; }
   .garticle-section > ul { padding-left: 1.25rem; display: grid; gap: .5rem; }
+  .garticle-places { list-style: none; padding-left: 0 !important; }
+  .garticle-places li { display: flex; flex-wrap: wrap; gap: .15rem .6rem; align-items: baseline; padding: .55rem 0; border-bottom: 1px solid var(--line); }
+  .garticle-places a { font-weight: 600; }
+  .garticle-place-kind { color: var(--muted); font-size: .92rem; }
   .garticle-figure figcaption { margin-top: .5rem; color: var(--muted); font-size: .88rem; }
   .garticle-sources { border-top: 1px solid var(--line); padding-top: 1.25rem; font-size: .92rem; }
   .garticle-sources ul { padding-left: 1.25rem; }

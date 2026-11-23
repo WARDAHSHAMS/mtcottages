@@ -2,6 +2,13 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { test, expect } = require("@playwright/test");
 
+// The form sets html{scroll-behavior:smooth}; Playwright's scroll-into-view then
+// races the animation and a click can land mid-scroll ("element is outside of the
+// viewport", then a click that misses the checkbox). The form honours
+// prefers-reduced-motion, so emulate it. reducedMotion is a context option, not
+// a Playwright Test option (see accessibility.spec.js).
+test.use({ contextOptions: { reducedMotion: "reduce" } });
+
 // #85: the stay form must send a live Turnstile token. Hermetic: the real
 // infra/azure/apply-proxy/index.html is served from disk at the production
 // URL, Cloudflare's api.js is replaced by a stub that issues numbered tokens,

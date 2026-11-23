@@ -29,7 +29,7 @@ const developerCopy = /\bLevel \d\b|\bmicrosite\b|\bpublic (homes?|cottages?|por
 
 const publicPages = [
   "/index.html", "/cottages.html", "/available.html", "/locations.html", "/room-to-settle.html",
-  "/about.html", "/contact.html", "/faq.html", "/cozy-places.html",
+  "/about/", "/contact.html", "/faq.html", "/cozy-places.html",
   "/fully-furnished-homes.html", "/travel-nurses/index.html", "/corporate-housing/index.html",
   "/insurance-housing.html", "/family-stays.html", "/living.html", "/services.html",
   "/home-amenities.html", "/guest-services.html", "/meal-preparation.html", "/property-care.html",
@@ -137,8 +137,9 @@ test("the cottages and locations indexes expose useful property details", async 
   for (const [name, price] of Object.entries(shownPrices)) {
     await expect(page.locator(".property-card").filter({ has: page.locator("h2", { hasText: name }) }).locator(".property-price")).toHaveText(new RegExp(`^\\${price}( guide)?$`));
   }
+  // The August 2026 hand-typed comparison table stays gone; #79's compare table reads the terms data (cottage-browser.spec.js).
   await expect(page.locator(".comparison-table")).toHaveCount(0);
-  await expect(page.getByText("Compare at a glance")).toHaveCount(0);
+  await expect(page.locator(".cottage-compare tbody tr")).toHaveCount(listedHomes.length);
   await expect(page.locator(".property-card").filter({ hasText: "$2,575/month" }).first()).toBeVisible();
   await expect(page.locator(".property-card").filter({ hasText: "$2,295/month" }).first()).toBeVisible();
   await expect(page.locator(".property-card").filter({ hasText: "$1,895/month" }).first()).toBeVisible();
@@ -424,3 +425,21 @@ test("shared links preview as JPEG, same-site links prerender, and Frederick pub
   expect(schemas.find((item) => item["@type"] === "Offer")).toBeUndefined();
   expect(schemas.find((item) => item["@type"] === "BreadcrumbList")).toBeTruthy();
 });
+
+// #91: Astro rendered each photo's fallback src at the source file's full size (a
+// 2400px, 337 KB AVIF on Oak) when no width was given. The fallback must never be
+// wider than the largest candidate the srcset itself offers.
+for (const route of ["/parkersburg/oak-cottage/", "/parkersburg/oak-cottage/tour.html", "/index.html"]) {
+  test(`photo fallbacks on ${route} are no wider than their srcset`, async ({ page }) => {
+    await page.goto(route);
+    const oversized = await page.locator("img[srcset]").evaluateAll((images) =>
+      images.flatMap((image) => {
+        const widths = image.getAttribute("srcset").split(",").map((candidate) => Number.parseInt(candidate.trim().split(/\s+/)[1], 10)).filter(Number.isFinite);
+        const largest = Math.max(...widths);
+        const width = Number.parseInt(image.getAttribute("width"), 10);
+        return widths.length && width > largest ? [`${image.getAttribute("src")}: width ${width} > srcset ${largest}`] : [];
+      }),
+    );
+    expect(oversized).toEqual([]);
+  });
+}

@@ -30,6 +30,10 @@ def _load_function_app():
                 self.headers = headers or {}
                 self.mimetype = mimetype
 
+            def get_body(self):
+                # Like azure.functions.HttpResponse: the body as bytes.
+                return self.body.encode("utf-8") if isinstance(self.body, str) else self.body
+
         class FunctionApp:
             """Records each function in registration order, like the real app's get_functions()."""
 
@@ -392,6 +396,47 @@ def test_a_verified_complete_inquiry_is_delivered(siteverify):
     assert sent["remoteip"] == ["192.0.2.40"]
 
 
+# Cloudflare's siteverify answer for its always-pass test secret (CI synthetic submission, #85).
+TESTING_KEY_RESULT = {"success": True, "hostname": "example.com", "metadata": {"result_with_testing_key": True}}
+
+
+def test_a_testing_key_token_is_refused_unless_test_keys_are_accepted(siteverify, monkeypatch):
+    """The live host never sets the switch, so a test-key token can never pass there."""
+    monkeypatch.delenv("TURNSTILE_ACCEPT_TEST_KEYS", raising=False)
+    monkeypatch.setenv("TURNSTILE_ALLOWED_HOSTNAMES", "stay.mtcottages.com,example.com")
+    siteverify.result = TESTING_KEY_RESULT
+    status, body = _rejection(_apply(_form_request(_valid_payload())))
+    assert status == 400
+    assert (body["stage"], body["reason"]) == ("verification", "testing-key")
+    assert siteverify.intake_calls == []
+
+
+def test_the_synthetic_host_delivers_a_testing_key_token_through_the_same_checks(siteverify, monkeypatch):
+    monkeypatch.setenv("TURNSTILE_ACCEPT_TEST_KEYS", "true")
+    monkeypatch.setenv("TURNSTILE_ALLOWED_HOSTNAMES", "example.com")
+    siteverify.result = TESTING_KEY_RESULT
+    response = _apply(_form_request(_valid_payload()))
+    assert response.status_code == 200
+    assert len(siteverify.intake_calls) == 1
+
+
+@pytest.mark.parametrize(
+    ("result", "reason"),
+    [
+        ({**TESTING_KEY_RESULT, "hostname": "evil.example"}, "hostname-mismatch"),
+        ({**TESTING_KEY_RESULT, "action": "other"}, "action-mismatch"),
+        ({"success": True, "hostname": "example.com"}, "action-mismatch"),
+    ],
+)
+def test_accepting_test_keys_keeps_the_hostname_and_action_checks(siteverify, monkeypatch, result, reason):
+    monkeypatch.setenv("TURNSTILE_ACCEPT_TEST_KEYS", "true")
+    monkeypatch.setenv("TURNSTILE_ALLOWED_HOSTNAMES", "example.com")
+    siteverify.result = result
+    status, body = _rejection(_apply(_form_request(_valid_payload())))
+    assert (status, body["reason"]) == (400, reason)
+    assert siteverify.intake_calls == []
+
+
 def test_form_csp_has_nonce_and_turnstile_sources(monkeypatch):
     monkeypatch.setenv("TURNSTILE_SITE_KEY", "site-key")
     monkeypatch.setenv("TURNSTILE_SECRET_KEY", "secret-key")
@@ -401,10 +446,27 @@ def test_form_csp_has_nonce_and_turnstile_sources(monkeypatch):
     assert "script-src 'self' https://challenges.cloudflare.com 'nonce-" in csp
     assert "connect-src 'self' https://challenges.cloudflare.com" in csp
     assert "frame-src 'self' https://challenges.cloudflare.com" in csp
+    # The brand fonts load from the marketing site's public/fonts (#59).
+    assert "font-src 'self' https://mtcottages.com" in csp
     assert "'unsafe-inline'" not in csp
     nonce = re.search(r'<script nonce="([^"]+)"', response.body).group(1)
     assert f"'nonce-{nonce}'" in csp
     assert "https://challenges.cloudflare.com/turnstile/v0/api.js" in response.body
+
+
+def test_form_fonts_are_the_marketing_sites_self_hosted_files():
+    """The form's @font-face URLs must be files the site publishes and the CSP allows (#59)."""
+    repo = Path(__file__).resolve().parents[4]
+    markup = (repo / "infra" / "azure" / "apply-proxy" / "index.html").read_text(encoding="utf-8")
+    urls = re.findall(r'src:url\("([^"]+\.woff2)"\)', markup)
+    assert len(urls) == 3
+    for url in urls:
+        origin, _, path = url.partition("/fonts/")
+        assert origin == "https://mtcottages.com"
+        assert f"font-src {function_app.FONT_SOURCES}".count(origin) == 1
+        assert (repo / "public" / "fonts" / path).is_file(), f"{path} is not published by the site"
+    assert 'font-family:"Source Serif 4"' in markup
+    assert 'font-family:"Source Sans 3"' in markup
 
 
 def test_missing_site_key_fails_closed_without_fallback_ui(monkeypatch):
@@ -824,15 +886,20 @@ def managed_identity(monkeypatch):
 @pytest.fixture
 def outbound(monkeypatch):
     """Records notification HTTP calls; the managed identity answers with a token."""
-    state = SimpleNamespace(calls=[], answer=lambda: CallbackResponse(status=202, body=b"{}"))
+    state = SimpleNamespace(calls=[], identity_resources=[], answer=lambda: CallbackResponse(status=202, body=b"{}"))
+    function_app.intake_notify.reset_token_cache()
 
     def urlopen(request, timeout):
         if "/msi/token" in request.full_url:
+            query = urllib.parse.parse_qs(urllib.parse.urlsplit(request.full_url).query)
+            state.identity_resources.extend(query.get("resource", []))
             return CallbackResponse(body=json.dumps({"access_token": "token-value", "expires_on": "4102444800"}).encode())
+        content_type = dict(request.header_items()).get("Content-type", "")
+        text = request.data.decode("utf-8")
         state.calls.append({
             "url": request.full_url,
             "headers": dict(request.header_items()),
-            "body": json.loads(request.data.decode("utf-8")),
+            "body": dict(urllib.parse.parse_qsl(text)) if "form-urlencoded" in content_type else json.loads(text),
             "timeout": timeout,
         })
         result = state.answer()
@@ -858,6 +925,111 @@ def test_staff_email_goes_through_acs_with_the_guest_as_reply_to(notifications, 
     assert body["content"]["subject"].startswith("New stay inquiry: Ada Lovelace")
     assert "555-555-1212" in body["content"]["plainText"]
     assert body["userEngagementTrackingDisabled"] is True
+
+
+GRAPH_TENANT = "00000000-0000-4000-8000-0000000000aa"
+GRAPH_CLIENT = "00000000-0000-4000-8000-0000000000bb"
+
+
+@pytest.fixture
+def graph_mail(monkeypatch):
+    """Graph sendMail from the owner's mailbox (#93); the token endpoint answers first, then Graph."""
+    monkeypatch.setenv("GRAPH_MAIL_TENANT_ID", GRAPH_TENANT)
+    monkeypatch.setenv("GRAPH_MAIL_CLIENT_ID", GRAPH_CLIENT)
+    monkeypatch.setenv("GRAPH_MAIL_SENDER", "owner@mailbox.example.com")
+    monkeypatch.setenv("STAFF_ALERT_RECIPIENTS", "stay@mtcottages.com")
+
+
+def _graph_answers(outbound, *answers):
+    pending = iter(answers)
+    outbound.answer = lambda: next(pending)
+
+
+def _token_answer(token="graph-token", expires_in=3599):
+    return CallbackResponse(status=200, body=json.dumps({"access_token": token, "expires_in": expires_in}).encode())
+
+
+def test_staff_email_goes_through_graph_from_the_owner_mailbox(notifications, graph_mail, managed_identity, outbound):
+    _graph_answers(outbound, _token_answer(), CallbackResponse(status=202, body=b""))
+    function_app.send_intake_notification(_notify_message("staff-email"))
+    token_call, send_call = outbound.calls
+    # The managed identity's token is the app's federated credential: no secret anywhere.
+    assert outbound.identity_resources == ["api://AzureADTokenExchange"]
+    assert token_call["url"] == f"https://login.microsoftonline.com/{GRAPH_TENANT}/oauth2/v2.0/token"
+    assert token_call["body"] == {
+        "client_id": GRAPH_CLIENT,
+        "scope": "https://graph.microsoft.com/.default",
+        "grant_type": "client_credentials",
+        "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+        "client_assertion": "token-value",
+    }
+    assert send_call["url"] == "https://graph.microsoft.com/v1.0/users/owner@mailbox.example.com/sendMail"
+    assert send_call["headers"]["Authorization"] == "Bearer graph-token"
+    message = send_call["body"]["message"]
+    assert message["toRecipients"] == [{"emailAddress": {"address": "stay@mtcottages.com"}}]
+    assert message["replyTo"] == [{"emailAddress": {"address": "ada@example.com"}}]
+    assert message["subject"].startswith("New stay inquiry: Ada Lovelace")
+    assert message["body"]["contentType"] == "HTML" and "555-555-1212" in message["body"]["content"]
+    assert message["internetMessageHeaders"] == [{"name": "X-MtC-Submission-Id", "value": SUBMISSION_ID}]
+    assert send_call["body"]["saveToSentItems"] is False
+
+
+def test_graph_alone_is_enough_to_queue_the_staff_alert(graph_mail):
+    assert function_app.intake_notify.configured_channels() == ["staff-email"]
+    assert function_app.intake_notify.channel_summary() == {"staff-email": "graph", "teams": "off", "guest-email": "off"}
+
+
+def test_the_graph_token_is_reused_until_it_nears_expiry(graph_mail, managed_identity, outbound):
+    _graph_answers(
+        outbound, _token_answer(), CallbackResponse(status=202, body=b""), CallbackResponse(status=202, body=b"")
+    )
+    function_app.send_intake_notification(_notify_message("staff-email"))
+    function_app.send_intake_notification(_notify_message("staff-email"))
+    assert [call["url"].rsplit("/", 1)[-1] for call in outbound.calls] == ["token", "sendMail", "sendMail"]
+
+
+def test_a_refused_graph_token_is_retried_and_logs_only_the_error_label(graph_mail, managed_identity, outbound):
+    refusal = urllib.error.HTTPError(
+        "u", 401, "Unauthorized", {},
+        io.BytesIO(b'{"error": "invalid_client", "error_description": "AADSTS700213: subject sig=private"}'),
+    )
+    _graph_answers(outbound, refusal)
+    with pytest.raises(RuntimeError) as raised:
+        function_app.send_intake_notification(_notify_message("staff-email"))
+    assert "Graph token answered HTTP 401 invalid_client" in str(raised.value)
+    assert "AADSTS" not in str(raised.value) and "private" not in str(raised.value)
+    assert len(outbound.calls) == 1
+
+
+def test_a_graph_send_failure_is_retried(graph_mail, managed_identity, outbound):
+    _graph_answers(outbound, _token_answer(), urllib.error.HTTPError("u", 503, "Unavailable", {}, io.BytesIO(b"")))
+    with pytest.raises(RuntimeError, match="Graph sendMail answered HTTP 503"):
+        function_app.send_intake_notification(_notify_message("staff-email"))
+
+
+def test_graph_without_a_managed_identity_is_a_config_error(graph_mail, outbound, monkeypatch):
+    monkeypatch.delenv("IDENTITY_ENDPOINT", raising=False)
+    function_app.managed_identity.reset_cache()
+    with pytest.raises(RuntimeError, match="managed identity is not available"):
+        function_app.send_intake_notification(_notify_message("staff-email"))
+    assert outbound.calls == []
+
+
+@pytest.mark.parametrize(
+    ("setting", "value", "transport"),
+    [
+        ("GRAPH_MAIL_API_ENDPOINT", "http://127.0.0.1:7071/__graph", "graph"),
+        ("GRAPH_MAIL_LOGIN_ENDPOINT", "http://localhost:7071/__login", "graph"),
+        ("GRAPH_MAIL_API_ENDPOINT", "https://graph.example.com", ""),
+        ("GRAPH_MAIL_LOGIN_ENDPOINT", "http://login.example.com", ""),
+        ("GRAPH_MAIL_LOGIN_ENDPOINT", "http://user:pass@127.0.0.1:7071", ""),
+        ("GRAPH_MAIL_TENANT_ID", "taomgt.onmicrosoft.com", ""),
+        ("GRAPH_MAIL_SENDER", "not an address", ""),
+    ],
+)
+def test_graph_endpoints_are_the_real_ones_or_loopback_only(graph_mail, monkeypatch, setting, value, transport):
+    monkeypatch.setenv(setting, value)
+    assert function_app.intake_notify.staff_transport() == transport
 
 
 def test_retried_email_reuses_its_repeatability_id(notifications, managed_identity, outbound):
@@ -937,6 +1109,10 @@ def deep(monkeypatch):
     monkeypatch.setenv("TURNSTILE_SITE_KEY", "0x4AAAAAAAsite-key")
     monkeypatch.setenv("TURNSTILE_SECRET_KEY", "0x4AAAAAAAsecret-key")
     monkeypatch.setenv("LOGICAPP_URL_APPLICATION", "https://logic.example.test/callback?sig=secret")
+    monkeypatch.setenv("STAFF_ALERT_RECIPIENTS", "stay@mtcottages.com")
+    monkeypatch.setenv("GRAPH_MAIL_TENANT_ID", "00000000-0000-4000-8000-0000000000aa")
+    monkeypatch.setenv("GRAPH_MAIL_CLIENT_ID", "00000000-0000-4000-8000-0000000000bb")
+    monkeypatch.setenv("GRAPH_MAIL_SENDER", "owner@mailbox.example.com")
     monkeypatch.setenv(
         "AzureWebJobsStorage",
         f"DefaultEndpointsProtocol=https;AccountName=mtcproxy;AccountKey={STORAGE_KEY};EndpointSuffix=core.windows.net",
@@ -1013,6 +1189,19 @@ def test_deep_health_fails_when_the_logic_app_rejects_the_proxy(deep, answer, la
     assert body["upstream"]["LOGICAPP_URL_APPLICATION"] == label
 
 
+def test_deep_health_reports_how_staff_hear_of_an_inquiry(deep):
+    response, body = _health()
+    assert response.status_code == 200
+    assert body["notify"] == {"staff-email": "graph", "teams": "off", "guest-email": "off"}
+
+
+def test_deep_health_fails_when_no_person_is_told_about_an_inquiry(deep, monkeypatch):
+    monkeypatch.delenv("STAFF_ALERT_RECIPIENTS")
+    response, body = _health()
+    assert response.status_code == 503
+    assert body["notify"] == {"staff-email": "off", "teams": "off", "guest-email": "off"}
+
+
 def test_deep_health_without_a_trigger_url_is_not_configured(deep, monkeypatch):
     monkeypatch.delenv("LOGICAPP_URL_APPLICATION")
     response, body = _health()
@@ -1058,6 +1247,13 @@ def test_a_turnstile_test_key_or_missing_value_fails_deep_health(deep, monkeypat
     assert response.status_code == 503
     assert body["turnstile"] == label
     assert value not in response.body or not value
+
+
+def test_the_test_key_switch_fails_deep_health(deep, monkeypatch):
+    monkeypatch.setenv("TURNSTILE_ACCEPT_TEST_KEYS", "true")
+    response, body = _health()
+    assert response.status_code == 503
+    assert body["turnstile"] == "test_key"
 
 
 def test_production_turnstile_keys_pass_deep_health(deep):
@@ -1143,6 +1339,22 @@ def test_run_history_does_not_keep_lead_data():
         ["actions"]["Create_D365_Applicant_Lead"]
     )
     assert sorted(lead["runtimeConfiguration"]["secureData"]["properties"]) == ["inputs", "outputs"]
+
+
+def test_d365_dataset_is_the_connector_unique_name_not_the_hostname():
+    """#85: the Dynamics connector names an org by its unique name (``org8a977f45.crm``).
+
+    ``dream.crm`` is the org's URL name. The connector answered 404 NotFound to it
+    on every lead create, so no inquiry ever reached Dynamics. The live connector
+    check runs in ``intake-logicapp.sh``; this one keeps git from regressing.
+    """
+    azure_dir = FUNCTION_PATH.parents[1]
+    definition = json.loads((azure_dir / "mtcottages-intake.definition.json").read_text(encoding="utf-8"))
+    parameters = json.loads((azure_dir / "mtcottages-intake.parameters.json").read_text(encoding="utf-8"))
+    for name in ("d365Organization", "d365BusinessUnitName"):
+        assert parameters[name]["value"] == definition["parameters"][name]["defaultValue"], name
+    assert re.fullmatch(r"org[0-9a-f]{8}\.crm[0-9]*", parameters["d365Organization"]["value"])
+    assert parameters["d365BusinessUnitName"]["value"] == "World Enterprise"
 
 
 # ---------------------------------------------------------------------------
@@ -1327,7 +1539,13 @@ def test_real_inquiries_take_the_sales_path_only_after_the_canary_route():
     actions = _owner_team_actions()
     real = actions["Create_D365_Applicant_Lead"]
     assert real["runAfter"] == {"Route_Canary": ["Succeeded"]}
-    assert real["inputs"]["body"]["ownerid@odata.bind"].startswith("@{concat('/teams(")
+    # The connector binds the owner through its own columns; a Web API
+    # `ownerid@odata.bind` key is outside its schema and fails every create
+    # with "A value must be provided for item." (#85).
+    body = real["inputs"]["body"]
+    assert body["_ownerid_type"] == "teams"
+    assert body["_ownerid_value"] == "@{first(body('Find_MtCottages_Owner_Team')?['value'])?['teamid']}"
+    assert not any("@odata" in key for key in body)
     assert "canary" not in json.dumps(real["inputs"]).lower()
     assert "Delete_Canary_Lead" not in actions
     # Nothing outside the canary branch deletes a lead.

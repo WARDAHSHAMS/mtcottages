@@ -7,6 +7,7 @@ Mt Cottages is a guest-facing furnished-stay site for the Mid-Ohio Valley. The p
 - Public pages live in `src/pages`; preserve the existing `.html` URLs through `build.format: "preserve"`.
 - Shared layout, navigation, photo, property-card, guide, gallery, and detail components live in `src/components` and `src/layouts`. The canonical inquiry form lives in `infra/azure/apply-proxy/index.html`.
 - Curated public photos are imported from `assets/images/cottages/<house-id>` and are emitted through `astro:assets` as AVIF/WebP with JPG fallbacks, dimensions, `srcset`, and loading metadata.
+- The brand is option A, "River & Brick" (#59): the colour, shape and heading tokens in `src/styles/site.css` mirror `docs/marketing/brand-options/options.json` (`scripts/tests/brand-applied.test.mjs` fails on drift). Fonts are self-hosted Latin woff2 in `public/fonts`, copied from the Fontsource packages by `npm run fonts` (`npm run check` fails when they differ); the stay form host loads the same files from `https://mtcottages.com/fonts/`. Never load fonts from a CDN, and never change the logo SVG.
 - Keep production free of jQuery, Bootstrap, Modernizr, legacy sliders, old theme CSS, and unused copied runtime assets. Native HTML and CSS are the default.
 - The `infra/azure/apply-proxy` application host is the only application surface. The marketing site emits no `/apply.html` route; keep the stay form’s fields aligned with the Logic App trigger.
 

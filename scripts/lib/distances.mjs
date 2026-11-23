@@ -1,5 +1,6 @@
 // Schema and freshness rules for _data/distances.json, the measured drive
-// times behind every proximity claim (WorldEnterpriseGroup/mtcottages#25, #26).
+// times behind every proximity claim (WorldEnterpriseGroup/mtcottages#25, #26),
+// and the measured walking routes the town landing pages show (`walks`).
 //
 // One validator, three callers:
 //   scripts/check-claims.mjs          the CI gate (GitLab site-check, GitHub static-checks)
@@ -140,17 +141,43 @@ export function validateDistances(data, { today = new Date() } = {}) {
     }
   }
 
+  checkRows(data.rows, "row", { origins, destinations, sources, today, errors });
+  // Walking routes (town landing pages): the same shape and rules as the drive
+  // rows, kept in their own list so a walk is never drawn in a drive table or chart.
+  if (data.walks !== undefined) {
+    if (Array.isArray(data.walks)) checkRows(data.walks, "walk", { origins, destinations, sources, today, errors });
+    else errors.push("distances.json walks must be an array");
+  }
+
+  // Every microsite origin needs something to show.
+  for (const [id, originId] of Object.entries(data.microsites)) {
+    if (!data.rows.some((row) => isObject(row) && row.origin === originId)) errors.push(`microsite ${id}: origin ${originId} has no measured rows`);
+  }
+
+  return errors;
+}
+
+/**
+ * Checks one list of measured routes (`rows` or `walks`), appending to `errors`.
+ * @param {unknown[]} list
+ * @param {"row" | "walk"} kind
+ * @param {{ origins: Record<string, unknown>, destinations: Record<string, unknown>, sources: Record<string, unknown>, today: Date, errors: string[] }} context
+ */
+function checkRows(list, kind, { origins, destinations, sources, today, errors }) {
   const seen = new Set();
-  for (const row of data.rows) {
+  for (const row of list) {
     if (!isObject(row)) {
-      errors.push("row: must be an object");
+      errors.push(`${kind}: must be an object`);
       continue;
     }
-    const where = `row ${row.id ?? "(no id)"}`;
+    const where = `${kind} ${row.id ?? "(no id)"}`;
     if (row.id !== `${row.origin}:${row.destination}`) errors.push(`${where}: id must be "<origin>:<destination>"`);
     if (seen.has(row.id)) errors.push(`${where}: duplicate id`);
     seen.add(row.id);
     if (!origins[row.origin]) errors.push(`${where}: unknown origin ${row.origin}`);
+    else if (kind === "walk" && /** @type {{ kind?: string }} */ (origins[row.origin]).kind !== "address") {
+      errors.push(`${where}: a walking route needs an approved street-address origin; a town centre is not where anyone lives`);
+    }
     if (!destinations[row.destination]) errors.push(`${where}: unknown destination ${row.destination}`);
     if (!isText(row.method)) errors.push(`${where}: method is missing`);
     if (typeof row.source !== "string" || !Object.hasOwn(sources, row.source)) errors.push(`${where}: source ${row.source} is not listed under sources`);
@@ -167,11 +194,4 @@ export function validateDistances(data, { today = new Date() } = {}) {
     else if (age < 0) errors.push(`${where}: measured ${row.measured} is in the future`);
     else if (age > MAX_AGE_DAYS) errors.push(`${where}: measured ${row.measured} is older than 12 months; re-measure it`);
   }
-
-  // Every microsite origin needs something to show.
-  for (const [id, originId] of Object.entries(data.microsites)) {
-    if (!data.rows.some((row) => isObject(row) && row.origin === originId)) errors.push(`microsite ${id}: origin ${originId} has no measured rows`);
-  }
-
-  return errors;
 }

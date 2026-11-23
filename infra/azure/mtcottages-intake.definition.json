@@ -8,11 +8,11 @@
     },
     "d365Organization": {
       "type": "String",
-      "defaultValue": "dream.crm"
+      "defaultValue": "org8a977f45.crm"
     },
     "d365BusinessUnitName": {
       "type": "String",
-      "defaultValue": "MtCottages"
+      "defaultValue": "World Enterprise"
     }
   },
   "triggers": {
@@ -312,7 +312,8 @@
                   "mobilephone": "@triggerBody()?['phone']",
                   "msdyn_gdproptout": false,
                   "new_goals": "@triggerBody()?['message']",
-                  "ownerid@odata.bind": "@{concat('/teams(', first(body('Find_MtCottages_Owner_Team')?['value'])?['teamid'], ')')}",
+                  "_ownerid_type": "teams",
+                  "_ownerid_value": "@{first(body('Find_MtCottages_Owner_Team')?['value'])?['teamid']}",
                   "subject": "@{concat('Mt Cottages — ', triggerBody()?['stayType'], ' — ', triggerBody()?['preferredLocation'], ' — ', triggerBody()?['firstName'], ' ', triggerBody()?['lastName'])}",
                   "telephone1": "@triggerBody()?['phone']"
                 }

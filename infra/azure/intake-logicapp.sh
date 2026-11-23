@@ -121,6 +121,42 @@ compare() {
   return "${drifted}"
 }
 
+# The Dynamics target the git parameters name must be reachable through the
+# bound connection, or every lead create fails (#85: `dream.crm`, the org's URL
+# name, answered 404 NotFound; the connector wants the unique name). Asks the
+# connector itself, read-only: is the org listed, and does the business unit
+# have a default owner team. Prints labels and counts only.
+connector_get() {
+  local connection="$1" path="$2" queries="$3"
+  jq -n --arg path "${path}" --argjson queries "${queries}" \
+    '{request: {method: "GET", path: $path, queries: $queries}}' > "${WORK}/invoke.json"
+  az rest --method post --url "https://management.azure.com${connection}/dynamicInvoke?api-version=2016-06-01" \
+    --body "@${WORK}/invoke.json" --output json --only-show-errors \
+    || fail "dynamicInvoke on the D365 connection failed (does the identity hold Logic App Contributor on it?)"
+}
+check_d365_target() {
+  local connection org unit unit_id teams
+  connection="$(jq -r '."$connections".value.dynamicscrmonline.connectionId // empty' "${PARAMETERS}")"
+  org="$(jq -r '.d365Organization.value // empty' "${PARAMETERS}")"
+  unit="$(jq -r '.d365BusinessUnitName.value // empty' "${PARAMETERS}")"
+  [ -n "${connection}" ] && [ -n "${org}" ] && [ -n "${unit}" ] \
+    || fail "parameters need \$connections.dynamicscrmonline, d365Organization and d365BusinessUnitName"
+  connector_get "${connection}" "/datasets" '{}' > "${WORK}/datasets.json"
+  jq -e --arg org "${org}" '[.response.body.value[]?.Name] | index($org) != null' "${WORK}/datasets.json" >/dev/null \
+    || fail "D365 org '${org}' is not visible to the bound connection; it lists: $(jq -r '[.response.body.value[]?.Name] | join(", ")' "${WORK}/datasets.json")"
+  connector_get "${connection}" "/datasets/${org}/tables/businessunits/items" \
+    "$(jq -n --arg u "${unit}" '{"$filter": "name eq '\''\($u)'\''", "$top": "1"}')" > "${WORK}/unit.json"
+  unit_id="$(jq -r '.response.body.value[0].businessunitid // empty' "${WORK}/unit.json")"
+  [ -n "${unit_id}" ] || fail "D365 business unit '${unit}' not found in '${org}' (connector status $(jq -r '.response.statusCode' "${WORK}/unit.json"))"
+  connector_get "${connection}" "/datasets/${org}/tables/teams/items" \
+    "$(jq -n --arg id "${unit_id}" '{"$filter": "_businessunitid_value eq \($id) and isdefault eq true", "$top": "1"}')" > "${WORK}/team.json"
+  teams="$(jq '.response.body.value | length' "${WORK}/team.json")"
+  [ "${teams}" -ge 1 ] || fail "D365 business unit '${unit}' has no default owner team"
+  echo "OK: D365 org '${org}' is visible to the connection; business unit '${unit}' has a default owner team"
+}
+
+check_d365_target
+
 get_live "${WORK}/live.json"
 echo "Live: ${RESOURCE_GROUP}/${WORKFLOW} state=$(jq -r '.properties.state' "${WORK}/live.json") changed=$(jq -r '.properties.changedTime' "${WORK}/live.json")"
 

@@ -33,9 +33,9 @@ const attempts = Number(process.env.LH_ATTEMPTS || 3);
 
 /**
  * The town landing (money) pages from Growth M1 (#24, #28) and the travel-nurse
- * hub with its hospital landing (#29, #33), the corporate and crew hub (#34) and the accessibility statement (#75) are gated alongside the microsites.
+ * hub with its hospital landing (#29, #33), the corporate and crew hub (#34), the accessibility statement (#75) and the book-safely page (#62) are gated alongside the microsites.
  */
-const townLandingPages = ["/parkersburg/index.html", "/marietta/index.html", "/travel-nurses/", "/travel-nurses/memorial-health-marietta/", "/corporate-housing/", "/accessibility/"];
+const townLandingPages = ["/parkersburg/index.html", "/marietta/index.html", "/travel-nurses/", "/travel-nurses/memorial-health-marietta/", "/corporate-housing/", "/accessibility/", "/book-safely/"];
 
 /** Microsite roots are the sitemap's two-level directory URLs with a tour page, e.g. /marietta/frederick/. */
 async function micrositePages() {
@@ -92,6 +92,11 @@ try {
       const scores = Object.fromEntries(Object.entries(result.lhr.categories).map(([id, category]) => [id, category.score]));
       const lcp = result.lhr.audits["largest-contentful-paint"]?.displayValue ?? "n/a";
       const cls = result.lhr.audits["cumulative-layout-shift"]?.displayValue ?? "n/a";
+      // Name what moved when a page shifts, so a CLS regression is a one-run diagnosis.
+      const shifted = result.lhr.audits["layout-shift-elements"]?.details?.items ?? [];
+      if (Number.parseFloat(cls) > 0.05 && shifted.length > 0) {
+        console.log(`  layout shift on ${route}: ${shifted.map((item) => `${item.node?.selector ?? "?"} (${(item.score ?? 0).toFixed(3)})`).join(", ")}`);
+      }
       const ok = Object.entries(thresholds).every(([id, min]) => scores[id] >= min);
       const total = Object.values(scores).reduce((sum, score) => sum + (score ?? 0), 0);
       if (!best || ok || total > best.total) best = { scores, lcp, cls, ok, total };

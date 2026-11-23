@@ -1,0 +1,46 @@
+---
+import { formatMonth, reviewsFor } from "../../data/reviews";
+import type { HomeMicrosite } from "../../data/homes/types";
+
+// Consented guest reviews for one home (#61). Renders nothing at all when the
+// home has none: no heading, no placeholder, no "be the first" prompt.
+interface Props { home: HomeMicrosite }
+const { home } = Astro.props as Props;
+const reviews = reviewsFor(home.id);
+---
+
+{reviews.length > 0 && (
+  <section class="section" aria-labelledby="guest-reviews-title" data-guest-reviews={home.id}>
+    <div class="site-width">
+      <div class="section-heading reveal">
+        <div><p class="eyebrow">Guests</p><h2 id="guest-reviews-title">In their words.</h2></div>
+        <p>Shared with each guest's written permission and printed as they wrote it. We never pay for reviews, and we publish every one a guest lets us share.</p>
+      </div>
+      <ul class="gr-list stagger">
+        {reviews.map((review) => (
+          <li class="gr-item reveal" data-guest-review={review.id}>
+            <figure>
+              <blockquote><p>{review.text}</p></blockquote>
+              <figcaption>
+                <span class="gr-who">{review.firstName}, {review.hometown}</span>
+                <span class="gr-when">Stayed until {formatMonth(review.stayEnded)}{review.source === "google" ? " · also posted on Google" : ""}</span>
+              </figcaption>
+            </figure>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+)}
+
+<style>
+  .gr-list { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); margin: 0; padding: 0; list-style: none; }
+  .gr-item figure { display: grid; gap: .8rem; height: 100%; margin: 0; padding: 1.2rem; background: var(--canvas); border-radius: .8rem; }
+  .gr-item blockquote { margin: 0; color: var(--ink); font-size: 1.02rem; line-height: 1.55; }
+  .gr-item blockquote p::before { content: "“"; }
+  .gr-item blockquote p::after { content: "”"; }
+  .gr-item figcaption { display: grid; gap: .15rem; align-self: end; }
+  .gr-who { color: var(--forest); font-weight: 700; }
+  .gr-when { color: var(--muted); font-size: .86rem; }
+  @media (forced-colors: active) { .gr-item figure { border: 1px solid CanvasText; } }
+</style>

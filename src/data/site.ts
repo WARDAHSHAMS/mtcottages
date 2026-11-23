@@ -410,13 +410,13 @@ export const locationData: Record<string, Guide & { town: string; cottages?: Cot
 export const navGroups = [
   { label: "Cottages", href: "cottages.html", items: [["Find your place", "cottages.html"], ["Available now", "available.html"], ["Cozy places", "cozy-places.html"], ["Room to settle in", "room-to-settle.html"]] },
   { label: "Locations", href: "locations.html", items: [["Marietta", "marietta/index.html"], ["Parkersburg", "parkersburg/index.html"], ["Ravenswood", "ravenswood/index.html"], ["Racine", "racine/index.html"], ["Grantsville", "grantsville/index.html"]] },
-  { label: "Living", href: "living.html", items: [["Travel nurses", "travel-nurses/"], ["Corporate & crew housing", "corporate-housing/"], ["Insurance housing", "insurance-housing.html"], ["Family stays", "family-stays.html"], ["Area guides", "guides/"]] },
+  { label: "Living", href: "living.html", items: [["Travel nurses", "travel-nurses/"], ["Corporate & crew housing", "corporate-housing/"], ["Insurance housing", "insurance-housing.html"], ["Family stays", "family-stays.html"], ["Long-term stays", "stays/long-term/"], ["Area guides", "guides/"]] },
   { label: "Services", href: "services.html", items: [["Fully furnished homes", "fully-furnished-homes.html"], ["Home amenities", "home-amenities.html"], ["Guest services", "guest-services.html"], ["Property care", "property-care.html"]] },
   { label: "Residents", href: "residents.html", items: [["Resident portal", "resident-portal.html"], ["Pay rent", "pay-rent.html"], ["Maintenance", "maintenance.html"], ["Emergency maintenance", "emergency-maintenance.html"]] },
 ];
 
 export const routePaths = [
-  "about.html", "available.html", "contact.html", "cottages.html", "cozy-places.html", "emergency-maintenance.html", "family-stays.html", "faq.html", "fully-furnished-homes.html", "guest-services.html", "home-amenities.html", "housekeeping.html", "insurance-housing.html", "living.html", "locations.html", "maintenance.html", "meal-preparation.html", "partnerships.html", "pay-rent.html", "privacy.html", "property-care.html", "resident-portal.html", "residents.html", "room-to-settle.html", "services.html",
+  "available.html", "contact.html", "cottages.html", "cozy-places.html", "emergency-maintenance.html", "family-stays.html", "faq.html", "fully-furnished-homes.html", "guest-services.html", "home-amenities.html", "housekeeping.html", "insurance-housing.html", "living.html", "locations.html", "maintenance.html", "meal-preparation.html", "partnerships.html", "pay-rent.html", "privacy.html", "property-care.html", "resident-portal.html", "residents.html", "room-to-settle.html", "services.html",
 ];
 
 // Homes that are not listed (CEO decision 2026-11-14: Yellow is not ready and
