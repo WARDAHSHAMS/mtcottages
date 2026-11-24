@@ -247,18 +247,34 @@ export const oakHome: HomeMicrosite = {
       {
         name: "Illustrative layout",
         rooms: [
-          { id: "porch", label: "Covered porch", kind: "porch", x: 0, y: 0, w: 24, h: 8 },
-          { id: "bed3", label: "Bedroom three", kind: "bedroom", x: 0, y: 8, w: 12, h: 12 },
-          { id: "hall", label: "Hall", kind: "hall", x: 12, y: 8, w: 4, h: 12 },
-          { id: "bed1", label: "Bedroom one", kind: "bedroom", x: 16, y: 8, w: 12, h: 12 },
-          { id: "bed2", label: "Bedroom two", kind: "bedroom", x: 0, y: 20, w: 12, h: 12 },
-          { id: "bath", label: "Bathroom", kind: "bath", x: 12, y: 20, w: 8, h: 10 },
-          { id: "kitchen", label: "Kitchen", kind: "kitchen", x: 20, y: 20, w: 10, h: 12 },
-          { id: "dining", label: "Dining room", kind: "dining", x: 30, y: 20, w: 10, h: 12 },
+          // Studio centred at top
+          { id: "studio",  label: "Studio",      kind: "bedroom", x: 3,  y: 0,  w: 12, h: 10 },
+
+          // Middle band — left side: Bath 37SF, Laundry 26SF
+          { id: "bath1",   label: "Bath",         kind: "bath",    x: 0,  y: 10, w: 5,  h: 7  },
+          { id: "laundry", label: "Laundry",      kind: "laundry", x: 5,  y: 10, w: 3,  h: 7  },
+
+          // Middle band — right side: Bath 67SF takes the WHOLE right block (x 8–18, y 10–20)
+          { id: "bath2",   label: "Bath",         kind: "bath",    x: 8,  y: 10, w: 10, h: 10 },
+
+          // Left column — Kitchen 120SF below Bath+Laundry (x 0–8, y 17–28)
+          { id: "kitchen", label: "Kitchen",      kind: "kitchen", x: 0,  y: 17, w: 8,  h: 11 },
+
+          // Right column — 2 bedrooms stacked horizontally (split with horizontal line)
+          // Bedroom 99SF on top (x 8–18, y 20–29)
+          { id: "bed1",    label: "Bedroom",      kind: "bedroom", x: 8,  y: 20, w: 10, h: 9  },
+          // Bedroom 137SF on bottom (x 8–18, y 29–39)
+          { id: "bed2",    label: "Bedroom",      kind: "bedroom", x: 8,  y: 29, w: 10, h: 10 },
+
+          // Bottom-left — Living Room 116SF (x 0–8, y 28–39)
+          { id: "living",  label: "Living Room",  kind: "living",  x: 0,  y: 28, w: 8,  h: 11 },
+
+          // Porch 32SF — below Living Room (x 0–8, y 39–43)
+          { id: "porch",   label: "Porch",        kind: "porch",   x: 0,  y: 39, w: 8,  h: 4  },
         ],
       },
     ],
-    note: "Illustrative concept only, not a measured plan. It uses the rooms shown in the photos, and the arrangement, sizes, and number of floors are guesses until confirmed. Only the kitchen opening onto the dining room is taken from a photo. A living room, laundry, and any upstairs space are not shown.",
+    note: "Illustrative concept only, not a measured plan. Room labels and approximate sizes are taken from the colour-coded floor-plan drawing (808 sq ft total). Exact dimensions, door positions and closets are not confirmed.",
   },
   concepts: [
     {
