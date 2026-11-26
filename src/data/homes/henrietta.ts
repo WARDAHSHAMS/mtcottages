@@ -9,11 +9,15 @@ import p31 from "../../../assets/images/cottages/ravenswood-03/photo-31.avif";
 import p36 from "../../../assets/images/cottages/ravenswood-03/photo-36.avif";
 import p40 from "../../../assets/images/cottages/ravenswood-03/photo-40.avif";
 import p42 from "../../../assets/images/cottages/ravenswood-03/photo-42.avif";
+import kitchenSink from "../../../assets/images/cottages/ravenswood-03/henrietta-kitchen-sink.jpg";
+import kitchenCabinets from "../../../assets/images/cottages/ravenswood-03/henrietta-kitchen-cabinets.jpg";
+import kitchenRange from "../../../assets/images/cottages/ravenswood-03/henrietta-kitchen-range.jpg";
 import exteriorFront from "../../../assets/images/cottages/ravenswood-03/henrietta-exterior-front.avif";
 import exterior02 from "../../../assets/images/cottages/ravenswood-03/henrietta-exterior-02.avif";
 import exterior03 from "../../../assets/images/cottages/ravenswood-03/henrietta-exterior-03.avif";
 import exterior04 from "../../../assets/images/cottages/ravenswood-03/henrietta-exterior-04.avif";
 import exterior05 from "../../../assets/images/cottages/ravenswood-03/henrietta-exterior-05.avif";
+import exteriorStreetView from "../../../assets/images/cottages/ravenswood-03/henrietta-exterior-street-view.jpg";
 import laundryWasher from "../../../assets/images/cottages/ravenswood-03/unique/available-img-428-c44a6dc5bc-648x470.avif";
 import blueBath from "../../../assets/images/cottages/ravenswood-03/unique/ravenswood-henrietta-cottage-img-250-6435685889-648x470.avif";
 import stripedRoomDoor from "../../../assets/images/cottages/ravenswood-03/unique/ravenswood-henrietta-cottage-img-290-88a4997131-648x470.avif";
@@ -49,6 +53,11 @@ const photos = {
     alt: "Exterior view of the house and garden walk, showing the front porch, landscaping and street",
     caption: "The house and garden walk.",
   },
+  exteriorStreetView: {
+    src: exteriorStreetView,
+    alt: "Wide exterior view of the green clapboard cottage, its covered porches and garden beds, with the front entrance and neighboring homes along the street",
+    caption: "The cottage and its covered porches from the street.",
+  },
   dining: {
     src: p17,
     alt: "Dining room with light blue walls, an oval dark-wood table with burgundy upholstered chairs, a bookcase, a tall mirror and hardwood floor",
@@ -78,6 +87,22 @@ const photos = {
     src: kitchenWide,
     alt: "Wide view of the kitchen with oak cabinets, a white refrigerator and dishwasher, a gray-green hutch with a plate rack, a pine table with white chairs and stairs at right",
     caption: "Refrigerator, dishwasher and a hutch with dish storage.",
+  },
+  kitchenSink: {
+    src: kitchenSink,
+    alt: "Kitchen sink and counter beneath wide windows, with a high-arc faucet, dish rack, blender and cooking utensils",
+    caption: "The sink and counter beneath the kitchen windows.",
+  },
+  kitchenCabinets: {
+    src: kitchenCabinets,
+    alt: "Kitchen with oak cabinets, a white refrigerator and a glimpse of the dining table beneath pendant lights",
+    caption: "Oak cabinets and the refrigerator beside the dining area.",
+  },
+  kitchenRange: {
+    src: kitchenRange,
+    alt: "White gas range beneath a white hood, with oak cabinets, a coffee maker, a floral kettle and cooking utensils on the counter",
+    caption: "The gas range and hood, with everyday appliances on the counter.",
+    fit: "contain",
   },
   piano: {
     src: p13,
@@ -170,7 +195,7 @@ export const henriettaHome: HomeMicrosite = {
       slug: "exterior",
       name: "Exterior",
       summary: "A two-storey green clapboard house with a white columned entry porch, a garden walk and a lawn.",
-      photos: [photos.front, photos.exterior02, photos.exterior03, photos.exterior04, photos.exterior05],
+      photos: [photos.front, photos.exteriorStreetView, photos.exterior02, photos.exterior03, photos.exterior04, photos.exterior05],
       notes: [
         { text: "Green clapboard siding with white trim and dark shutters.", status: "photographed" },
         { text: "White columned entry porch with steps and a black metal arbor over the front walk.", status: "photographed" },
@@ -213,7 +238,7 @@ export const henriettaHome: HomeMicrosite = {
       slug: "kitchen",
       name: "Kitchen",
       summary: "An oak-cabinet kitchen with a gas range and an eat-in table.",
-      photos: [photos.kitchen, photos.kitchenWide, photos.piano],
+      photos: [photos.kitchen, photos.kitchenWide, photos.kitchenSink, photos.kitchenCabinets, photos.kitchenRange, photos.piano],
       notes: [
         { text: "Gas range, white refrigerator with ice dispenser and a dishwasher.", status: "photographed" },
         { text: "Pine table with white spindle chairs.", status: "photographed" },
