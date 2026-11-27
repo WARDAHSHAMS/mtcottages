@@ -9,6 +9,10 @@ import p31 from "../../../assets/images/cottages/ravenswood-03/photo-31.avif";
 import p36 from "../../../assets/images/cottages/ravenswood-03/photo-36.avif";
 import p40 from "../../../assets/images/cottages/ravenswood-03/photo-40.avif";
 import p42 from "../../../assets/images/cottages/ravenswood-03/photo-42.avif";
+import bedroom1Photo01 from "../../../assets/images/cottages/ravenswood-03/henrietta-bedroom-1-01.jpg";
+import bedroom1Photo02 from "../../../assets/images/cottages/ravenswood-03/henrietta-bedroom-1-02.jpg";
+import bedroom1Photo03 from "../../../assets/images/cottages/ravenswood-03/henrietta-bedroom-1-03.jpg";
+import bedroom1Photo04 from "../../../assets/images/cottages/ravenswood-03/henrietta-bedroom-1-04.jpg";
 import kitchenSink from "../../../assets/images/cottages/ravenswood-03/henrietta-kitchen-sink.jpg";
 import kitchenCabinets from "../../../assets/images/cottages/ravenswood-03/henrietta-kitchen-cabinets.jpg";
 import kitchenRange from "../../../assets/images/cottages/ravenswood-03/henrietta-kitchen-range.jpg";
@@ -119,6 +123,26 @@ const photos = {
     alt: "Bedroom from the foot of the bed, showing the bed with gray bedding, a lamp on a nightstand, a large mirror, a shelving unit and a window",
     caption: "The same bedroom from the opposite corner.",
   },
+  bedroom1Angle: {
+    src: bedroom1Photo01,
+    alt: "Bedroom 1 with a bed, gray patterned bedding, striped walls, a curtained window and a wall clock",
+    caption: "Bedroom 1, with a bed and striped walls.",
+  },
+  bedroom1Bed: {
+    src: bedroom1Photo02,
+    alt: "Bedroom 1 viewed from the foot of the bed, showing gray patterned bedding, striped walls, a curtained window and bedside tables",
+    caption: "The bed and window in Bedroom 1.",
+  },
+  bedroom1Desk: {
+    src: bedroom1Photo03,
+    alt: "Bedroom 1 with a wall-mounted television, desk, rolling chair and striped walls",
+    caption: "Desk and television in Bedroom 1.",
+  },
+  bedroom1Fireplace: {
+    src: bedroom1Photo04,
+    alt: "Bedroom 1 fireplace with a white mantel, green inset wall and striped wallpaper",
+    caption: "The fireplace and mantel in Bedroom 1.",
+  },
   bath: {
     src: p04,
     alt: "Bathroom with marbled gold wallpaper, a toilet, a tub-shower behind a floral curtain, a wooden peg rack and a built-in linen cabinet with folded towels",
@@ -148,7 +172,7 @@ export const henriettaHome: HomeMicrosite = {
   town: { name: "Ravenswood", state: "WV", slug: "ravenswood" },
   tagline: "A two-bedroom furnished home with a blue dining room, a columned front porch and a lawn in a quiet river town.",
   summary:
-    "Henrietta Cottage is a furnished two-bedroom home in Ravenswood. Inside, the photos show a blue dining room with an oval table, a striped-wallpaper room with a round table, an oak-cabinet kitchen with a gas range and an eat-in table, a furnished bedroom, and two bathrooms. Outside, the green clapboard front has a white columned entry porch and a garden walk, and there is a lawn with a fence and trees. Details that are not yet confirmed are marked on this page.",
+    "Henrietta Cottage is a furnished two-bedroom home in Ravenswood. Inside, the photos show a blue dining room with an oval table, a striped-wallpaper room with a round table, an oak-cabinet kitchen with a gas range and an eat-in table, two furnished bedrooms, and two bathrooms. Outside, the green clapboard front has a white columned entry porch and a garden walk, and there is a lawn with a fence and trees. Details that are not yet confirmed are marked on this page.",
   address: {
     kind: "street",
     streetAddress: "200 Henrietta St",
@@ -181,7 +205,7 @@ export const henriettaHome: HomeMicrosite = {
     { label: "Address", value: "200 Henrietta St, Ravenswood, WV 26164", status: "confirmed" },
     { label: "Bedrooms", value: "2", status: "listed" },
     { label: "Furnishing", value: "Furnished", status: "listed" },
-    { label: "Bedrooms photographed", value: "One of the two bedrooms (two angles)", status: "photographed" },
+    { label: "Bedrooms photographed", value: "Both bedrooms", status: "photographed" },
     { label: "Bathrooms", value: "Two bathrooms appear in the photos; the official count is to be confirmed", status: "confirm" },
     { label: "Levels", value: "A staircase is visible beside the kitchen, so the home has more than one level; layout to be confirmed", status: "photographed" },
     { label: "Internet", value: "Fiber-optic internet is the Mt Cottages standard; confirm for this home", status: "confirm" },
@@ -254,18 +278,29 @@ export const henriettaHome: HomeMicrosite = {
       ],
     },
     {
-      slug: "bedroom",
-      name: "Bedroom",
-      summary: "A furnished bedroom with built-in shelving and plenty of light.",
+      slug: "bedroom-1",
+      name: "Bedroom 1",
+      summary: "A furnished bedroom with striped walls, a bed, a desk and a fireplace.",
+      photos: [photos.bedroom1Angle, photos.bedroom1Bed, photos.bedroom1Desk, photos.bedroom1Fireplace],
+      notes: [
+        { text: "Bed with gray patterned bedding.", status: "photographed" },
+        { text: "Desk, rolling chair and wall-mounted television.", status: "photographed" },
+        { text: "Fireplace with a white mantel.", status: "photographed" },
+        { text: "Bed size.", status: "confirm" },
+      ],
+    },
+    {
+      slug: "bedroom-2",
+      name: "Bedroom 2",
+      summary: "A furnished bedroom with built-in shelving and two windows.",
       photos: [photos.bedroom, photos.bedroomMirror],
       notes: [
         { text: "Bed with gray bedding and a nightstand with a lamp.", status: "photographed" },
         { text: "Built-in shelving unit, large mirror and two windows.", status: "photographed" },
         { text: "Bed size.", status: "confirm" },
-        { text: "The second bedroom has not been photographed yet.", status: "confirm" },
       ],
       faqs: [
-        { q: "How many bedrooms are there?", a: "Two, per the listing. One is photographed here; ask us about the second and the bed sizes.", status: "listed" },
+        { q: "How many bedrooms are there?", a: "Two, per the listing. Photos show both bedrooms; ask us to confirm the bed sizes.", status: "listed" },
         { q: "Is there storage in the bedroom?", a: "Yes. A built-in shelving unit, a nightstand and a large mirror are photographed.", status: "photographed" },
       ],
     },
@@ -329,7 +364,8 @@ export const henriettaHome: HomeMicrosite = {
       group: "Sleeping",
       items: [
         { name: "Two private bedrooms", status: "listed" },
-        { name: "Furnished bedroom with shelving", status: "photographed" },
+        { name: "Bedroom 1 with a desk and fireplace", status: "photographed" },
+        { name: "Bedroom 2 with shelving", status: "photographed" },
         { name: "Bed sizes", status: "confirm" },
       ],
     },
@@ -388,7 +424,7 @@ export const henriettaHome: HomeMicrosite = {
       {
         name: "Upper level (concept)",
         rooms: [
-          { id: "bed1", label: "Bedroom", kind: "bedroom", x: 0, y: 0, w: 16, h: 14 },
+          { id: "bed1", label: "Bedroom 1", kind: "bedroom", x: 0, y: 0, w: 16, h: 14 },
           { id: "stairs-up", label: "Stairs", kind: "stairs", x: 16, y: 0, w: 4, h: 14 },
           { id: "bed2", label: "Bedroom 2", kind: "bedroom", x: 20, y: 0, w: 12, h: 14 },
           { id: "bath-tub", label: "Bath", kind: "bath", x: 0, y: 14, w: 10, h: 8 },
